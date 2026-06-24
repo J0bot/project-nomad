@@ -1,0 +1,29 @@
+# ============================================================================
+# Overlay compose : ajoute le xerboxion-core à la stack Project N.O.M.A.D.
+# Usage (alpha) :
+#   docker compose -f install/management_compose.yaml \
+#                  -f xerboxion/docker-compose.xerboxion.yaml up -d
+# Le xer devient accessible sur http://DEVICE_IP:8730/xer (à côté du Command
+# Center NOMAD sur :8080). Même réseau compose par défaut => le xer peut, plus
+# tard, atteindre les services NOMAD par leur nom (admin, mysql, redis, kiwix…).
+# ============================================================================
+services:
+  xerboxion:
+    build:
+      context: ./xerboxion
+      dockerfile: Dockerfile
+    # image: ghcr.io/j0bot/xerboxion-core:alpha   # (à publier pour l'install one-click)
+    container_name: nomad_xerboxion
+    restart: unless-stopped
+    ports:
+      - "8730:8730"
+    volumes:
+      - xerboxion-state:/data/state
+    environment:
+      # vide = lectures publiques du store, écritures fermées ; mettre un secret pour ouvrir l'écriture
+      - XER_STORE_TOKEN=
+    # offline-first : aucune dépendance de démarrage obligatoire
+
+volumes:
+  xerboxion-state:
+    driver: local
