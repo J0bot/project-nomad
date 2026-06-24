@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-repoverse-adapter"
+description = "Pure-WASM service adapter: with net.fetch it plc_fetches the LIVE repoverse /api/repos, emits repo.list + per-repo repo.item, and records each repo as a tsoin.record frame onto the bus"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk", features = ["net-fetch"] }

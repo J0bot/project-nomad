@@ -1,0 +1,15 @@
+[package]
+name = "ploxion-sdk"
+description = "Tiny PLC SDK for writing WASM ploxions (alloc/manifest/emit/log glue)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+# Off by default: a ploxion only references the gated `plc_fetch` host import
+# when it opts in. Enable it AND declare `"net.fetch"` in the manifest together.
+default = []
+net-fetch = []

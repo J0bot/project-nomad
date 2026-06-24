@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-xerbion-bit"
+description = "WASM ploxion: le xerbion TERNAIRE (BitNet b1.58). Memes maths que xerbion mais poids forward quantifies en {-1,0,+1} (absmean) + backprop STE. Valide si letre apprend encore en 1-bit."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

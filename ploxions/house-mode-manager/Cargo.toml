@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-house-mode-manager"
+description = "WASM ploxion: la feature MAISON brain/mode (cubion). FSM VITALE qui ecoute presence+mode.set et BROADCAST house.mode.state (absent/present/urgence/nuit) via le champ mode=label decide. Residu pur (HouseDef) + house_ploxion! du SDK."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

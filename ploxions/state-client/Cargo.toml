@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-state-client"
+description = "Client ploxion: records a few evolving states via the bus, then replays an early one and asserts the replayed bytes match the original (bit-exact across the bus + WASM boundary)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

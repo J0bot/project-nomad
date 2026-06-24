@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!--
+  monde · ton OpenSCAD-en-bions (José) — un petit monde 3D où tu construis avec des CUBES (des
+  block-bions, toujours les mêmes). Orbite libre (la perspective que tu veux), clic = poser un cube
+  sur la face visée, clic-droit/effacer = enlever. Juste construire, oklm, sans réfléchir. WebGL pur,
+  zéro dépendance, déterministe. Sauvegarde locale + dans le store du cœur. Mobile-first (tactile).
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>monde</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;overflow:hidden;touch-action:none}
+  #c{display:block;width:100%;height:100%}
+  .hud{position:fixed;left:10px;top:10px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;z-index:5}
+  .pal{display:flex;gap:5px;background:rgba(12,19,32,.8);border:1px solid var(--line);border-radius:12px;padding:5px;backdrop-filter:blur(8px)}
+  .sw{width:26px;height:26px;border-radius:7px;cursor:pointer;border:2px solid transparent}
+  .sw.on{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4)}
+  .tool{background:rgba(12,19,32,.8);border:1px solid var(--line);border-radius:12px;padding:5px;display:flex;gap:5px;backdrop-filter:blur(8px)}
+  .b{min-width:32px;height:32px;padding:0 9px;border-radius:8px;border:1px solid var(--line);background:rgba(20,28,42,.6);color:var(--ink);cursor:pointer;font-size:.78rem;display:grid;place-items:center}
+  .b.on{border-color:var(--acc);color:var(--acc)} .b:active{transform:scale(.95)}
+  .hint{position:fixed;left:10px;bottom:10px;font-size:.64rem;color:var(--dim);background:rgba(12,19,32,.7);border:1px solid var(--line);border-radius:9px;padding:5px 9px;backdrop-filter:blur(6px)}
+  .cnt{position:fixed;right:10px;top:10px;font-size:.66rem;color:var(--dim);font-family:ui-monospace,monospace;background:rgba(12,19,32,.7);border:1px solid var(--line);border-radius:9px;padding:5px 9px}
+</style></head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="hud">
+    <div class="pal" id="pal"></div>
+    <div class="tool">
+      <button class="b" id="mPlace" title="poser (P)">🧱</button>
+      <button class="b" id="mErase" title="effacer (E / clic-droit)">🗑️</button>
+      <button class="b" id="save" title="sauver">💾</button>
+      <button class="b" id="clear" title="tout effacer">✨</button>
+    </div>
+  </div>
+  <div class="cnt" id="cnt">0 cubes</div>
+  <div class="hint" id="hint">glisse = tourner · 2 doigts / molette = zoom · clic = poser · clic-droit = enlever</div>
+<script>
+"use strict";
+// ============ maths 4x4 ============
+function mIdent(){ return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]; }
+function mMul(a,b){ var o=new Array(16);
+  for(var r=0;r<4;r++)for(var c=0;c<4;c++){ var s=0; for(var k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; } return o; }
+function mPersp(fov,asp,n,f){ var t=1/Math.tan(fov/2); return [t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,(2*f*n)/(n-f),0]; }
+function vSub(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+function vCross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function vNorm(a){ var l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l]; }
+function vDot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function mLookAt(eye,ctr,up){
+  var f=vNorm(vSub(ctr,eye)), s=vNorm(vCross(f,up)), u=vCross(s,f);
+  return [ s[0],u[0],-f[0],0, s[1],u[1],-f[1],0, s[2],u[2],-f[2],0,
+    -vDot(s,eye),-vDot(u,eye),vDot(f,eye),1 ];
+}
+function mInv(m){ // inverse 4x4 (Gauss) — pour l'unproject
+  var inv=new Array(16), i; var a=m;
+  inv[0]=a[5]*a[10]*a[15]-a[5]*a[11]*a[14]-a[9]*a[6]*a[15]+a[9]*a[7]*a[14]+a[13]*a[6]*a[11]-a[13]*a[7]*a[10];
+  inv[4]=-a[4]*a[10]*a[15]+a[4]*a[11]*a[14]+a[8]*a[6]*a[15]-a[8]*a[7]*a[14]-a[12]*a[6]*a[11]+a[12]*a[7]*a[10];
+  inv[8]=a[4]*a[9]*a[15]-a[4]*a[11]*a[13]-a[8]*a[5]*a[15]+a[8]*a[7]*a[13]+a[12]*a[5]*a[11]-a[12]*a[7]*a[9];
+  inv[12]=-a[4]*a[9]*a[14]+a[4]*a[10]*a[13]+a[8]*a[5]*a[14]-a[8]*a[6]*a[13]-a[12]*a[5]*a[10]+a[12]*a[6]*a[9];
+  inv[1]=-a[1]*a[10]*a[15]+a[1]*a[11]*a[14]+a[9]*a[2]*a[15]-a[9]*a[3]*a[14]-a[13]*a[2]*a[11]+a[13]*a[3]*a[10];
+  inv[5]=a[0]*a[10]*a[15]-a[0]*a[11]*a[14]-a[8]*a[2]*a[15]+a[8]*a[3]*a[14]+a[12]*a[2]*a[11]-a[12]*a[3]*a[10];
+  inv[9]=-a[0]*a[9]*a[15]+a[0]*a[11]*a[13]+a[8]*a[1]*a[15]-a[8]*a[3]*a[13]-a[12]*a[1]*a[11]+a[12]*a[3]*a[9];
+  inv[13]=a[0]*a[9]*a[14]-a[0]*a[10]*a[13]-a[8]*a[1]*a[14]+a[8]*a[2]*a[13]+a[12]*a[1]*a[10]-a[12]*a[2]*a[9];
+  inv[2]=a[1]*a[6]*a[15]-a[1]*a[7]*a[14]-a[5]*a[2]*a[15]+a[5]*a[3]*a[14]+a[13]*a[2]*a[7]-a[13]*a[3]*a[6];
+  inv[6]=-a[0]*a[6]*a[15]+a[0]*a[7]*a[14]+a[4]*a[2]*a[15]-a[4]*a[3]*a[14]-a[12]*a[2]*a[7]+a[12]*a[3]*a[6];
+  inv[10]=a[0]*a[5]*a[15]-a[0]*a[7]*a[13]-a[4]*a[1]*a[15]+a[4]*a[3]*a[13]+a[12]*a[1]*a[7]-a[12]*a[3]*a[5];
+  inv[14]=-a[0]*a[5]*a[14]+a[0]*a[6]*a[13]+a[4]*a[1]*a[14]-a[4]*a[2]*a[13]-a[12]*a[1]*a[6]+a[12]*a[2]*a[5];
+  inv[3]=-a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];
+  inv[7]=a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
+  inv[11]=-a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];
+  inv[15]=a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
+  var det=a[0]*inv[0]+a[1]*inv[4]+a[2]*inv[8]+a[3]*inv[12]; if(!det) return mIdent(); det=1/det;
+  for(i=0;i<16;i++) inv[i]*=det; return inv;
+}
+function mulVec(m,v){ var o=[0,0,0,0]; for(var r=0;r<4;r++){ o[r]=m[r]*v[0]+m[4+r]*v[1]+m[8+r]*v[2]+m[12+r]*v[3]; } return o; }
+
+// ============ WebGL ============
+var cv=document.getElementById('c');
+var gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+if(!gl){ document.body.innerHTML='<div style="padding:30px;color:#fff">WebGL indisponible sur ce navigateur.</div>'; }
+function sh(type,src){ var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+var prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,
+  'attribute vec3 p;attribute vec3 n;attribute vec3 col;uniform mat4 mvp;varying vec3 vc;varying vec3 vn;'+
+  'void main(){vc=col;vn=n;gl_Position=mvp*vec4(p,1.0);}'));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,
+  'precision mediump float;varying vec3 vc;varying vec3 vn;'+
+  'void main(){float l=0.55+0.45*max(dot(normalize(vn),normalize(vec3(0.4,0.9,0.3))),0.0);gl_FragColor=vec4(vc*l,1.0);}'));
+gl.linkProgram(prog); gl.useProgram(prog);
+var aP=gl.getAttribLocation(prog,'p'), aN=gl.getAttribLocation(prog,'n'), aC=gl.getAttribLocation(prog,'col'), uMVP=gl.getUniformLocation(prog,'mvp');
+gl.enable(gl.DEPTH_TEST);
+var buf=gl.createBuffer(), vertCount=0;
+// buffer du sol (grille)
+var gridBuf=gl.createBuffer(), gridCount=0;
+
+// ============ état du monde ============
+var COLORS=[[0.42,0.82,0.55],[0.42,0.55,0.95],[0.72,0.55,1.0],[0.95,0.78,0.42],[0.95,0.48,0.55],[0.95,0.95,0.95],[0.32,0.36,0.45],[0.55,0.4,0.28]];
+var COLHEX=['#6ad08c','#6a8cf2','#b88dff','#f2c66a','#f27a8a','#f2f2f2','#525c73','#8c6647'];
+var S={ vox:{}, color:0, mode:'place' };
+function key(x,y,z){ return x+','+y+','+z; }
+function setVox(x,y,z,c){ if(c<0) delete S.vox[key(x,y,z)]; else S.vox[key(x,y,z)]=c; rebuild(); saveSoon(); }
+
+// faces d'un cube : normal + 4 coins (CCW)
+var FACES=[
+  {n:[0,1,0],  v:[[0,1,0],[0,1,1],[1,1,1],[1,1,0]]},   // top
+  {n:[0,-1,0], v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]]},   // bottom
+  {n:[1,0,0],  v:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]]},   // +x
+  {n:[-1,0,0], v:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]]},   // -x
+  {n:[0,0,1],  v:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]]},   // +z
+  {n:[0,0,-1], v:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]]}    // -z
+];
+function rebuild(){
+  var data=[];
+  for(var k in S.vox){ var p=k.split(',').map(Number); var x=p[0],y=p[1],z=p[2]; var c=COLORS[S.vox[k]]||COLORS[0];
+    for(var f=0;f<6;f++){ var F=FACES[f]; var nx=x+F.n[0],ny=y+F.n[1],nz=z+F.n[2];
+      if(S.vox[key(nx,ny,nz)]!==undefined) continue;  // face cachée -> on skip
+      var q=F.v, n=F.n; var tri=[0,1,2,0,2,3];
+      for(var t=0;t<6;t++){ var vv=q[tri[t]]; data.push(x+vv[0],y+vv[1],z+vv[2], n[0],n[1],n[2], c[0],c[1],c[2]); }
+    }
+  }
+  vertCount=data.length/9;
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);
+  document.getElementById('cnt').textContent=Object.keys(S.vox).length+' cubes';
+}
+function buildGrid(){
+  var d=[],N=16,c=[0.18,0.24,0.34];
+  for(var i=-N;i<=N;i++){ d.push(i,0,-N, 0,1,0, c[0],c[1],c[2], i,0,N, 0,1,0, c[0],c[1],c[2]);
+    d.push(-N,0,i, 0,1,0, c[0],c[1],c[2], N,0,i, 0,1,0, c[0],c[1],c[2]); }
+  gridCount=d.length/9; gl.bindBuffer(gl.ARRAY_BUFFER,gridBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);
+}
+
+// ============ caméra ============
+var cam={ yaw:0.7, pitch:0.6, dist:24, tx:0, ty:0, tz:0 };
+function camEye(){ var cp=Math.cos(cam.pitch); return [ cam.tx+cam.dist*cp*Math.sin(cam.yaw), cam.ty+cam.dist*Math.sin(cam.pitch), cam.tz+cam.dist*cp*Math.cos(cam.yaw) ]; }
+function matrices(){ var asp=cv.width/cv.height||1; var P=mPersp(1.0,asp,0.1,400); var V=mLookAt(camEye(),[cam.tx,cam.ty,cam.tz],[0,1,0]); return {mvp:mMul(P,V),inv:mInv(mMul(P,V))}; }
+
+function draw(){
+  resize();
+  gl.clearColor(0.027,0.04,0.06,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  var M=matrices(); gl.uniformMatrix4fv(uMVP,false,M.mvp);
+  // sol
+  gl.bindBuffer(gl.ARRAY_BUFFER,gridBuf); bindAttribs();
+  gl.drawArrays(gl.LINES,0,gridCount);
+  // cubes
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf); bindAttribs();
+  gl.drawArrays(gl.TRIANGLES,0,vertCount);
+}
+function bindAttribs(){
+  gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP,3,gl.FLOAT,false,36,0);
+  gl.enableVertexAttribArray(aN); gl.vertexAttribPointer(aN,3,gl.FLOAT,false,36,12);
+  gl.enableVertexAttribArray(aC); gl.vertexAttribPointer(aC,3,gl.FLOAT,false,36,24);
+}
+function resize(){ var dpr=Math.min(window.devicePixelRatio||1,2); var w=cv.clientWidth*dpr|0, h=cv.clientHeight*dpr|0;
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; gl.viewport(0,0,w,h); } }
+
+// ============ raycast (clic -> cube/face) ============
+function rayFrom(mx,my){
+  var M=matrices(); var x=(mx/cv.clientWidth)*2-1, y=1-(my/cv.clientHeight)*2;
+  var pn=mulVec(M.inv,[x,y,-1,1]), pf=mulVec(M.inv,[x,y,1,1]);
+  for(var i=0;i<3;i++){ pn[i]/=pn[3]; pf[i]/=pf[3]; }
+  var o=[pn[0],pn[1],pn[2]], d=vNorm(vSub([pf[0],pf[1],pf[2]],o));
+  return {o:o,d:d};
+}
+function pick(mx,my){
+  var r=rayFrom(mx,my), o=r.o, d=r.d;
+  // DDA voxel (Amanatides-Woo) borné
+  var x=Math.floor(o[0]),y=Math.floor(o[1]),z=Math.floor(o[2]);
+  var sx=d[0]>0?1:-1, sy=d[1]>0?1:-1, sz=d[2]>0?1:-1;
+  var tdx=d[0]?Math.abs(1/d[0]):1e9, tdy=d[1]?Math.abs(1/d[1]):1e9, tdz=d[2]?Math.abs(1/d[2]):1e9;
+  function tmax(p,dd,s){ if(!dd) return 1e9; var b=s>0?Math.floor(p)+1:Math.floor(p); return Math.abs((b-p)/dd); }
+  var mxX=tmax(o[0],d[0],sx), mxY=tmax(o[1],d[1],sy), mxZ=tmax(o[2],d[2],sz);
+  var nx=0,ny=0,nz=0;
+  for(var s=0;s<160;s++){
+    if(S.vox[key(x,y,z)]!==undefined) return {hit:[x,y,z], nrm:[nx,ny,nz]};
+    if(mxX<mxY&&mxX<mxZ){ x+=sx; mxX+=tdx; nx=-sx;ny=0;nz=0; }
+    else if(mxY<mxZ){ y+=sy; mxY+=tdy; nx=0;ny=-sy;nz=0; }
+    else { z+=sz; mxZ+=tdz; nx=0;ny=0;nz=-sz; }
+    if(y<-1&&d[1]<0) break;
+  }
+  // pas de cube touché -> intersection avec le sol y=0
+  if(d[1]!==0){ var t=-o[1]/d[1]; if(t>0){ var gx=Math.floor(o[0]+d[0]*t), gz=Math.floor(o[2]+d[2]*t); if(Math.abs(gx)<=16&&Math.abs(gz)<=16) return {ground:[gx,0,gz]}; } }
+  return null;
+}
+function act(mx,my,erase){
+  var p=pick(mx,my); if(!p) return;
+  if(p.ground){ if(!erase) setVox(p.ground[0],p.ground[1],p.ground[2],S.color); return; }
+  if(erase){ setVox(p.hit[0],p.hit[1],p.hit[2],-1); }
+  else { var n=p.nrm; setVox(p.hit[0]+n[0],p.hit[1]+n[1],p.hit[2]+n[2],S.color); }
+}
+
+// ============ contrôles (souris + tactile) ============
+var drag=null;
+cv.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+cv.addEventListener('mousedown',function(e){ drag={x:e.clientX,y:e.clientY,moved:false,btn:e.button,pan:e.shiftKey||e.button===1}; });
+window.addEventListener('mousemove',function(e){ if(!drag)return; var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true;
+  if(drag.pan){ var sp=cam.dist*0.0016; cam.tx-=Math.cos(cam.yaw)*dx*sp; cam.tz+=Math.sin(cam.yaw)*dx*sp; cam.ty+=dy*sp; }
+  else { cam.yaw-=dx*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+dy*0.008)); }
+  drag.x=e.clientX; drag.y=e.clientY; });
+window.addEventListener('mouseup',function(e){ if(drag&&!drag.moved){ var r=cv.getBoundingClientRect();
+  act(e.clientX-r.left,e.clientY-r.top, drag.btn===2||S.mode==='erase'); } drag=null; });
+cv.addEventListener('wheel',function(e){ e.preventDefault(); cam.dist=Math.max(3,Math.min(120,cam.dist*(e.deltaY>0?1.1:0.9))); },{passive:false});
+// tactile
+var touch=null,pinch=0;
+cv.addEventListener('touchstart',function(e){ if(e.touches.length===1){ var t=e.touches[0]; touch={x:t.clientX,y:t.clientY,moved:false,sx:t.clientX,sy:t.clientY,t0:Date.now()}; }
+  else if(e.touches.length===2){ pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } },{passive:false});
+cv.addEventListener('touchmove',function(e){ e.preventDefault();
+  if(e.touches.length===2){ var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(pinch) cam.dist=Math.max(3,Math.min(120,cam.dist*(pinch/d))); pinch=d; return; }
+  if(touch&&e.touches.length===1){ var t=e.touches[0],dx=t.clientX-touch.x,dy=t.clientY-touch.y; if(Math.abs(t.clientX-touch.sx)+Math.abs(t.clientY-touch.sy)>6) touch.moved=true;
+    cam.yaw-=dx*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+dy*0.008)); touch.x=t.clientX; touch.y=t.clientY; } },{passive:false});
+cv.addEventListener('touchend',function(e){ if(touch&&!touch.moved&&Date.now()-touch.t0<400){ var r=cv.getBoundingClientRect(); act(touch.sx-r.left,touch.sy-r.top, S.mode==='erase'); } touch=null; pinch=0; },{passive:false});
+
+// ============ UI ============
+var pal=document.getElementById('pal');
+COLHEX.forEach(function(h,i){ var d=document.createElement('div'); d.className='sw'+(i===0?' on':''); d.style.background=h;
+  d.onclick=function(){ S.color=i; S.mode='place'; syncTool(); pal.querySelectorAll('.sw').forEach(function(s,j){ s.classList.toggle('on',j===i); }); };
+  pal.appendChild(d); });
+function syncTool(){ document.getElementById('mPlace').classList.toggle('on',S.mode==='place'); document.getElementById('mErase').classList.toggle('on',S.mode==='erase'); }
+document.getElementById('mPlace').onclick=function(){ S.mode='place'; syncTool(); };
+document.getElementById('mErase').onclick=function(){ S.mode='erase'; syncTool(); };
+document.getElementById('clear').onclick=function(){ if(confirm('tout effacer ?')){ S.vox={}; rebuild(); saveSoon(); } };
+document.getElementById('save').onclick=function(){ saveNow(); var h=document.getElementById('hint'); h.textContent='sauvegardé ✓'; setTimeout(function(){h.textContent='glisse=tourner · clic=poser · clic-droit=enlever';},1500); };
+window.addEventListener('keydown',function(e){ if(e.key==='p'||e.key==='P'){S.mode='place';syncTool();} if(e.key==='e'||e.key==='E'){S.mode='erase';syncTool();}
+  var n=parseInt(e.key); if(n>=1&&n<=8){ S.color=n-1; pal.querySelectorAll('.sw').forEach(function(s,j){s.classList.toggle('on',j===n-1);}); } });
+syncTool();
+
+// ============ sauvegarde (local + store du cœur) ============
+var KEY='xer.monde';
+function snapshot(){ return { vox:S.vox, cam:cam }; }
+function saveNow(){ try{ localStorage.setItem(KEY,JSON.stringify(snapshot())); }catch(e){} }
+var saveT=null; function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(saveNow,1200); }
+(function load(){ try{ var d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.vox){ S.vox=d.vox; if(d.cam) cam=d.cam; } }catch(e){}
+  if(!Object.keys(S.vox).length){ for(var x=-3;x<=3;x++)for(var z=-3;z<=3;z++) S.vox[key(x,0,z)]=0; } // un petit sol de départ
+})();
+
+buildGrid(); rebuild();
+(function loop(){ draw(); requestAnimationFrame(loop); })();
+</script>
+</body></html>

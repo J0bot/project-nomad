@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+  web-ram/index.html — le ploxion BION RAM, servi par le core à /px/ram/. José : « un ploxion sur
+  bion RAM ». La RAM de l'hôte est poussée sur le bus xion (topic `sys.ram`, par xerb/sys-ram.py)
+  toutes les ~20 s ; ce ploxion s'y abonne (same-origin /events) et l'affiche live : jauge, swap,
+  et qui mange la RAM (top RSS — utile pour voir MC / la flotte). « Le xer connecté au xion. »
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RAM · bion</title>
+<style>
+  :root{--bg:#070a0f;--ink:#dfe8f0;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--ok:#5ce08c;--warn:#e7c66a;--ko:#e87a6a;--acc:#6ad0ff}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(700px 400px at 80% -8%,rgba(60,90,150,.16),transparent 60%),var(--bg);
+    color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif;font-size:.85rem;display:flex;flex-direction:column;height:100dvh}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  header b{color:#fff} .live{margin-left:auto;font-size:.6rem;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .live.on{color:var(--ok);border-color:rgba(92,224,140,.45)}
+  main{flex:1;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .big{font-size:2.4rem;font-weight:800;color:#fff;line-height:1} .big small{font-size:1rem;color:var(--dim);font-weight:500}
+  .gauge{height:16px;border-radius:9px;background:rgba(20,28,42,.7);overflow:hidden;border:1px solid var(--line);margin-top:8px}
+  .gauge>i{display:block;height:100%;transition:width .5s,background .5s}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .card{flex:1;min-width:130px;background:rgba(14,20,30,.7);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .lab{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin-bottom:3px}
+  .val{font-size:1.2rem;font-weight:700;color:#fff} .val small{font-size:.7rem;color:var(--dim);font-weight:500}
+  .top{background:rgba(14,20,30,.7);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .te{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:.8rem}
+  .te .nm{font-family:ui-monospace,monospace;color:var(--ink)} .te .mb{margin-left:auto;color:var(--dim);font-family:ui-monospace,monospace;font-size:.74rem}
+  .bar{flex:1;height:6px;border-radius:4px;background:rgba(20,28,42,.8);overflow:hidden;max-width:160px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2,#b88dff))}
+  .ts{font-size:.62rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+  <header><span style="font-size:1.1rem">🧠</span><b>RAM</b><span class="live" id="live">·</span></header>
+  <main>
+    <div>
+      <div class="big"><span id="pct">–</span><small> % utilisé</small></div>
+      <div class="gauge"><i id="g" style="width:0%"></i></div>
+      <div class="ts" style="text-align:left;margin-top:5px" id="sub">en attente de sys.ram…</div>
+    </div>
+    <div class="row">
+      <div class="card"><div class="lab">disponible</div><div class="val" id="avail">–<small> Mo</small></div></div>
+      <div class="card"><div class="lab">utilisée</div><div class="val" id="used">–<small> Mo</small></div></div>
+      <div class="card"><div class="lab">swap</div><div class="val" id="swap">–<small> Mo</small></div></div>
+    </div>
+    <div class="top">
+      <div class="lab" style="margin-bottom:6px">qui mange la RAM (top)</div>
+      <div id="topl"><div class="ts">…</div></div>
+    </div>
+    <div class="ts" id="ts"></div>
+  </main>
+
+<script>
+"use strict";
+var $=function(s){return document.querySelector(s);};
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+function color(p){ return p<70?'var(--ok)':p<88?'var(--warn)':'var(--ko)'; }
+function show(s){
+  var m=s.mem||{}, sw=s.swap||{};
+  $('#pct').textContent=s.pct_used!=null?s.pct_used:'–';
+  $('#g').style.width=(s.pct_used||0)+'%'; $('#g').style.background=color(s.pct_used||0);
+  $('#avail').innerHTML=(m.avail!=null?m.avail:'–')+'<small> Mo</small>';
+  $('#used').innerHTML=(m.used!=null?m.used:'–')+'<small> Mo</small>';
+  $('#swap').innerHTML=(sw.used!=null?sw.used:'–')+'<small> / '+(sw.total||0)+' Mo</small>';
+  $('#sub').textContent=(m.total||'?')+' Mo total · '+(s.pct_avail||0)+'% dispo';
+  var top=s.top||[], max=top.length?top[0].mb:1;
+  $('#topl').innerHTML=top.map(function(t){return '<div class="te"><span class="nm">'+esc(t.name)+'</span>'
+    +'<div class="bar"><i style="width:'+Math.round(100*t.mb/max)+'%"></i></div><span class="mb">'+t.mb+' Mo</span></div>';}).join('')||'<div class="ts">—</div>';
+  $('#ts').textContent='maj '+(s.ts||'');
+}
+var es=new EventSource('/events');
+es.onopen=function(){ $('#live').textContent='live'; $('#live').classList.add('on'); };
+es.onerror=function(){ $('#live').classList.remove('on'); };
+function on(e){ try{ var ev=JSON.parse(e.data); if(ev.kind==='emit'&&ev.topic==='sys.ram'){ show(JSON.parse(ev.payload)); } }catch(_){} }
+['emit'].forEach(function(k){ es.addEventListener(k,on); });
+addEventListener('pagehide',function(){ es.close(); });
+</script>
+</body>
+</html>

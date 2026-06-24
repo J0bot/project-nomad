@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!--
+  veille · la MACHINE À VEILLE (OSIRIS divisé en ploxions+bions, José). Une carte monde +
+  des COUCHES OSINT togglables, où CHAQUE couche est un « bion » = une source publique normalisée
+  ({lat,lon,label,mag,kind,url}) plottée sur la carte. v1 : séismes USGS (live, sans clé). L'archi
+  rend l'ajout d'une couche trivial (un objet LAYERS). Pur client, zéro dépendance, mobile-first.
+  Deeper (prévu) : chaque couche émet sur le bus (osiris.*) via un adapter cœur ; coastline ; 3D.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>veille</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem} .top .sp{flex:1} .top .st{font-size:.64rem;color:var(--dim)}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:4px}.live.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .map{flex:1;min-height:0;position:relative;background:radial-gradient(900px 500px at 50% 40%,#0a1424,#05080d)}
+  svg{width:100%;height:100%;display:block}
+  .grat{stroke:rgba(120,160,230,.10);stroke-width:.3;fill:none}
+  .pt{cursor:pointer}
+  .layers{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:6px}
+  .ly{display:flex;align-items:center;gap:7px;background:rgba(12,19,32,.86);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:.74rem;cursor:pointer;backdrop-filter:blur(6px)}
+  .ly .sw{width:10px;height:10px;border-radius:50%} .ly.off{opacity:.5} .ly .ct{color:var(--dim);font-size:.62rem}
+  .det{position:absolute;bottom:0;left:0;right:0;background:rgba(12,19,32,.95);border-top:1px solid var(--line);padding:11px 14px;transform:translateY(110%);transition:.2s;backdrop-filter:blur(8px)}
+  .det.on{transform:none} .det b{font-size:.92rem} .det .m{font-size:.7rem;color:var(--dim);margin-top:3px} .det a{color:var(--acc);font-size:.72rem}
+  .det .x{position:absolute;top:9px;right:12px;cursor:pointer;color:var(--dim)}
+</style></head>
+<body>
+  <div class="top"><b>🛰️ Veille</b><span class="st"><span class="live" id="live"></span><span id="status">chargement…</span></span><span class="sp"></span><span class="st" id="stamp"></span></div>
+  <div class="map">
+    <svg id="svg" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet">
+      <g id="grat"></g><g id="pts"></g>
+    </svg>
+    <div class="layers" id="layers"></div>
+    <div class="det" id="det"></div>
+  </div>
+<script>
+"use strict";
+// ===== chaque COUCHE = un bion : {id,name,color,on,fetch()->[{lat,lon,label,val,detail,url}]} =====
+var LAYERS = {
+  quakes: {
+    id:'quakes', name:'Séismes', color:'#ff7a8a', on:true, ttl:60000,
+    fetch: async function(){
+      var r=await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',{cache:'no-store'});
+      var d=await r.json();
+      return (d.features||[]).map(function(f){ var c=f.geometry.coordinates, p=f.properties;
+        return { lat:c[1], lon:c[0], label:p.place||'séisme', val:p.mag||0,
+          detail:'magnitude '+(p.mag!=null?p.mag.toFixed(1):'?')+' · profondeur '+Math.round(c[2])+' km',
+          url:p.url, kind:'quake' }; });
+    },
+    size: function(p){ return Math.max(.8, (p.val||1)*.9); },
+    fill: function(p){ var m=p.val||0; return m>=5?'#ff5a6a':m>=3?'#e7c66a':'#5ce08c'; }
+  },
+  events: {
+    id:'events', name:'Événements naturels', color:'#ff9e6a', on:true, ttl:300000,
+    fetch: async function(){
+      var r=await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?days=20&limit=150',{cache:'no-store'});
+      var d=await r.json();
+      return (d.events||[]).map(function(e){
+        var g=e.geometry||[]; var last=g[g.length-1]; if(!last||!last.coordinates) return null;
+        var c=last.coordinates, lon, lat;
+        if(typeof c[0]==='number'){ lon=c[0]; lat=c[1]; }
+        else { var f=c[0]; while(Array.isArray(f)&&Array.isArray(f[0])) f=f[0]; lon=f[0]; lat=f[1]; }
+        if(typeof lon!=='number'||typeof lat!=='number') return null;
+        var cat=(e.categories&&e.categories[0]&&e.categories[0].title)||'événement';
+        return { lat:lat, lon:lon, label:e.title, val:1, detail:cat,
+          url:(e.sources&&e.sources[0]&&e.sources[0].url)||null, kind:cat };
+      }).filter(Boolean);
+    },
+    size: function(){ return 1.7; },
+    fill: function(p){ return p.kind==='Wildfires'?'#ff6a3a':p.kind==='Severe Storms'?'#6ad0ff':p.kind==='Volcanoes'?'#ff5a6a':'#cfe0ff'; }
+  }
+  // + flights (OpenSky), CVE, news… = ajouter un objet ici (chacun = un bion)
+};
+
+var DATA={}, sel=null;
+function grat(){ var g=document.getElementById('grat'); var s='';
+  for(var lon=-180;lon<=180;lon+=30){ var x=lon+180; s+='<line class="grat" x1="'+x+'" y1="0" x2="'+x+'" y2="180"/>'; }
+  for(var lat=-90;lat<=90;lat+=30){ var y=90-lat; s+='<line class="grat" x1="0" y1="'+y+'" x2="360" y2="'+y+'"/>'; }
+  g.innerHTML=s;
+}
+function renderLayers(){
+  var L=document.getElementById('layers'); L.innerHTML='';
+  Object.keys(LAYERS).forEach(function(k){ var ly=LAYERS[k];
+    var d=document.createElement('div'); d.className='ly'+(ly.on?'':' off');
+    d.innerHTML='<span class="sw" style="background:'+ly.color+'"></span>'+ly.name+'<span class="ct">'+((DATA[k]||[]).length||'')+'</span>';
+    d.onclick=function(){ ly.on=!ly.on; renderLayers(); plot(); }; L.appendChild(d);
+  });
+}
+function plot(){
+  var g=document.getElementById('pts'); var s='';
+  Object.keys(LAYERS).forEach(function(k){ var ly=LAYERS[k]; if(!ly.on) return;
+    (DATA[k]||[]).forEach(function(p,i){ if(p.lat==null||p.lon==null) return;
+      var x=p.lon+180, y=90-p.lat, r=(ly.size?ly.size(p):1.4);
+      s+='<circle class="pt" cx="'+x.toFixed(2)+'" cy="'+y.toFixed(2)+'" r="'+r.toFixed(2)+'" fill="'+(ly.fill?ly.fill(p):ly.color)+'" fill-opacity=".82" data-k="'+k+'" data-i="'+i+'"><title>'+(p.label||'').replace(/"/g,'')+'</title></circle>';
+    });
+  });
+  g.innerHTML=s;
+  g.querySelectorAll('.pt').forEach(function(c){ c.onclick=function(){ showDet(c.getAttribute('data-k'),+c.getAttribute('data-i')); }; });
+}
+function showDet(k,i){ var p=(DATA[k]||[])[i]; if(!p) return;
+  var d=document.getElementById('det');
+  d.innerHTML='<span class="x" onclick="document.getElementById(\'det\').classList.remove(\'on\')">✕</span>'+
+    '<b>'+(p.label||'')+'</b><div class="m">'+(p.detail||'')+'</div>'+(p.url?'<a href="'+p.url+'" target="_blank" rel="noopener">détails ↗</a>':'');
+  d.classList.add('on');
+}
+async function load(){
+  document.getElementById('status').textContent='maj…';
+  var ok=false;
+  for(var k in LAYERS){ try{ DATA[k]=await LAYERS[k].fetch(); ok=true; }catch(e){ DATA[k]=DATA[k]||[]; } }
+  document.getElementById('live').classList.toggle('on',ok);
+  document.getElementById('status').textContent=ok?'live':'source injoignable';
+  var t=new Date(); document.getElementById('stamp').textContent=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+  renderLayers(); plot();
+}
+grat(); renderLayers(); load(); setInterval(load, 60000);
+</script>
+</body></html>

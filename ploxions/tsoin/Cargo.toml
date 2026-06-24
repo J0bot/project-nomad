@@ -1,0 +1,19 @@
+[package]
+name = "ploxion-tsoin"
+description = "tsoin state ploxion: the versioning/state layer. Records & replays bit-exact state over the bus, on top of the REAL tsoin engine (record/replay timeline) built for wasm32."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+# The REAL tsoin engine (the versioning/state layer), built for wasm32 with
+# default-features OFF so the native-only zstd/clap/measurement parts are
+# excluded — exactly the wasm-clean setup the engine's `feat/web` branch uses
+# for its browser crate (`tsoin-wasm` depends on `tsoin` the same way). Only the
+# pure-Rust record/replay timeline (Recorder/Timeline + XOR-delta +
+# content-addressed BLAKE3 store) is pulled in, and it is bit-exact.
+tsoin = { path = "../../vendor/tsoin", default-features = false }

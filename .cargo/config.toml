@@ -1,0 +1,23 @@
+# Cross-compile the xion HOST to ARM (Raspberry Pi / Android-Linux).
+# The wasm ploxions are arch-independent (wasm32-unknown-unknown); only the
+# native host binary recompiles per-arch. On the build VPS (x86-64) we provide
+# the aarch64 cross-linker from the Debian gcc-aarch64-linux-gnu package so
+# wasmtime/cranelift + tokio + the C deps link for the ARM target.
+#
+# Build:  cargo build --release --target aarch64-unknown-linux-gnu -p xerboxion-host
+# Result: target/aarch64-unknown-linux-gnu/release/xerboxion-rt (ARM aarch64 ELF)
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+# --- autres cibles (linkers à installer selon le besoin, cf build-all-targets.sh) ---
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-gnu-gcc"
+
+[target.armv7-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
+
+[target.riscv64gc-unknown-linux-gnu]
+linker = "riscv64-linux-gnu-gcc"
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"

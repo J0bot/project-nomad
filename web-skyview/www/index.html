@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>SkyView — ploxion</title>
+<style>
+  html,body{margin:0;height:100%;background:#05070d;color:#cfe2ff;font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+  #wrap{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  /* 2D overlay for reticule + labels (drawn by JS using project_radec) */
+  #overlay{position:absolute;inset:0;pointer-events:none}
+  #panel{position:absolute;left:10px;bottom:10px;background:#0b1424cc;border:1px solid #20406a;
+         border-radius:10px;padding:10px 12px;backdrop-filter:blur(6px);max-width:min(92vw,360px)}
+  #panel label{display:block;margin:6px 0 2px;opacity:.8}
+  #panel input[type=range]{width:100%}
+  .row{display:flex;gap:8px;align-items:center}
+  .pill{font-size:11px;opacity:.7;margin-top:6px}
+  button{background:#15294a;color:#cfe2ff;border:1px solid #2c5288;border-radius:6px;padding:5px 9px;cursor:pointer}
+  #title{position:absolute;left:12px;top:10px;font-weight:600;letter-spacing:.5px;opacity:.9}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="sky"></canvas>
+  <canvas id="overlay"></canvas>
+</div>
+<div id="title">SkyView ✦ <span id="stat" class="pill"></span></div>
+
+<div id="panel">
+  <div class="row">
+    <button id="now">Now</button>
+    <button id="ar">Enable AR (mobile)</button>
+    <button id="shot">Photo</button>
+  </div>
+  <label>Date / time (scrub): <span id="dlbl"></span></label>
+  <input id="time" type="range" min="0" max="365" value="0" step="0.01" />
+  <label>Magnitude limit: <span id="mlbl">6.5</span></label>
+  <input id="mag" type="range" min="-1.5" max="6.5" value="6.5" step="0.1" />
+  <label>Field of view: <span id="flbl">70°</span></label>
+  <input id="fov" type="range" min="15" max="110" value="70" step="1" />
+  <div class="pill">Real: ~40 brightest stars + 7 constellations. Planets/HYG-120k loaded later.</div>
+</div>
+
+<script type="module">
+import init, { SkyView } from "../pkg/skyview.js";
+
+const DEG = Math.PI / 180;
+
+async function main() {
+  await init(); // loads the wasm module (render + astro math live in here)
+
+  const sky = new SkyView("sky");
+  const overlay = document.getElementById("overlay");
+  const octx = overlay.getContext("2d");
+
+  // ---- sizing with devicePixelRatio ----
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth, h = window.innerHeight;
+    sky.resize(Math.floor(w * dpr), Math.floor(h * dpr), dpr);
+    overlay.width = Math.floor(w * dpr);
+    overlay.height = Math.floor(h * dpr);
+    overlay.style.width = w + "px"; overlay.style.height = h + "px";
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ---- time: base = now; slider offsets +/- a year ----
+  let baseMs = Date.now();
+  const jdFromMs = (ms) => 2440587.5 + ms / 86400000.0;
+  let longitude = 6.14, latitude = 46.2; // Geneva-ish default
+  // try geolocation (optional)
+  navigator.geolocation?.getCurrentPosition(p => {
+    longitude = p.coords.longitude; latitude = p.coords.latitude;
+    sky.set_longitude(longitude);
+  }, () => {}, { timeout: 3000 });
+  sky.set_longitude(longitude);
+
+  const timeEl = document.getElementById("time");
+  const dlbl = document.getElementById("dlbl");
+  function applyTime() {
+    // slider 0..365 => offset in days around base
+    const offDays = (parseFloat(timeEl.value) - 182.5);
+    const ms = baseMs + offDays * 86400000.0;
+    const jd = jdFromMs(ms);
+    sky.set_time(jd);
+    dlbl.textContent = new Date(ms).toUTCString();
+  }
+  timeEl.value = 182.5; applyTime();
+  timeEl.addEventListener("input", applyTime);
+
+  document.getElementById("now").onclick = () => { baseMs = Date.now(); timeEl.value = 182.5; applyTime(); };
+
+  // ---- magnitude ----
+  const magEl = document.getElementById("mag");
+  magEl.addEventListener("input", () => {
+    sky.set_magnitude_limit(parseFloat(magEl.value));
+    document.getElementById("mlbl").textContent = magEl.value;
+  });
+
+  // ---- fov / zoom ----
+  const fovEl = document.getElementById("fov");
+  fovEl.addEventListener("input", () => {
+    sky.set_fov(parseFloat(fovEl.value));
+    document.getElementById("flbl").textContent = fovEl.value + "°";
+  });
+
+  // ---- camera: mouse / touch drag -> yaw,pitch ----
+  let yaw = 0, pitch = 0, dragging = false, lx = 0, ly = 0;
+  function setOri() { sky.set_orientation(yaw, pitch); }
+  setOri();
+  const cv = document.getElementById("sky");
+  const down = (x, y) => { dragging = true; lx = x; ly = y; };
+  const move = (x, y) => {
+    if (!dragging) return;
+    const fov = parseFloat(fovEl.value) * DEG;
+    const k = fov / window.innerHeight;
+    yaw -= (x - lx) * k; pitch += (y - ly) * k;
+    lx = x; ly = y; setOri();
+  };
+  const up = () => { dragging = false; };
+  cv.addEventListener("pointerdown", e => down(e.clientX, e.clientY));
+  cv.addEventListener("pointermove", e => move(e.clientX, e.clientY));
+  cv.addEventListener("pointerup", up);
+  cv.addEventListener("pointerleave", up);
+  // wheel = zoom
+  cv.addEventListener("wheel", e => {
+    e.preventDefault();
+    fovEl.value = Math.min(110, Math.max(15, parseFloat(fovEl.value) + Math.sign(e.deltaY) * 3));
+    fovEl.dispatchEvent(new Event("input"));
+  }, { passive: false });
+
+  // ---- AR: deviceorientation -> camera (mobile) ----
+  let arOn = false;
+  document.getElementById("ar").onclick = async () => {
+    if (typeof DeviceOrientationEvent?.requestPermission === "function") {
+      try { await DeviceOrientationEvent.requestPermission(); } catch {}
+    }
+    arOn = true;
+    window.addEventListener("deviceorientation", e => {
+      if (!arOn) return;
+      // crude mapping; real AR needs full quaternion + screen orientation
+      yaw = (e.alpha || 0) * DEG;
+      pitch = ((e.beta || 0) - 90) * DEG;
+      setOri();
+    });
+  };
+
+  // ---- photo capture: composite gl canvas + overlay into a PNG ----
+  document.getElementById("shot").onclick = () => {
+    const out = document.createElement("canvas");
+    out.width = cv.width; out.height = cv.height;
+    const c = out.getContext("2d");
+    c.drawImage(cv, 0, 0);
+    c.drawImage(overlay, 0, 0);
+    out.toBlob(b => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = "skyview.png"; a.click();
+    });
+  };
+
+  // ---- render loop: gl render in wasm, 2D reticule on overlay ----
+  const stat = document.getElementById("stat");
+  function drawReticule() {
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+    const cx = overlay.width / 2, cy = overlay.height / 2, r = 26 * (window.devicePixelRatio || 1);
+    octx.strokeStyle = "rgba(120,200,255,.7)"; octx.lineWidth = 2;
+    octx.beginPath(); octx.arc(cx, cy, r, 0, 7); octx.stroke();
+    octx.beginPath();
+    octx.moveTo(cx - r - 8, cy); octx.lineTo(cx - r + 6, cy);
+    octx.moveTo(cx + r - 6, cy); octx.lineTo(cx + r + 8, cy);
+    octx.moveTo(cx, cy - r - 8); octx.lineTo(cx, cy - r + 6);
+    octx.moveTo(cx, cy + r - 6); octx.lineTo(cx, cy + r + 8);
+    octx.stroke();
+  }
+  function frame() {
+    sky.render();
+    drawReticule();
+    stat.textContent = `${sky.visible_star_count()}/${sky.catalog_size()} stars`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+main();
+</script>
+</body>
+</html>

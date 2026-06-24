@@ -1,0 +1,17 @@
+# Rust build artifacts (host workspace and ploxions sub-workspace).
+/target
+/ploxions/target
+
+# The staged wasm ploxions are a build product of scripts/build-ploxions.sh.
+# (They live under /target which is already ignored, but be explicit.)
+/target/ploxions
+dist/
+
+# Agent/runtime cruft that was leaking into `git status` (audit P3).
+.claude/
+__pycache__/
+*.pyc
+tsoins/
+web-xer/*.bak-*
+web-xer/*.work
+web-xer/*.new

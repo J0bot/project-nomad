@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+  makelab · le HUB du fablab (José : « améliorer le makelab au max »). Tableau de bord : stats
+  d'inventaire (depuis le store du cœur) + grille de TOUS les outils — inventaire, mouvements, scan,
+  3d, slicer, ploxions de création (forge/openscad/object), boxion (ports+pins RPi/ESP). Cliquer un
+  outil demande au bureau xer de l'ouvrir (postMessage same-origin) ; en standalone, ouvre /px/<id>.
+  Pur client, mobile-first, chill-tekk. Tout dans le cœur.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>makelab</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(800px 500px at 80% -10%,rgba(80,60,150,.18),transparent 60%),var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;overflow:auto;font-size:14px}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 14px 30px}
+  h1{font-size:1.5rem;margin:6px 0 2px} h1 small{font-size:.72rem;color:var(--dim);font-weight:500}
+  .stats{display:flex;gap:10px;margin:14px 0}
+  .stat{flex:1;border:1px solid var(--line);border-radius:13px;padding:12px 14px;background:var(--surf)}
+  .stat .n{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums} .stat .n.r{color:var(--r)} .stat .n.g{color:var(--ok)}
+  .stat .l{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+  .grp{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:18px 0 8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px}
+  .tile{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surf);cursor:pointer;transition:.13s;display:flex;flex-direction:column;gap:5px;min-height:96px}
+  .tile:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:0 10px 30px rgba(20,40,90,.4)}
+  .tile .ic{font-size:1.7rem} .tile b{font-size:.92rem} .tile span{font-size:.66rem;color:var(--dim);line-height:1.4}
+  .tile.soon{opacity:.6} .tile.soon::after{content:"bientôt";position:absolute}
+  .tile{position:relative} .badge{position:absolute;top:9px;right:10px;font-size:.5rem;color:var(--warn);border:1px solid rgba(231,198,106,.4);border-radius:20px;padding:1px 6px}
+</style></head>
+<body><div class="wrap">
+  <h1>🔧 MakeLab <small>le hub du fablab — tout dans le cœur</small></h1>
+  <div class="stats">
+    <div class="stat"><div class="n" id="sTot">–</div><div class="l">articles</div></div>
+    <div class="stat"><div class="n r" id="sLow">–</div><div class="l">stock bas</div></div>
+    <div class="stat"><div class="n g" id="sMov">–</div><div class="l">mouvements</div></div>
+  </div>
+
+  <div class="grp">inventaire</div>
+  <div class="grid" id="gInv"></div>
+  <div class="grp">fabrication &amp; création</div>
+  <div class="grid" id="gFab"></div>
+  <div class="grp">matériel (device)</div>
+  <div class="grid" id="gDev"></div>
+</div>
+<script>
+"use strict";
+var inXer = (function(){ try{ return window.parent && window.parent!==window; }catch(e){ return false; } })();
+function launch(t){
+  if(inXer){ window.parent.postMessage(t.msg, '*'); }
+  else {
+    if(t.msg.xer==='open') window.open('/px/'+t.msg.id+'/','_blank');
+    else if(t.msg.xer==='openCore') window.open(t.msg.path,'_blank');
+    else if(t.url) window.open(t.url,'_blank');
+  }
+}
+var TOOLS = {
+  inv: [
+    {ic:'📦',name:'Inventaire',desc:'articles, stock, emplacements',msg:{xer:'open',id:'inventaire'}},
+    {ic:'📥',name:'Mouvements',desc:'entrées/sorties + ledger',msg:{xer:'open',id:'mouvements'}},
+    {ic:'📷',name:'Scan',desc:'QR/code-barres → article',msg:{xer:'open',id:'scan'}}
+  ],
+  fab: [
+    {ic:'🧊',name:'3D',desc:'visualiseur 3D du cœur',msg:{xer:'openCore',path:'/3d',name:'3D',icon:'🧊'}},
+    {ic:'🔪',name:'Slicer',desc:'trancher un STL pour l\'impression',msg:{xer:'open',id:'slicer'}},
+    {ic:'🔨',name:'Forge',desc:'idée → objet (déterministe)',msg:{xer:'openApp',id:'forge'}},
+    {ic:'✏️',name:'OpenSCAD',desc:'pièces paramétriques',msg:{xer:'open',id:'openscad'},soon:true},
+    {ic:'🧱',name:'Object',desc:'composer un objet en bions',msg:{xer:'open',id:'object'},soon:true}
+  ],
+  dev: [
+    {ic:'📌',name:'Boxion',desc:'ports + pins (Raspberry / ESP)',msg:{xer:'open',id:'boxion'}}
+  ]
+};
+function renderGrid(elId, tools){
+  var g=document.getElementById(elId); g.innerHTML='';
+  tools.forEach(function(t){ var d=document.createElement('div'); d.className='tile'+(t.soon?' soon':'');
+    d.innerHTML=(t.soon?'<span class="badge">bientôt</span>':'')+'<div class="ic">'+t.ic+'</div><b>'+t.name+'</b><span>'+t.desc+'</span>';
+    d.onclick=function(){ launch(t); }; g.appendChild(d); });
+}
+renderGrid('gInv',TOOLS.inv); renderGrid('gFab',TOOLS.fab); renderGrid('gDev',TOOLS.dev);
+
+async function stats(){
+  try{
+    var items=await (await fetch('/store/inventaire/items',{cache:'no-store'})).json();
+    var moves=await (await fetch('/store/inventaire/movements',{cache:'no-store'})).json();
+    var low=items.filter(function(i){ var m=parseFloat(i.min_stock)||0; return m>0 && (parseFloat(i.quantity)||0)<=m; }).length;
+    document.getElementById('sTot').textContent=items.length;
+    document.getElementById('sLow').textContent=low;
+    document.getElementById('sMov').textContent=moves.length;
+  }catch(e){ document.getElementById('sTot').textContent='0'; }
+}
+stats(); setInterval(stats, 8000);
+// live-refresh des stats
+try{ var es=new EventSource('/events'); es.addEventListener('emit',function(e){ try{ if(JSON.parse(e.data).topic.indexOf('store.inventaire.')===0) stats(); }catch(_){} }); }catch(e){}
+</script>
+</body></html>

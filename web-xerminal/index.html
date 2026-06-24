@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+  xerminal · le terminal du xer (José : « toujours le même truc avec § pour ouvrir le xerminal »).
+  Un console de commandes qui parle au cœur same-origin + demande au bureau d'ouvrir des ploxions
+  (postMessage). Commandes : help, ls, open <id>, eco, emit <topic> [payload], store <ns> <coll>, clear.
+  Pur client, chill-tekk, monospace.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>xerminal</title>
+<style>
+  :root{--bg:#05080d;--ink:#cfe0ff;--dim:#7c93b3;--acc:#6ad0ff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a;--acc2:#b88dff}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:ui-monospace,"SF Mono",Menlo,monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+  #out{flex:1;min-height:0;overflow:auto;padding:12px 13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .ln{margin:1px 0} .cmd{color:var(--acc)} .cmd::before{content:"› ";color:var(--acc2)}
+  .ok{color:var(--ok)} .err{color:var(--r)} .dim{color:var(--dim)} .warn{color:var(--warn)}
+  .bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid rgba(120,160,230,.16);background:#070b12}
+  .bar .ps{color:var(--acc2)} .bar input{flex:1;background:none;border:none;color:var(--ink);font-family:inherit;font-size:13px;outline:none}
+  a{color:var(--acc)}
+</style></head>
+<body>
+  <div id="out"></div>
+  <div class="bar"><span class="ps">xer §</span><input id="in" autocomplete="off" spellcheck="false" placeholder="help"></div>
+<script>
+"use strict";
+var out=document.getElementById('out'), inp=document.getElementById('in');
+var hist=[], hi=0;
+var inXer=(function(){try{return window.parent&&window.parent!==window;}catch(e){return false;}})();
+function line(t,cls){ var d=document.createElement('div'); d.className='ln'+(cls?' '+cls:''); d.innerHTML=t; out.appendChild(d); out.scrollTop=out.scrollHeight; }
+function p(t){ line(t,'dim'); }
+
+var CMDS={
+  help:function(){ p('commandes :'); p('  ls                 liste les ploxions du cœur'); p('  open &lt;id&gt;          ouvre un ploxion dans le bureau'); p('  eco                inventaire live du cœur (ecosystem)'); p('  emit &lt;topic&gt; [pl]   émet sur le bus'); p('  store &lt;ns&gt; &lt;coll&gt;   compte une collection du store'); p('  clear              vide l\'écran'); },
+  clear:function(){ out.innerHTML=''; },
+  ls:async function(){ try{ var d=await (await fetch('/px',{cache:'no-store'})).json(); line((d.ploxions||[]).join('  '),'ok'); }catch(e){ line('erreur /px','err'); } },
+  open:function(a){ var id=a[0]; if(!id){ line('usage: open &lt;id&gt;','warn'); return; }
+    if(inXer){ window.parent.postMessage({xer:'open',id:id},'*'); line('ouverture de '+id+' ↗','ok'); }
+    else { window.open('/px/'+id+'/','_blank'); } },
+  eco:async function(){ try{ var d=await (await fetch('/ecosystem',{cache:'no-store'})).json(); var ns=d.nodes||[];
+    line(ns.length+' nodes · commit '+(d.core_commit||'?'),'ok');
+    var run=ns.filter(function(n){return (n.state||'')==='running';}); line('running ('+run.length+'): '+run.map(function(n){return n.id;}).slice(0,30).join(' '),'dim'); }catch(e){ line('ecosystem indisponible (sweep ?)','warn'); } },
+  emit:async function(a){ var topic=a[0]; if(!topic){ line('usage: emit &lt;topic&gt; [payload]','warn'); return; }
+    var payload=a.slice(1).join(' ');
+    try{ var r=await fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:topic,payload:payload})});
+      line(r.ok?('émis ✓ '+topic):(r.status===401?'écriture gardée (auth)':'échec '+r.status), r.ok?'ok':'warn'); }catch(e){ line('bus injoignable','err'); } },
+  store:async function(a){ if(a.length<2){ line('usage: store &lt;ns&gt; &lt;coll&gt;','warn'); return; }
+    try{ var d=await (await fetch('/store/'+a[0]+'/'+a[1],{cache:'no-store'})).json(); line(d.length+' docs dans '+a[0]+'/'+a[1],'ok'); }catch(e){ line('store: erreur','err'); } }
+};
+function run(cmdline){
+  line(cmdline.replace(/</g,'&lt;'),'cmd');
+  var parts=cmdline.trim().split(/\s+/); var c=parts[0]; var a=parts.slice(1);
+  if(!c) return;
+  if(CMDS[c]) CMDS[c](a); else line('commande inconnue : '+c+' (help)','err');
+}
+inp.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){ var v=inp.value; if(v.trim()){ hist.push(v); hi=hist.length; run(v); } inp.value=''; }
+  else if(e.key==='ArrowUp'){ if(hi>0){ hi--; inp.value=hist[hi]||''; } e.preventDefault(); }
+  else if(e.key==='ArrowDown'){ if(hi<hist.length-1){ hi++; inp.value=hist[hi]||''; } else { hi=hist.length; inp.value=''; } e.preventDefault(); }
+});
+line('<span class="acc">xerminal</span> — le terminal du xer. Tape <span class="warn">help</span>.','dim');
+inp.focus();
+window.addEventListener('focus',function(){ inp.focus(); });
+</script>
+</body></html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+  slicer · MakeLab — trancher un STL pour l'impression 3D. Intègre Kiri:Moto (slicer web open-source,
+  grid.space/kiri) en iframe ; si le framing est bloqué (X-Frame), bouton plein-écran de secours.
+  Une brique du hub makelab (José : « intégrer un slicer »). Pur client.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>slicer</title>
+<style>
+  :root{--bg:#070a0f;--line:rgba(120,160,230,.16);--ink:#e7f0ff;--dim:#8aa0bc}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  .bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:#0c1320}
+  .bar b{font-size:.92rem} .bar small{color:var(--dim);font-size:.66rem} .bar .sp{flex:1}
+  .bar a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;font-size:.78rem;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#6ad0ff,#b88dff);color:#08111b}
+  .frame{flex:1;min-height:0;position:relative;background:#111}
+  iframe{width:100%;height:100%;border:0;display:block}
+  .fb{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);text-align:center;padding:24px}
+  .fb.on{display:flex} .fb a{padding:12px 20px;border-radius:10px;background:linear-gradient(135deg,#6ad0ff,#b88dff);color:#08111b;font-weight:800;text-decoration:none}
+</style></head>
+<body>
+  <div class="bar"><b>🔪 Slicer</b><small>Kiri:Moto · trancher un STL</small><span class="sp"></span>
+    <a href="https://grid.space/kiri/" target="_blank" rel="noopener">plein écran ↗</a></div>
+  <div class="frame">
+    <iframe id="if" src="https://grid.space/kiri/" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div class="fb" id="fb"><div style="font-size:2.4rem">🔪</div><div style="color:var(--dim);max-width:320px">Le slicer ne s'affiche pas en intégré (sécurité du site). Ouvre-le en plein écran :</div>
+      <a href="https://grid.space/kiri/" target="_blank" rel="noopener">Ouvrir Kiri:Moto ↗</a></div>
+  </div>
+<script>
+  var loaded=false; document.getElementById('if').addEventListener('load',function(){ loaded=true; });
+  setTimeout(function(){ if(!loaded) document.getElementById('fb').classList.add('on'); }, 5000);
+</script>
+</body></html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0}
+  .ppdf{display:flex;flex-direction:column;height:100vh;background:#04060a;color:rgba(220,240,235,.92);font-family:ui-sans-serif,system-ui,sans-serif}
+  .ppdf__drop{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;border:2px dashed transparent;transition:border-color .15s,background .15s}
+  .ppdf.is-drag .ppdf__drop{border-color:rgba(0,255,159,.6);background:rgba(0,255,159,.05)}
+  .ppdf.is-doc .ppdf__drop{display:none}
+  .ppdf__obj{flex:1;width:100%;border:0;display:none;background:#1a1a1a}
+  .ppdf.is-doc .ppdf__obj{display:block}
+  .ppdf__btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:22px;border:1px solid rgba(0,255,159,.45);background:rgba(0,255,159,.1);color:rgba(0,255,159,.95);font-size:.86rem;font-weight:600}
+  .ppdf__btn:hover{background:rgba(0,255,159,.18);color:#fff}
+  .ppdf__bar{flex:0 0 auto;display:none;align-items:center;gap:10px;padding:6px 12px;border-bottom:1px solid rgba(0,255,159,.16);font-size:.78rem}
+  .ppdf.is-doc .ppdf__bar{display:flex}
+  .ppdf__name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(120,200,255,.95)}
+  .ppdf__link{color:rgba(120,200,255,.95);cursor:pointer;text-decoration:none}.ppdf__link:hover{text-decoration:underline}
+  .ppdf__dim{font-size:.78rem;color:rgba(180,210,200,.55)}
+</style>
+</head>
+<body>
+<div class="ppdf" data-root>
+  <div class="ppdf__bar">
+    <span class="ppdf__name" data-name></span>
+    <a class="ppdf__link" data-close>✕ fermer</a>
+  </div>
+  <div class="ppdf__drop" data-drop>
+    <div style="font-size:2rem">📄</div>
+    <div class="ppdf__dim">Glisse un PDF ici, ou ouvre-le. 100% local, rien n'est envoyé.</div>
+    <button class="ppdf__btn" data-open>ouvrir un PDF</button>
+    <input type="file" accept="application/pdf,.pdf" data-file hidden>
+  </div>
+  <object class="ppdf__obj" data-obj type="application/pdf"></object>
+</div>
+<script>
+(function(){
+  'use strict';
+  var ID='pdf';
+
+  // --- bus (best-effort, same-origin sous /px/pdf/) -------------------------
+  function emit(topic,payload){
+    try{
+      fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({topic:topic,payload:payload})}).catch(function(){});
+    }catch(e){}
+  }
+
+  var root=document.querySelector('[data-root]'),
+      drop=document.querySelector('[data-drop]'),
+      obj=document.querySelector('[data-obj]'),
+      file=document.querySelector('[data-file]'),
+      nameEl=document.querySelector('[data-name]');
+
+  var url=null;
+
+  function open(f){
+    if(!f) return;
+    if(f.type!=='application/pdf' && !/\.pdf$/i.test(f.name)){ nameEl.textContent='(pas un PDF)'; return; }
+    if(url) URL.revokeObjectURL(url);
+    url=URL.createObjectURL(f); obj.data=url; nameEl.textContent=f.name; root.classList.add('is-doc');
+    try{ localStorage.setItem('xb:pdf:last', f.name); }catch(e){}
+    emit('pdf.open',{name:f.name,size:f.size});
+  }
+  function close(){
+    if(url){URL.revokeObjectURL(url);url=null;}
+    obj.removeAttribute('data'); root.classList.remove('is-doc');
+    emit('pdf.close',{});
+  }
+
+  document.querySelector('[data-open]').addEventListener('click',function(){ file.click(); });
+  file.addEventListener('change',function(e){ open(e.target.files[0]); });
+  document.querySelector('[data-close]').addEventListener('click',close);
+  drop.addEventListener('dragover',function(e){ e.preventDefault(); root.classList.add('is-drag'); });
+  drop.addEventListener('dragleave',function(){ root.classList.remove('is-drag'); });
+  drop.addEventListener('drop',function(e){ e.preventDefault(); root.classList.remove('is-drag'); open(e.dataTransfer.files[0]); });
+
+  // --- droit au silence : on coupe le blob quand la page part -----------------
+  function silence(){
+    if(url){ URL.revokeObjectURL(url); url=null; }
+    obj.removeAttribute('data');
+  }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

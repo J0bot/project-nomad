@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a0f1c">
+<title>Lausanne — ploxion des +</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:#0a0f1c; color:#dfe9ff;
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; overscroll-behavior:none; }
+  #map{ position:fixed; inset:0; background:#0a0f1c; }
+  .leaflet-container{ background:#0a0f1c; font:inherit; }
+  /* le marqueur "+" */
+  .plus{ display:flex; align-items:center; justify-content:center; width:30px; height:30px;
+    border-radius:50% 50% 50% 0; transform:rotate(-45deg); background:linear-gradient(180deg,#7fd0ff,#2f8fd8);
+    box-shadow:0 3px 10px rgba(0,0,0,.5); border:2px solid #eaf6ff; }
+  .plus b{ transform:rotate(45deg); color:#06223a; font-weight:800; font-size:17px; }
+  .me{ width:16px;height:16px;border-radius:50%;background:#ff4d7a;border:3px solid #fff;box-shadow:0 0 0 6px rgba(255,77,122,.25); }
+  .chillm{ display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle,#ffe9a8,#ff9d3c);color:#5a2a00;font-size:18px;font-weight:800;
+    border:2px solid #fff6df;box-shadow:0 0 18px rgba(255,180,80,.7);animation:cpulse 2.4s ease-in-out infinite; }
+  @keyframes cpulse{ 50%{ box-shadow:0 0 26px rgba(255,180,80,.95);} }
+  .fab.chill{ background:linear-gradient(180deg,#ffe9a8,#ff9d3c); color:#5a2a00; }
+  /* HUD */
+  #top{ position:fixed; top:max(10px,env(safe-area-inset-top)); left:12px; right:12px; z-index:500;
+    display:flex; align-items:center; gap:10px; pointer-events:none; }
+  #top .card{ pointer-events:auto; background:rgba(10,15,28,.82); border:1px solid #21304e; border-radius:13px;
+    padding:8px 13px; backdrop-filter:blur(10px); }
+  #top b{ letter-spacing:.5px; } #top small{ display:block; color:#5b6b8c; font-size:11px; }
+  #tools{ position:fixed; right:12px; bottom:calc(18px + env(safe-area-inset-bottom)); z-index:500;
+    display:flex; flex-direction:column; gap:10px; }
+  .fab{ width:52px; height:52px; border-radius:50%; border:1px solid #21304e; background:rgba(12,18,34,.9);
+    color:#eaf6ff; font-size:22px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px);
+    box-shadow:0 6px 18px rgba(0,0,0,.4); }
+  .fab.big{ background:linear-gradient(180deg,#7fd0ff,#2f8fd8); color:#06223a; font-weight:800; width:60px; height:60px; font-size:30px; }
+  .fab:active{ transform:translateY(1px); }
+  #toast{ position:fixed; left:50%; bottom:96px; transform:translateX(-50%); z-index:600; background:rgba(10,15,28,.92);
+    border:1px solid #21304e; border-radius:11px; padding:9px 14px; font-size:13px; opacity:0; transition:opacity .3s; max-width:86%; text-align:center; }
+  #toast.show{ opacity:1; }
+  .leaflet-popup-content-wrapper{ background:#10182c; color:#dfe9ff; border:1px solid #21304e; }
+  .leaflet-popup-tip{ background:#10182c; }
+  .leaflet-popup-content b{ color:#7fd0ff; }
+  .leaflet-popup-content button{ margin-top:6px; background:#2a1020; color:#ff9bb3; border:1px solid #3a1422; border-radius:8px; padding:4px 9px; font:inherit; }
+  .leaflet-control-attribution{ background:rgba(10,15,28,.6)!important; color:#5b6b8c!important; }
+  .leaflet-control-attribution a{ color:#7fd0ff!important; }
+  #hint{ position:fixed; left:50%; top:64px; transform:translateX(-50%); z-index:550; background:rgba(10,15,28,.85);
+    border:1px solid #21304e; border-radius:11px; padding:7px 13px; font-size:12px; color:#9fb6d8; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="top">
+  <div class="card"><b>Lausanne</b><small id="count">0 + posés</small></div>
+</div>
+<div id="hint">touche la carte pour poser un +</div>
+<div id="tools">
+  <button class="fab" id="bGeo" title="ma position">◎</button>
+  <button class="fab chill" id="bChill" title="tsoin de chill ici (précis, privé)">✦</button>
+  <button class="fab big" id="bAdd" title="poser un + au centre">+</button>
+</div>
+<div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>e.classList.remove('show'),2400); }
+const LAUSANNE=[46.5197,6.6323];
+let pins=[]; try{ pins=JSON.parse(localStorage.getItem('lausanne.pins')||'[]'); }catch(e){ pins=[]; }
+let nextId = pins.reduce((m,p)=>Math.max(m,p.id||0),0)+1;
+
+const map=L.map('map',{zoomControl:false, attributionControl:true}).setView(LAUSANNE, 14);
+L.control.zoom({position:'bottomleft'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  maxZoom:20, subdomains:'abcd',
+  attribution:'© OpenStreetMap, © CARTO'}).addTo(map);
+
+const plusIcon=L.divIcon({className:'', html:'<div class="plus"><b>+</b></div>', iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28]});
+const chillIcon=L.divIcon({className:'', html:'<div class="chillm">✦</div>', iconSize:[34,34], iconAnchor:[17,17], popupAnchor:[0,-18]});
+const markers=new Map();
+
+function save(){ localStorage.setItem('lausanne.pins', JSON.stringify(pins)); $('#count').textContent=pins.length+' + posés'; }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function render(p){
+  const m=L.marker([p.lat,p.lng],{icon:p.kind==='chill'?chillIcon:plusIcon}).addTo(map);
+  const when=new Date(p.t).toLocaleString('fr-CH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  m.bindPopup('<b>'+esc(p.label||'un +')+'</b><br><small>'+when+'</small><br><button onclick="delPin('+p.id+')">retirer</button>');
+  markers.set(p.id,m); return m;
+}
+function addPin(lat,lng,label,kind){
+  const p={id:nextId++, lat, lng, label:label||'', kind:kind||'plus', t:Date.now()};
+  pins.push(p); save(); render(p).openPopup();
+}
+window.delPin=function(id){ const m=markers.get(id); if(m){ map.removeLayer(m); markers.delete(id); }
+  pins=pins.filter(p=>p.id!==id); save(); toast('+ retiré'); };
+
+pins.forEach(render); save();
+
+// poser un + en touchant la carte
+map.on('click', e=>{
+  const label=prompt('Un + sur Lausanne — c’est quoi ? (laisse vide pour juste marquer)');
+  if(label===null) return;
+  addPin(e.latlng.lat, e.latlng.lng, label.trim());
+  toast('+ posé');
+});
+$('#bAdd').onclick=()=>{ const c=map.getCenter(); const label=prompt('Un + au centre — c’est quoi ?'); if(label===null) return;
+  addPin(c.lat, c.lng, label.trim()); toast('+ posé au centre'); };
+// tsoin de chill : mesure TON point precis (ton GPS, pas le mien) et le garde EN LOCAL (prive, invisible pour moi)
+$('#bChill').onclick=()=>{ if(!navigator.geolocation){ toast('géoloc indispo'); return; }
+  toast('je mesure ton point précis…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude, acc=Math.round(pos.coords.accuracy||0);
+    map.setView([lat,lng], 16);
+    addPin(lat, lng, 'chill ✦ (±'+acc+'m) · '+new Date().toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}), 'chill');
+    toast('tsoin de chill posé ✦ — privé, il reste sur ton tel');
+  }, ()=>toast('position refusée'), {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+};
+
+// ma position
+let meMarker=null;
+$('#bGeo').onclick=()=>{ if(!navigator.geolocation){ toast('géoloc indispo'); return; }
+  toast('localisation…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const ll=[pos.coords.latitude,pos.coords.longitude];
+    if(meMarker) map.removeLayer(meMarker);
+    meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+    map.setView(ll, 15); toast('te voilà');
+  }, ()=>toast('position refusée'), {enableHighAccuracy:true, timeout:8000});
+};
+setTimeout(()=>{ const h=$('#hint'); if(h) h.style.transition='opacity .6s', h.style.opacity=0; }, 5000);
+</script>
+</body>
+</html>

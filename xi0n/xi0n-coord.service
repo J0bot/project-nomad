@@ -1,0 +1,55 @@
+[Unit]
+Description=xi0n-coord — pont mobile-first du /coord (xi0n.j0bot.ch, derriere SSO Traefik)
+Documentation=file:///home/debian/xerboxion-rt/xi0n/xi0n-coord.py
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian
+# PHASE LOCALE (defaut) : bind prive 127.0.0.1, rien d'expose.
+# PHASE EXPOSEE (feu vert Jose) : XI0N_ADDR=10.0.0.1 pour que Traefik
+# (host.docker.internal) puisse l'atteindre, PUIS poser xi0n.yaml. Voir deploy.
+Environment=XI0N_ADDR=127.0.0.1
+Environment=XI0N_PORT=8733
+Environment=XI0N_LOG=quiet
+Environment=XI0N_DB_CT=mw2-labo-db
+Environment=XI0N_APP_CT=mw2-labo-app
+Environment=XI0N_DB=mw2labo
+Environment=XI0N_DB_USER=mw2
+Environment=XI0N_CACHE=/run/xi0n-cache
+Environment=XI0N_DEFAULT_AGENT=jsosion
+Environment=XI0N_TOKEN=__TOKEN_SET_AT_DEPLOY__
+# Si debian est dans le groupe docker (recommande) : "docker". Sinon "sudo docker"
+# (et alors NoNewPrivileges=true plus bas DOIT etre retire car il casse sudo).
+Environment="XI0N_DOCKER=sudo docker"
+# Cache tmpfs des images, borne par le backend (TTL + cap). Cree par systemd, mode 700.
+RuntimeDirectory=xi0n-cache
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 /opt/xi0n/xi0n-coord.py
+KillSignal=SIGINT
+TimeoutStopSec=10
+# garde-fou RAM : kill avant d'asphyxier le VPS (Minecraft tourne)
+MemoryMax=96M
+Restart=always
+RestartSec=3
+# --- durcissement ---
+# NoNewPrivileges=true est INCOMPATIBLE avec `sudo`. Le garder UNIQUEMENT si
+# XI0N_DOCKER=docker (debian dans le groupe docker). Si XI0N_DOCKER="sudo docker",
+# COMMENTER la ligne suivante.
+# NoNewPrivileges desactive (sudo docker l incompatible)
+#NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/opt/xi0n
+# RuntimeDirectory (=/run/xi0n-cache) est deja en RW pour le service.
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

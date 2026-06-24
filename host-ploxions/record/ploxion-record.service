@@ -1,0 +1,15 @@
+[Unit]
+Description=ploxion record (migré hors-docker → host, dans le xerboxion-core)
+After=network.target
+[Service]
+Type=simple
+User=debian
+WorkingDirectory=/home/debian/xerboxion-rt/host-ploxions/record
+Environment=REC_HOST=127.0.0.1
+Environment=REC_PORT=3012
+Environment=REC_DATA=/home/debian/xerboxion-data/record
+ExecStart=/usr/bin/python3 -u /home/debian/xerboxion-rt/host-ploxions/record/record_service.py
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=multi-user.target

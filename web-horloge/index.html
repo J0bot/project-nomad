@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Horloge — l'heure du xer</title>
+<style>
+    html,body{margin:0;height:100%}
+    body{background:#070a0f}
+    .phor{display:flex;flex-direction:column;height:100vh;background:radial-gradient(circle at 50% 25%,#08120e,#04060a);color:rgba(220,240,235,.92);font-family:ui-sans-serif,system-ui,sans-serif}
+    .phor__big{flex:0 0 auto;display:flex;align-items:center;gap:16px;justify-content:center;padding:18px 12px 8px;flex-wrap:wrap}
+    .phor__face{width:96px;height:96px;flex:0 0 auto}
+    .phor__face circle{fill:rgba(0,255,159,.04);stroke:rgba(0,255,159,.3)}
+    .phor__txt{text-align:center}
+    .phor__time{font-family:'Share Tech Mono',ui-monospace,monospace;font-size:2.4rem;color:#dffbe9;text-shadow:0 0 18px rgba(0,255,159,.4);letter-spacing:.04em}
+    .phor__date{font-size:.82rem;color:rgba(180,210,200,.6);margin-top:2px}
+    .phor__loc{font-size:.66rem;color:rgba(180,210,200,.45)}
+    .phor__add{flex:0 0 auto;display:flex;gap:6px;padding:6px 14px;justify-content:center;flex-wrap:wrap}
+    .phor__add select,.phor__add button{font-family:inherit;font-size:.76rem;background:rgba(0,255,159,.06);border:1px solid rgba(0,255,159,.3);color:#dffbe9;border-radius:7px;padding:5px 9px;cursor:pointer}
+    .phor__zones{flex:1;overflow-y:auto;padding:8px 14px 16px;display:flex;flex-direction:column;gap:7px}
+    .phor__z{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border-radius:9px;background:rgba(0,255,159,.05);border:1px solid rgba(0,255,159,.16)}
+    .phor__zn{flex:1;font-size:.84rem;color:rgba(220,240,235,.85)}
+    .phor__zt{font-family:'Share Tech Mono',ui-monospace,monospace;font-size:1rem;color:rgba(0,255,159,.9)}
+    .phor__zd{font-size:.66rem;color:rgba(180,210,200,.45)}
+    .phor__x{cursor:pointer;border:0;background:none;color:rgba(255,140,140,.6);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="phor">
+    <div class="phor__big">
+        <svg class="phor__face" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" stroke-width="2"/>
+            <line data-h x1="50" y1="50" x2="50" y2="28" stroke="#dffbe9" stroke-width="3" stroke-linecap="round"/>
+            <line data-m x1="50" y1="50" x2="50" y2="16" stroke="rgba(0,255,159,.9)" stroke-width="2" stroke-linecap="round"/>
+            <line data-s x1="50" y1="50" x2="50" y2="12" stroke="#ff8c82" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="2.5" fill="#dffbe9" stroke="none"/>
+        </svg>
+        <div class="phor__txt">
+            <div class="phor__time" data-big>--:--:--</div>
+            <div class="phor__date" data-bigd></div>
+            <div class="phor__loc" data-loc>⏱</div>
+        </div>
+    </div>
+    <div class="phor__add">
+        <select data-city></select>
+        <button data-addz>+ ville</button>
+    </div>
+    <div class="phor__zones" data-zones></div>
+</div>
+<script>
+(function(){
+    'use strict';
+    var CITIES=[['Lausanne','Europe/Zurich'],['Paris','Europe/Paris'],['Londres','Europe/London'],['Lima','America/Lima'],['New York','America/New_York'],['Los Angeles','America/Los_Angeles'],['São Paulo','America/Sao_Paulo'],['UTC','UTC'],['Le Caire','Africa/Cairo'],['Dubaï','Asia/Dubai'],['Bombay','Asia/Kolkata'],['Pékin','Asia/Shanghai'],['Tokyo','Asia/Tokyo'],['Sydney','Australia/Sydney'],['Auckland','Pacific/Auckland']];
+    var DEFAULT=[['Lausanne','Europe/Zurich'],['Lima','America/Lima'],['UTC','UTC'],['Tokyo','Asia/Tokyo']];
+    function load(){ try{ var z=JSON.parse(localStorage.getItem('xb:horloge')); if(z&&z.length)return z; }catch(e){} return DEFAULT.slice(); }
+    function save(z){ try{ localStorage.setItem('xb:horloge',JSON.stringify(z)); }catch(e){} }
+
+    var local=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+    var zones=load();
+    var iv=null;
+
+    var big=document.querySelector('[data-big]'), bigd=document.querySelector('[data-bigd]'), zonesEl=document.querySelector('[data-zones]');
+    var hH=document.querySelector('[data-h]'), hM=document.querySelector('[data-m]'), hS=document.querySelector('[data-s]');
+    var citySel=document.querySelector('[data-city]');
+    document.querySelector('[data-loc]').textContent='⏱ '+local;
+    citySel.innerHTML=CITIES.map(function(c){ return '<option value="'+c[1]+'">'+c[0]+'</option>'; }).join('');
+
+    function fmt(tz,opt){ try{ return new Intl.DateTimeFormat('fr-FR',Object.assign({timeZone:tz},opt)).format(new Date()); }catch(e){ return '—'; } }
+    function renderZones(){
+        zonesEl.innerHTML=zones.map(function(o,i){ return '<div class="phor__z"><span class="phor__zn">'+o[0]+'</span><span class="phor__zt" data-zt="'+i+'">--:--:--</span> <span class="phor__zd" data-zd="'+i+'"></span><button class="phor__x" data-rmz="'+i+'" title="retirer">✕</button></div>'; }).join('')||'<div class="phor__zd" style="text-align:center">ajoute une ville ↑</div>';
+    }
+    function tick(){
+        var now=new Date();
+        big.textContent=fmt(local,{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        bigd.textContent=fmt(local,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+        var h=now.getHours()%12,m=now.getMinutes(),s=now.getSeconds();
+        hS.setAttribute('transform','rotate('+(s*6)+' 50 50)');
+        hM.setAttribute('transform','rotate('+((m+s/60)*6)+' 50 50)');
+        hH.setAttribute('transform','rotate('+((h+m/60)*30)+' 50 50)');
+        zones.forEach(function(o,i){ var t=zonesEl.querySelector('[data-zt="'+i+'"]'), d=zonesEl.querySelector('[data-zd="'+i+'"]');
+            if(t)t.textContent=fmt(o[1],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); if(d)d.textContent=fmt(o[1],{weekday:'short',day:'numeric',month:'short'}); });
+    }
+    document.querySelector('[data-addz]').addEventListener('click',function(){ var tz=citySel.value, nm=(CITIES.filter(function(c){return c[1]===tz;})[0]||['',tz])[0];
+        if(!zones.some(function(z){return z[1]===tz;})){ zones.push([nm,tz]); save(zones); renderZones(); tick(); } });
+    zonesEl.addEventListener('click',function(e){ var b=e.target.closest('[data-rmz]'); if(!b)return; zones.splice(+b.getAttribute('data-rmz'),1); save(zones); renderZones(); tick(); });
+
+    renderZones(); tick(); iv=setInterval(tick,1000);
+
+    // Droit au silence : stoppe le tick quand la page disparaît.
+    function silence(){ if(iv!==null){ clearInterval(iv); iv=null; } }
+    window.addEventListener('pagehide',silence);
+    window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04101a">
+<title>○ wormion — présence du /warp</title>
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; }
+  html,body{ height:100%; background:#04101a; overflow:hidden; overscroll-behavior:none;
+    font:13px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; color:#cfeaff; }
+  #c{ position:fixed; inset:0; display:block; touch-action:none; }
+  /* la forme EST la nature : ronds-dans-ronds = anti-gravité = ça MONTE */
+  #hud{ position:fixed; left:0; right:0; top:0; z-index:5; display:flex; align-items:center; gap:8px;
+    padding:max(10px,env(safe-area-inset-top)) 14px 8px; pointer-events:none; }
+  #hud .glyph{ font-size:20px; } #hud b{ font-size:13px; } #hud small{ color:#5f87a6; }
+  #state{ margin-left:auto; display:flex; align-items:center; gap:6px; font-size:11px; color:#5f87a6; pointer-events:auto; }
+  .dot{ width:9px;height:9px;border-radius:50%;background:#3a4f63; }
+  .dot.live{ background:#46e6a0; box-shadow:0 0 10px #46e6a0; animation:bl 1.6s infinite; }
+  @keyframes bl{50%{opacity:.3}}
+  #foot{ position:fixed; left:0; right:0; bottom:0; z-index:5; text-align:center; pointer-events:none;
+    padding:0 16px calc(10px + env(safe-area-inset-bottom)); color:#3f6a87; font-size:11px; }
+  #foot b{ pointer-events:auto; color:#7ae8ff; }
+  .tap{ pointer-events:auto; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><span class="glyph">○</span><div><b>wormion</b><br><small>présence — ronds qui montent</small></div>
+  <div id="state"><span class="dot" id="dot"></span><span id="st">hors-ligne</span></div></div>
+<div id="foot">chaque souffle du <b class="tap" id="bPulse">/warp</b> fait naître un anneau · les deux -ions montent ensemble = <i>temps = cohérence</i></div>
+
+<script>
+"use strict";
+const BUS=(location.hostname==="warp.j0bot.ch")?"":"http://10.0.0.1:8730";
+// roomId courant : passe-le en #room=... ou ?room=... (le minecart peut ouvrir le wormion avec son roomId)
+const ROOM=(location.hash.match(/room=([^&]+)/)||location.search.match(/room=([^&]+)/)||[])[1]||null;
+
+const cv=document.getElementById('c'), g=cv.getContext('2d');
+let W,H,DPR; function fit(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; g.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',fit); fit();
+
+// un anneau = un souffle. il naît au centre-bas et MONTE (anti-gravité), s'élargit, s'estompe.
+let rings=[];           // {born, x, hue, side}  side: -1 moi(rose), +1 l'autre(cyan)
+let live=false, lastBeat=0;
+const HUE_ME=335, HUE_THEM=190;   // Josion rose · l'autre cyan
+
+function ring(side){ rings.push({born:performance.now(), x:W*0.5+(side*W*0.12), hue: side<0?HUE_ME:HUE_THEM, side}); if(rings.length>120) rings=rings.slice(-120); }
+
+function draw(t){
+  // fond : léger dégradé qui respire
+  g.clearRect(0,0,W,H);
+  const breath=0.5+0.5*Math.sin(t/2600);
+  const bg=g.createRadialGradient(W/2,H*0.62,0, W/2,H*0.62, Math.hypot(W,H)*0.6);
+  bg.addColorStop(0,`rgba(10,30,48,${0.5+0.25*breath})`); bg.addColorStop(1,'#04101a'); g.fillStyle=bg; g.fillRect(0,0,W,H);
+
+  const baseY=H*0.78;              // les anneaux naissent en bas et montent
+  for(const r of rings){
+    const age=(t-r.born)/1000;     // s
+    if(age>6){ continue; }
+    const rise=age*age*42;         // montée accélérée = anti-gravité
+    const y=baseY - rise;
+    const N=5;                     // ronds-dans-ronds (concentriques)
+    for(let k=0;k<N;k++){
+      const rad=14 + age*70 + k*16;
+      const a=Math.max(0,(1-age/6)) * (1-k/N) * 0.9;
+      g.beginPath(); g.arc(r.x, y, rad, 0, 7);
+      g.strokeStyle=`hsla(${r.hue},90%,${62-k*4}%,${a})`; g.lineWidth=2.2-k*0.25; g.stroke();
+    }
+    // coeur lumineux
+    g.beginPath(); g.arc(r.x,y,3.4,0,7); g.fillStyle=`hsla(${r.hue},95%,72%,${Math.max(0,1-age/3)})`; g.fill();
+  }
+
+  // si en cohérence (deux côtés pulsent récemment), un halo central de synchronisation
+  // (détecté plus bas via beats des deux teintes)
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// battement de base local quand connecté (respiration du canal, même sans message)
+setInterval(()=>{ if(live){ ring(-1); } }, 3400);
+
+// ===== flux : SSE du bus, filtré sur le /warp courant (ou présence générique) =====
+function setLive(v){ live=v; document.getElementById('dot').classList.toggle('live',v);
+  document.getElementById('st').textContent=v?(ROOM?'canal ouvert':'relais'):'hors-ligne'; }
+function connect(){
+  let es; try{ es=new EventSource(BUS+"/events"); }catch(e){ setLive(false); return; }
+  es.onopen=()=>setLive(true);
+  es.onerror=()=>{ setLive(false); try{es.close();}catch(_){} setTimeout(connect,3000); };
+  es.onmessage=ev=>{
+    let d; try{ d=JSON.parse(ev.data); }catch(_){ return; }
+    if(!d.topic) return;
+    if(ROOM){ if(d.topic!=="warp."+ROOM) return; }           // un /warp précis
+    else if(!d.topic.startsWith("warp.")) return;            // sinon : tout trafic /warp = présence
+    // on ne déchiffre RIEN (content-blind) : la seule info = "ça vit". un message = un anneau de l'autre.
+    ring(+1);
+  };
+}
+connect();
+
+// tap = un souffle volontaire (utile hors-ligne, offline-first : le wormion anime sans réseau)
+document.getElementById('bPulse').onclick=()=>ring(-1);
+cv.addEventListener('pointerdown',e=>{ ring(e.clientX < W/2 ? -1 : +1); });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-xerbion"
+description = "WASM ploxion: le PREMIER XERBION - un etre fait de bions + un coeur neuronal. Un MLP qui predit son entree, emet le residu (= le tsoin), et apprend en ligne (codage predictif / energie libre)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

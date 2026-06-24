@@ -1,0 +1,52 @@
+[package]
+name = "tsoin"
+version = "0.1.0"
+edition = "2021"
+description = "Adressage Génératif engine v0 — store addresses (generator, coords, residue), not content."
+license = "MIT OR Apache-2.0"
+
+
+[lib]
+name = "tsoin"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tsoin-demo"
+path = "src/bin/demo.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "tsoin-timeline-demo"
+path = "src/bin/timeline_demo.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "tsoin"
+path = "src/bin/tsoin.rs"
+required-features = ["native"]
+
+[features]
+# Default = the full native build (CLI + demos + tests). `native` pulls in the
+# real entropy/measurement stand-in (zstd) and the CLI dependency (clap).
+default = ["native"]
+native = ["zstd", "clap"]
+
+[dependencies]
+blake3 = "1"
+# zstd is the entropy/measurement stand-in for `zstd_len`; it does NOT build on
+# wasm32, so it is optional and OFF for the wasm crate. The wasm build substitutes
+# the engine's own pure-Rust model codec as the honest "compressed size" stand-in.
+zstd = { version = "0.13", optional = true }
+# clap is only used by the native CLI binaries, gated behind `native`.
+clap = { version = "4", features = ["derive"], optional = true }
+
+[dev-dependencies]
+proptest = "1"
+assert_cmd = "2"
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+# Smaller, fully-optimized wasm (and native release) for the shipped bundle.
+lto = true
+codegen-units = 1

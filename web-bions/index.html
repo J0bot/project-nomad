@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!--
+  web-bions/index.html — le ploxion bions migré du labo vers le cœur (2e migration data-driven).
+  La BIBLIOTHÈQUE DE BIONS WASM : chaque bion = un module WebAssembly minuscule, testé, INSTANCIÉ +
+  EXÉCUTÉ ici-même (déterministe, bit-exact = tsoin). Donnée servie par /px (web-bions/bions.json →
+  fetch /px/bions/bions.json, same-origin, sans rebuild). Autonome, zéro Laravel.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>bions · bibliothèque WASM</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(circle at 50% 0%,rgba(18,30,24,.55),#05070a 78%);color:rgba(224,234,228,.92);
+    font-family:ui-sans-serif,system-ui,sans-serif;font-size:.83rem;display:flex;flex-direction:column;height:100dvh}
+  .bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid rgba(120,210,160,.2);flex-wrap:wrap}
+  .t{font-weight:700;color:rgba(150,230,180,.95)} .t b{color:#fff}
+  .f{flex:1;min-width:110px;border-radius:8px;padding:6px 10px;border:1px solid rgba(120,210,160,.25);background:rgba(14,24,18,.6);color:#fff;font-family:inherit;font-size:.8rem;outline:none}
+  .cnt{font-size:.64rem;color:rgba(180,205,190,.6);font-family:ui-monospace,monospace}
+  .list{flex:1;min-height:0;overflow-y:auto;padding:10px 11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;align-content:start;-webkit-overflow-scrolling:touch}
+  .c{border:1px solid rgba(120,210,160,.18);border-radius:11px;padding:9px 11px;background:rgba(14,24,18,.55);display:flex;flex-direction:column;gap:6px}
+  .h{display:flex;align-items:baseline;gap:6px} .n{font-weight:700;color:#fff;font-family:ui-monospace,monospace;font-size:.86rem}
+  .sz{margin-left:auto;font-size:.58rem;font-family:ui-monospace,monospace;color:rgba(150,200,170,.6)}
+  .d{font-size:.72rem;color:rgba(200,214,206,.82);line-height:1.35}
+  .run{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .in{width:46px;padding:3px 5px;border-radius:6px;border:1px solid rgba(120,210,160,.3);background:rgba(8,16,11,.7);color:#fff;font-family:ui-monospace,monospace;font-size:.74rem}
+  .go{cursor:pointer;font-size:.68rem;padding:3px 9px;border-radius:6px;font-family:inherit;border:1px solid rgba(120,210,160,.5);background:rgba(40,120,80,.3);color:#dfffe9}
+  .go:hover{background:rgba(40,120,80,.5);color:#fff}
+  .eq{font-family:ui-monospace,monospace;font-size:.74rem;color:rgba(170,235,190,.96)}
+  .tst{font-size:.58rem;font-family:ui-monospace,monospace} .tst.ok{color:rgba(150,225,170,.8)} .tst.ko{color:rgba(255,150,110,.9)}
+  .msg{grid-column:1/-1;text-align:center;padding:22px;color:rgba(200,214,206,.5)}
+  .foot{flex:0 0 auto;padding:6px 11px;border-top:1px solid rgba(120,210,160,.14);font-size:.62rem;color:rgba(170,200,180,.6)}
+</style>
+</head>
+<body>
+  <div class="bar"><span class="t">🧬 <b>Bions</b> · bibliothèque WASM</span>
+    <input class="f" id="f" placeholder="cherche un bion…"><span class="cnt" id="cnt">…</span></div>
+  <div class="list" id="list"><div class="msg">chargement des bions…</div></div>
+  <div class="foot">Chaque bion = un module WebAssembly minuscule, testé, exécuté ici-même. Migré du labo : donnée servie par /px.</div>
+
+<script>
+"use strict";
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+function toBytes(b64){var bin=atob(b64),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}
+var DATA=[], q='', fns={};
+var elList=document.getElementById('list'), elF=document.getElementById('f'), elCnt=document.getElementById('cnt');
+function listf(){ return DATA.filter(function(b){return !q||(b.name+' '+b.desc).toLowerCase().indexOf(q)!==-1;}); }
+function card(b){
+  var ins='';
+  for(var i=0;i<b.params;i++) ins+='<input class="in" data-i="'+i+'" value="'+(b.test.args[i]!=null?b.test.args[i]:0)+'">';
+  var tested=fns[b.name]?'ok':'ko';
+  return '<div class="c" data-name="'+esc(b.name)+'"><div class="h"><span class="n">'+esc(b.name)+'</span><span class="sz">'+b.size+' o</span></div>'
+       +'<div class="d">'+esc(b.desc)+'</div>'
+       +'<div class="run">'+ins+'<button class="go" data-go>run</button><span class="eq" data-out>—</span></div>'
+       +'<div class="tst '+tested+'">'+(fns[b.name]?'✓ testé : '+b.name+'('+b.test.args.join(',')+')='+b.test.expect:'✗ non chargé')+'</div></div>';
+}
+function render(){
+  var l=listf();
+  elCnt.textContent=l.length+' / '+DATA.length+' bions · '+DATA.reduce(function(a,b){return a+b.size;},0)+' o';
+  elList.innerHTML=l.length?l.map(card).join(''):'<div class="msg">aucun bion</div>';
+}
+elF.addEventListener('input',function(){q=elF.value.trim().toLowerCase();render();});
+elList.addEventListener('click',function(e){
+  var g=e.target.closest('[data-go]'); if(!g)return;
+  var c=g.closest('[data-name]'), nm=c.getAttribute('data-name'), fn=fns[nm]; if(!fn)return;
+  var ins=c.querySelectorAll('[data-i]'), args=[];
+  for(var i=0;i<ins.length;i++) args.push(+ins[i].value||0);
+  try{ c.querySelector('[data-out]').textContent='= '+(fn.apply(null,args)|0); }
+  catch(err){ c.querySelector('[data-out]').textContent='erreur'; }
+});
+// DONNÉE servie par /px (web-bions/bions.json), same-origin, sans rebuild.
+fetch('/px/bions/bions.json',{headers:{Accept:'application/json'}}).then(function(r){return r.json();}).then(function(d){
+  DATA=d.bions||[];
+  Promise.all(DATA.map(function(b){
+    return WebAssembly.instantiate(toBytes(b.b64)).then(function(res){ fns[b.name]=res.instance.exports[b.name]; },function(){});
+  })).then(render);
+  render();
+}).catch(function(){ elList.innerHTML='<div class="msg">catalogue indisponible</div>'; });
+</script>
+</body>
+</html>

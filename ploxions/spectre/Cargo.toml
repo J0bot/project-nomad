@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-spectre"
+description = "WASM ploxion: decompose le son en ses frequences-bions (DFT). Linverse de synthe : son -> les sinus qui le composent."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

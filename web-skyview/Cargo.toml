@@ -1,0 +1,49 @@
+# Standalone crate (own workspace) so it is not absorbed by the host workspace
+# at the repo root, which excludes browser/wasm crates on purpose.
+[workspace]
+
+[package]
+name = "skyview"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["xerboxion-rt"]
+description = "SkyView ploxion — sky map rendered fully in WASM via WebGL2 (Rust + wasm-bindgen)."
+
+# Standalone crate: it targets wasm32-unknown-unknown and pulls in browser deps
+# (web-sys), so it is intentionally NOT a member of the host workspace.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned to match the wasm-bindgen-cli installed on the build host (0.2.100).
+# The CLI schema version MUST equal the crate version exactly.
+wasm-bindgen = "=0.2.100"
+js-sys = "0.3.69"
+glam = { version = "0.27", default-features = false, features = ["libm"] }
+
+# Better panic messages in the browser console (dev convenience).
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+[dependencies.web-sys]
+version = "0.3.69"
+features = [
+  "Window",
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
+  "WebGl2RenderingContext",
+  "WebGlProgram",
+  "WebGlShader",
+  "WebGlBuffer",
+  "WebGlVertexArrayObject",
+  "WebGlUniformLocation",
+  "console",
+]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[profile.release]
+opt-level = "z"
+lto = true

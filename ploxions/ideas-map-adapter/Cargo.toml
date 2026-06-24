@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-ideas-map-adapter"
+description = "Pure-WASM service adapter: with net.fetch it plc_fetches the LIVE ideas-map /api/pins and emits pin.list onto the bus (real deployed service <-> bus)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Gated plc_fetch import; manifest ALSO declares "net.fetch" or the host rejects us.
+ploxion-sdk = { path = "../sdk", features = ["net-fetch"] }

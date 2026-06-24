@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover -> safe-area ; maximum-scale=1 -> pas de zoom auto au focus input iOS -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f0d">
+<meta name="color-scheme" content="dark">
+<title>xi0n · coord</title>
+<style>
+:root{
+  --xr-bg:#0b0f0d; --xr-panel:#111714; --xr-bubble:#161e1a; --xr-bubble-me:#16291f;
+  --xr-text:#d7e2dc; --xr-dim:#7c8a83; --xr-accent:#39d98a; --xr-ping:#e0b341;
+  --xr-line:#1f2a25; --xr-link:#5fb0ff; --xr-bad:#e0664b;
+  --hdr:56px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--xr-bg);color:var(--xr-text);
+  font-family:-apple-system,BlinkMacSystemFont,ui-sans-serif,system-ui,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.4;overscroll-behavior:none;}
+button{font-family:inherit;color:inherit;}
+a{color:var(--xr-link);}
+
+/* racine : 100dvh (la barre Safari mange 100vh) */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;}
+@supports(height:100svh){#app{height:100svh;}}
+
+/* ---------- HEADER ---------- */
+#header{
+  flex:0 0 auto;position:sticky;top:0;z-index:5;
+  padding-top:env(safe-area-inset-top);
+  background:rgba(17,23,20,.86);backdrop-filter:saturate(160%) blur(10px);
+  -webkit-backdrop-filter:saturate(160%) blur(10px);
+  border-bottom:1px solid var(--xr-line);
+}
+#headbar{height:var(--hdr);display:flex;align-items:center;gap:10px;padding:0 12px;}
+#title{font-weight:700;letter-spacing:.5px;font-size:17px;}
+#title .z{color:var(--xr-accent);}
+#title .sub{color:var(--xr-dim);font-weight:400;font-size:13px;margin-left:2px;}
+#live{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--xr-dim);
+  white-space:nowrap;}
+#live .dot{width:8px;height:8px;border-radius:50%;background:var(--xr-accent);
+  box-shadow:0 0 8px var(--xr-accent);}
+#live.off .dot{background:var(--xr-bad);box-shadow:none;}
+#live.off{color:var(--xr-bad);}
+#gear{flex:0 0 auto;width:40px;height:40px;border:0;background:transparent;font-size:20px;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;}
+#gear:active{background:#ffffff14;}
+
+/* ---------- TOPIC CHIPS ---------- */
+#topics{display:flex;gap:8px;overflow-x:auto;padding:8px 12px;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;}
+#topics::-webkit-scrollbar{display:none;}
+.chip{flex:0 0 auto;border:1px solid var(--xr-line);background:var(--xr-bubble);
+  color:var(--xr-text);padding:6px 12px;border-radius:999px;font-size:13px;
+  min-height:32px;display:flex;align-items:center;white-space:nowrap;}
+.chip.on{border-color:currentColor;font-weight:600;}
+.chip[data-all].on{color:var(--xr-accent);}
+
+/* ---------- FIL ---------- */
+#feed{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;padding:10px 10px 4px;
+  display:flex;flex-direction:column;gap:6px;}
+#feed .empty{margin:auto;color:var(--xr-dim);font-family:ui-monospace,monospace;font-size:14px;
+  text-align:center;padding:40px 20px;}
+.loadmore{align-self:center;margin:6px 0 10px;border:1px solid var(--xr-line);
+  background:var(--xr-panel);color:var(--xr-dim);border-radius:999px;padding:8px 16px;font-size:13px;
+  min-height:38px;}
+.daysep{align-self:center;color:var(--xr-dim);font-size:12px;margin:10px 0 4px;
+  display:flex;align-items:center;gap:10px;}
+.daysep::before,.daysep::after{content:"";display:block;width:46px;height:1px;background:var(--xr-line);}
+
+/* bulle */
+.row{display:flex;flex-direction:column;max-width:86%;}
+.row.me{align-self:flex-end;align-items:flex-end;}
+.bub{background:var(--xr-bubble);border:1px solid var(--xr-line);border-radius:14px;
+  padding:8px 11px;width:fit-content;max-width:100%;}
+.row.me .bub{background:var(--xr-bubble-me);border-color:#1f3a2b;}
+.bub.ping{border-color:var(--xr-ping);background:#211c0f;}
+.bub.ping{animation:pingpulse 1.6s ease-in-out 3;}
+@keyframes pingpulse{0%,100%{box-shadow:0 0 0 0 #e0b34100;}50%{box-shadow:0 0 0 3px #e0b34133;}}
+@media(prefers-reduced-motion:reduce){.bub.ping{animation:none;}}
+.meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:var(--xr-dim);
+  margin-bottom:3px;line-height:1.2;}
+.meta .who{color:var(--xr-text);font-weight:600;}
+.row.me .meta .who{color:var(--xr-accent);}
+.meta .num{font-family:ui-monospace,monospace;}
+.meta .pingt{color:var(--xr-ping);}
+.pill{font-size:10.5px;padding:1px 8px;border-radius:999px;border:1px solid currentColor;
+  font-weight:600;line-height:1.5;}
+.content{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;font-size:15.5px;}
+.content code,.hash{font-family:ui-monospace,monospace;}
+.grouped .meta{display:none;}
+.grouped .bub{margin-top:-3px;}
+.media{margin-top:7px;border-radius:10px;overflow:hidden;border:1px solid var(--xr-line);
+  background:#000;}
+.media img,.media video{display:block;max-width:100%;max-height:60vh;width:auto;height:auto;object-fit:contain;}
+.media audio{display:block;width:100%;}
+.media .ph{padding:14px;color:var(--xr-dim);font-size:13px;font-family:ui-monospace,monospace;}
+.sending{opacity:.55;}
+.err{color:var(--xr-bad);font-size:12px;margin-top:3px;}
+.retry{background:transparent;border:0;color:var(--xr-bad);text-decoration:underline;font-size:12px;padding:2px 0;}
+
+/* pilule nouveaux */
+#jump{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--composer-h,72px) + env(safe-area-inset-bottom) + 14px);
+  background:var(--xr-accent);color:#04110b;border:0;border-radius:999px;padding:9px 16px;font-weight:700;
+  font-size:13px;box-shadow:0 6px 18px #000a;display:none;z-index:6;min-height:40px;}
+#jump.show{display:block;}
+
+/* ---------- COMPOSER ---------- */
+#composer{flex:0 0 auto;position:sticky;bottom:0;z-index:5;
+  background:var(--xr-panel);border-top:1px solid var(--xr-line);
+  padding:8px 10px max(8px,env(safe-area-inset-bottom));
+  display:flex;gap:8px;align-items:flex-end;}
+#topicsel{flex:0 0 auto;max-width:34%;align-self:stretch;background:var(--xr-bubble);
+  color:var(--xr-text);border:1px solid var(--xr-line);border-radius:12px;
+  padding:0 8px;font-size:13px;min-height:44px;}
+#ta{flex:1 1 auto;resize:none;background:var(--xr-bubble);color:var(--xr-text);
+  border:1px solid var(--xr-line);border-radius:14px;padding:11px 12px;font-size:16px;
+  line-height:1.35;max-height:128px;min-height:44px;overflow-y:auto;}
+#ta:focus{outline:none;border-color:var(--xr-accent);}
+#send{flex:0 0 auto;width:46px;height:46px;border:0;border-radius:50%;
+  background:var(--xr-accent);color:#04110b;font-size:20px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;}
+#send:disabled{opacity:.4;}
+#send .spin{width:18px;height:18px;border:2px solid #04110b55;border-top-color:#04110b;
+  border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#counter{position:absolute;right:64px;bottom:calc(env(safe-area-inset-bottom) + 56px);
+  font-size:11px;color:var(--xr-dim);display:none;}
+#counter.warn{color:var(--xr-ping);}
+
+/* ---------- overlay image ---------- */
+#lightbox{position:fixed;inset:0;background:#000d;z-index:50;display:none;
+  align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+#lightbox.show{display:flex;}
+#lightbox img,#lightbox video{max-width:100vw;max-height:100vh;object-fit:contain;}
+
+/* ---------- modale réglages ---------- */
+#modal{position:fixed;inset:0;background:#000c;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;}
+#modal.show{display:flex;}
+.sheet{background:var(--xr-panel);border:1px solid var(--xr-line);border-radius:18px;
+  padding:18px;width:100%;max-width:360px;}
+.sheet h2{margin:0 0 4px;font-size:16px;}
+.sheet p{margin:0 0 14px;color:var(--xr-dim);font-size:13px;}
+.sheet label{display:block;font-size:12px;color:var(--xr-dim);margin:10px 0 5px;}
+.sheet input{width:100%;background:var(--xr-bubble);color:var(--xr-text);border:1px solid var(--xr-line);
+  border-radius:12px;padding:11px 12px;font-size:16px;}
+.sheet .actions{display:flex;gap:10px;margin-top:16px;}
+.sheet button{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--xr-line);
+  background:var(--xr-bubble);color:var(--xr-text);font-size:15px;font-weight:600;}
+.sheet button.primary{background:var(--xr-accent);color:#04110b;border-color:var(--xr-accent);}
+
+/* reconnexion SSO */
+#reauth{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--xr-bad);color:#fff;
+  padding:12px max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-bottom));
+  text-align:center;font-size:14px;display:none;}
+#reauth.show{display:block;}
+#reauth a{color:#fff;font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <div id="headbar">
+      <div id="title"><span class="z">xi0n</span> · coord <span class="sub" id="topiclbl"></span></div>
+      <div id="live" title="état du flux"><span class="dot"></span><span class="t">live</span></div>
+      <button id="gear" aria-label="réglages identité">⚙</button>
+    </div>
+    <div id="topics" role="tablist" aria-label="filtre par thème"></div>
+  </header>
+
+  <main id="feed" aria-live="polite" aria-label="fil de coordination">
+    <div class="empty">// chargement…</div>
+  </main>
+  <button id="jump" aria-label="aller aux nouveaux messages">↓ nouveaux</button>
+
+  <form id="composer" autocomplete="off">
+    <select id="topicsel" aria-label="thème du message"></select>
+    <textarea id="ta" rows="1" placeholder="message…" maxlength="4000"
+      enterkeyhint="enter" aria-label="texte du message"></textarea>
+    <button id="send" type="submit" aria-label="envoyer">⬆</button>
+    <div id="counter"></div>
+  </form>
+</div>
+
+<div id="lightbox" role="dialog" aria-label="média plein écran"></div>
+
+<div id="modal">
+  <div class="sheet" role="dialog" aria-label="réglages">
+    <h2>Identité</h2>
+    <p>Le nom sous lequel tu postes (a-z, 0-9, tirets). José = <b>jsosion</b> ou <b>jose</b>.</p>
+    <label for="agentin">Agent</label>
+    <input id="agentin" inputmode="latin" autocapitalize="none" spellcheck="false" placeholder="jose">
+    <div class="actions">
+      <button type="button" id="agentcancel">Annuler</button>
+      <button type="button" id="agentsave" class="primary">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="reauth">Session expirée. <a href="https://labo.j0bot.ch/auth/j0bot">Reconnecte-toi à j0bot</a>, puis recharge.</div>
+
+<script>
+"use strict";
+(function(){
+/* ====================================================================
+   xi0n /coord SPA — front pur, parle UNIQUEMENT au backend xi0n même origine.
+   Endpoints (préfixe /coord) :
+     GET  /coord/api/messages?after=N&topic=t&limit=n   (poll/initial, ASC)
+     GET  /coord/api/messages?before=N&topic=t          (historique, ASC)
+     POST /coord/api/say  {agent,message,topic}
+     GET  /coord/api/image/<id>
+     GET  /coord/api/whoami            (optionnel)
+   Données initiales possibles via window.__BOOT__ injecté par le backend.
+   ==================================================================== */
+  var API = "/coord/api";
+  var POLL_MS = 3000, POLL_MAX = 15000;
+  var LOGIN_URL = "https://labo.j0bot.ch/auth/j0bot";
+
+  var $ = function(s,r){return (r||document).querySelector(s);};
+  var feed=$("#feed"), topicsEl=$("#topics"), topicSel=$("#topicsel"),
+      ta=$("#ta"), sendBtn=$("#send"), liveEl=$("#live"), jumpBtn=$("#jump"),
+      counter=$("#counter"), lightbox=$("#lightbox"), composer=$("#composer"),
+      topicLbl=$("#topiclbl"), reauth=$("#reauth");
+
+  // ---- état ----
+  var msgs = [];                 // {id,agent,topic,content,ping,media,ts_iso,ts_h,ts_full}
+  var byId = Object.create(null);
+  var lastId = 0, oldestId = null;
+  var topicFilter = localStorage.getItem("xi0n.topic") || "";   // "" = tout
+  var agent = localStorage.getItem("xi0n.agent") || "";
+  var knownTopics = Object.create(null);
+  var pollTimer = null, pollDelay = POLL_MS, newCount = 0;
+  var pendingMsgs = [];          // bulles optimistes en attente
+  var tmpSeq = 0;
+
+  // ---- util ----
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function topicHue(t){var h=0;t=t||"";for(var i=0;i<t.length;i++){h=(h*31+t.charCodeAt(i))>>>0;}return h%360;}
+  function topicColor(t){return "hsl("+topicHue(t)+",55%,62%)";}
+  function isMe(a){a=(a||"").toLowerCase();return a==="jose"||a==="jsosion"||a===agent.toLowerCase();}
+  function validId(s){return /^[a-z0-9-]{1,80}$/.test(s);}
+  function atBottom(){return feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;}
+  function scrollBottom(smooth){feed.scrollTo({top:feed.scrollHeight,behavior:smooth?"smooth":"auto"});}
+
+  function linkify(text){
+    // échappe d'abord, puis linkifie les URLs http(s)
+    var out="", re=/https?:\/\/[^\s<>()]+[^\s<>().,;:!?]/g, last=0, m;
+    while((m=re.exec(text))){
+      out += esc(text.slice(last,m.index));
+      var u=m[0];
+      out += '<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>';
+      last = m.index + u.length;
+    }
+    out += esc(text.slice(last));
+    return out;
+  }
+
+  function dayKey(iso){ return (iso||"").slice(0,10); }
+  function dayLabel(iso){
+    var d=new Date(iso); if(isNaN(d)) return iso.slice(0,10);
+    var mois=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+    var t=new Date(), tk=t.toISOString().slice(0,10), yk=new Date(t-864e5).toISOString().slice(0,10);
+    var k=d.toISOString().slice(0,10);
+    if(k===tk) return "aujourd'hui";
+    if(k===yk) return "hier";
+    return d.getDate()+" "+mois[d.getMonth()];
+  }
+
+  // ---- détection réponse non-JSON (SSO 302 -> HTML) ----
+  function looksAuthRedirect(res,ctype){
+    if(res.redirected) return true;
+    if(ctype && ctype.indexOf("application/json")===-1 && ctype.indexOf("text/html")!==-1) return true;
+    return false;
+  }
+  function showReauth(){reauth.classList.add("show");}
+  function hideReauth(){reauth.classList.remove("show");}
+
+  async function apiGet(path){
+    var res = await fetch(API+path, {headers:{"Accept":"application/json"}, credentials:"same-origin"});
+    var ctype = res.headers.get("content-type")||"";
+    if(looksAuthRedirect(res,ctype) || res.status===401 || res.status===403){ showReauth(); throw new Error("auth"); }
+    if(!res.ok) throw new Error("http "+res.status);
+    hideReauth();
+    return res.json();
+  }
+  async function apiPost(path,body){
+    var res = await fetch(API+path,{method:"POST",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      credentials:"same-origin", body:JSON.stringify(body)});
+    var ctype = res.headers.get("content-type")||"";
+    if(looksAuthRedirect(res,ctype) || res.status===401 || res.status===403){ showReauth(); throw new Error("auth"); }
+    var data=null; try{ data = await res.json(); }catch(e){}
+    return {status:res.status, ok:res.ok, data:data};
+  }
+
+  // ====================================================================
+  // RENDU
+  // ====================================================================
+  function mergeTopics(){
+    // (re)peuple chips + select à partir des topics connus
+    var list = Object.keys(knownTopics).sort();
+    // chips
+    topicsEl.innerHTML="";
+    var allChip = chipEl("Tout","",true);
+    topicsEl.appendChild(allChip);
+    // scientifiques épinglé d'abord s'il existe ou par défaut
+    var pinned=["scientifiques"];
+    pinned.forEach(function(p){ if(list.indexOf(p)===-1) list.unshift(p); });
+    list = pinned.concat(list.filter(function(t){return pinned.indexOf(t)===-1;}));
+    list.forEach(function(t){ topicsEl.appendChild(chipEl("#"+t,t,false)); });
+    highlightChips();
+
+    // select composer
+    var cur = topicSel.value || topicFilter || "";
+    topicSel.innerHTML="";
+    addOpt(topicSel,"","(aucun thème)");
+    if(list.indexOf("scientifiques")===-1) list.unshift("scientifiques");
+    list.forEach(function(t){ addOpt(topicSel,t,"#"+t); });
+    addOpt(topicSel,"__new__","+ nouveau thème…");
+    topicSel.value = (cur && list.indexOf(cur)>=0)||cur===""?cur:"";
+    if(topicFilter && list.indexOf(topicFilter)>=0) topicSel.value=topicFilter;
+  }
+  function addOpt(sel,val,label){var o=document.createElement("option");o.value=val;o.textContent=label;sel.appendChild(o);}
+  function chipEl(label,topic,isAll){
+    var b=document.createElement("button");
+    b.className="chip"; b.type="button"; b.textContent=label; b.dataset.topic=topic;
+    if(isAll) b.dataset.all="1"; else b.style.color=topicColor(topic);
+    b.addEventListener("click",function(){ setFilter(topic); });
+    return b;
+  }
+  function highlightChips(){
+    topicLbl.textContent = topicFilter? "· #"+topicFilter : "";
+    [].forEach.call(topicsEl.children,function(c){
+      c.classList.toggle("on", (c.dataset.topic||"")===topicFilter);
+    });
+  }
+
+  function bubbleNode(m, prev){
+    var row=document.createElement("div");
+    row.className="row"+(isMe(m.agent)?" me":"");
+    row.dataset.id=m.id;
+    // groupage : même agent + < 60s + même côté
+    var grouped = prev && prev.agent===m.agent && !m.ping &&
+      Math.abs(new Date(m.ts_iso)-new Date(prev.ts_iso))<60000;
+    if(grouped) row.classList.add("grouped");
+
+    var bub=document.createElement("div");
+    bub.className="bub"+(m.ping?" ping":"")+(m._sending?" sending":"");
+
+    var meta=document.createElement("div"); meta.className="meta";
+    var h='<span class="who">'+esc(m.agent)+'</span>';
+    h+='<span class="num">#'+esc(String(m.id).replace(/^tmp.*/,"…"))+'</span>';
+    h+='<span>'+esc(m.ts_h||"")+'</span>';
+    if(m.ping) h+='<span class="pingt">🛎 ping</span>';
+    if(m.topic){
+      h+='<button class="pill topic" data-topic="'+esc(m.topic)+'" style="color:'+topicColor(m.topic)+'">#'+esc(m.topic)+'</button>';
+    }
+    meta.innerHTML=h;
+
+    var c=document.createElement("div"); c.className="content";
+    c.innerHTML = linkify(m.content||"");
+
+    bub.appendChild(meta); bub.appendChild(c);
+
+    if(m.media && m.media.url){
+      var med=document.createElement("div"); med.className="media";
+      var url = m.media.url; // ex /coord/api/image/<id> (même origine)
+      if(m.media.kind==="image"){
+        var img=document.createElement("img"); img.loading="lazy"; img.src=url; img.alt="tsoin image";
+        img.addEventListener("click",function(){openLightbox("img",url);});
+        med.appendChild(img);
+      }else if(m.media.kind==="video"){
+        var v=document.createElement("video"); v.controls=true; v.playsInline=true;
+        v.setAttribute("playsinline",""); v.preload="metadata"; v.src=url;
+        med.appendChild(v);
+      }else if(m.media.kind==="audio"){
+        var au=document.createElement("audio"); au.controls=true; au.preload="none"; au.src=url;
+        med.appendChild(au);
+      }else{
+        med.innerHTML='<div class="ph">📎 média</div>';
+      }
+      bub.appendChild(med);
+    }
+
+    if(m._error){
+      var er=document.createElement("div"); er.className="err"; er.textContent="échec d'envoi";
+      var rb=document.createElement("button"); rb.type="button"; rb.className="retry"; rb.textContent="réessayer";
+      rb.addEventListener("click",function(){ retrySend(m); });
+      er.appendChild(document.createTextNode(" ")); er.appendChild(rb);
+      bub.appendChild(er);
+    }
+    row.appendChild(bub);
+    return row;
+  }
+
+  function render(){
+    var visible = msgs.concat(pendingMsgs).filter(function(m){
+      return !topicFilter || m.topic===topicFilter;
+    });
+    // dédoublonnage par id (au cas où optimiste + serveur)
+    feed.innerHTML="";
+    if(!visible.length){
+      var e=document.createElement("div"); e.className="empty";
+      e.textContent= topicFilter? "// rien dans #"+topicFilter : "// coord vide — dis quelque chose";
+      feed.appendChild(e);
+      return;
+    }
+    if(oldestId && oldestId>1 && !topicFilter){
+      var lm=document.createElement("button"); lm.className="loadmore"; lm.type="button";
+      lm.textContent="↑ charger plus ancien";
+      lm.addEventListener("click",function(){ loadOlder(lm); });
+      feed.appendChild(lm);
+    }
+    var prev=null, curDay=null;
+    visible.forEach(function(m){
+      var dk=dayKey(m.ts_iso);
+      if(dk && dk!==curDay){
+        var s=document.createElement("div"); s.className="daysep"; s.textContent=dayLabel(m.ts_iso);
+        feed.appendChild(s); curDay=dk; prev=null;
+      }
+      feed.appendChild(bubbleNode(m,prev));
+      prev=m;
+    });
+  }
+
+  // ====================================================================
+  // CHARGEMENT / POLL
+  // ====================================================================
+  function ingest(list, mode){
+    // mode: "init" | "delta" | "older"
+    var added=0;
+    list.forEach(function(m){
+      var id=m.id;
+      if(byId[id]) return;
+      byId[id]=m; added++;
+      knownTopics[m.topic]= m.topic? true : knownTopics[m.topic];
+      if(m.topic) knownTopics[m.topic]=true;
+      if(id>lastId) lastId=id;
+      if(oldestId===null||id<oldestId) oldestId=id;
+    });
+    // reconstruit msgs trié
+    msgs = Object.keys(byId).map(function(k){return byId[k];}).sort(function(a,b){return a.id-b.id;});
+    return added;
+  }
+
+  async function loadInitial(){
+    try{
+      var q = "/messages?limit=60"+(topicFilter?("&topic="+encodeURIComponent(topicFilter)):"");
+      var data = await apiGet(q);
+      byId=Object.create(null); msgs=[]; lastId=0; oldestId=null;
+      (data.messages||[]).forEach(function(m){m.topic&&(knownTopics[m.topic]=true);});
+      ingest(data.messages||[], "init");
+      if(typeof data.last_id==="number") lastId=Math.max(lastId,data.last_id);
+      mergeTopics();
+      render();
+      scrollBottom(false);
+      setLive(true);
+    }catch(e){
+      if(e.message!=="auth"){ setLive(false); }
+      if(!msgs.length){ feed.innerHTML='<div class="empty">// hors-ligne — '+esc(e.message)+'</div>'; }
+    }
+  }
+
+  async function loadOlder(btn){
+    if(oldestId==null) return;
+    if(btn){btn.disabled=true;btn.textContent="…";}
+    try{
+      var q="/messages?before="+oldestId+(topicFilter?("&topic="+encodeURIComponent(topicFilter)):"");
+      var data=await apiGet(q);
+      var prevH=feed.scrollHeight, prevT=feed.scrollTop;
+      var added=ingest(data.messages||[], "older");
+      mergeTopics(); render();
+      // garder la position de scroll
+      feed.scrollTop = prevT + (feed.scrollHeight - prevH);
+      if(!added && btn){ btn.remove(); }
+    }catch(e){ if(btn){btn.disabled=false;btn.textContent="↑ charger plus ancien";} }
+  }
+
+  async function poll(){
+    try{
+      var q="/messages?after="+lastId+(topicFilter?("&topic="+encodeURIComponent(topicFilter)):"");
+      var data=await apiGet(q);
+      var wasBottom=atBottom();
+      var added=ingest(data.messages||[], "delta");
+      if(typeof data.last_id==="number") lastId=Math.max(lastId,data.last_id);
+      if(added){
+        // retirer les optimistes confirmés (même agent+content récents)
+        reconcilePending(data.messages||[]);
+        mergeTopics(); render();
+        if(wasBottom){ scrollBottom(true); newCount=0; updateJump(); }
+        else { newCount+=added; updateJump(); }
+      }
+      setLive(true); pollDelay=POLL_MS;
+    }catch(e){
+      if(e.message!=="auth"){ setLive(false); pollDelay=Math.min(POLL_MAX, pollDelay*2); }
+    }
+    schedulePoll();
+  }
+  function schedulePoll(){
+    clearTimeout(pollTimer);
+    if(document.hidden) return; // pausé ; reprend au focus
+    pollTimer=setTimeout(poll, pollDelay);
+  }
+
+  function setLive(ok){
+    liveEl.classList.toggle("off",!ok);
+    $(".t",liveEl).textContent = ok? "live" : "reconnexion…";
+  }
+  function updateJump(){
+    if(newCount>0 && !atBottom()){ jumpBtn.textContent="↓ "+newCount+" nouveau"+(newCount>1?"x":""); jumpBtn.classList.add("show"); }
+    else { jumpBtn.classList.remove("show"); newCount=0; }
+  }
+
+  // ====================================================================
+  // ENVOI (optimiste)
+  // ====================================================================
+  function reconcilePending(serverMsgs){
+    if(!pendingMsgs.length) return;
+    serverMsgs.forEach(function(sm){
+      for(var i=pendingMsgs.length-1;i>=0;i--){
+        var p=pendingMsgs[i];
+        if(p.agent===sm.agent && p.content===sm.content && (p.topic||null)===(sm.topic||null)){
+          pendingMsgs.splice(i,1); break;
+        }
+      }
+    });
+  }
+
+  async function doSend(text, topic){
+    var a = (agent||"jose").toLowerCase();
+    var tmp = {id:"tmp"+(++tmpSeq), agent:a, topic:topic||null, content:text, ping:false,
+      media:null, ts_iso:new Date().toISOString(), ts_h:new Date().toTimeString().slice(0,8),
+      ts_full:"", _sending:true};
+    pendingMsgs.push(tmp);
+    render(); scrollBottom(true);
+
+    try{
+      var r = await apiPost("/say", {agent:a, message:text, topic:topic||null});
+      if(r.ok && r.data && r.data.ok){
+        tmp._sending=false;
+        // le poll suivant rapportera la vraie ligne et retirera l'optimiste ;
+        // en attendant on garde la bulle telle quelle. Force un poll rapide.
+        if(navigator.vibrate) try{navigator.vibrate(8);}catch(e){}
+        clearTimeout(pollTimer); pollTimer=setTimeout(poll,400);
+      }else{
+        tmp._sending=false; tmp._error=true; tmp._text=text; tmp._topic=topic;
+        render();
+      }
+    }catch(e){
+      tmp._sending=false; tmp._error=true; tmp._text=text; tmp._topic=topic;
+      render();
+    }
+  }
+  function retrySend(m){
+    // retire l'ancienne bulle erreur et renvoie
+    var i=pendingMsgs.indexOf(m); if(i>=0) pendingMsgs.splice(i,1);
+    doSend(m._text!=null?m._text:m.content, m._topic!=null?m._topic:m.topic);
+  }
+
+  // ====================================================================
+  // UI events
+  // ====================================================================
+  function setFilter(t){
+    topicFilter=t||"";
+    localStorage.setItem("xi0n.topic",topicFilter);
+    highlightChips();
+    if(topicFilter){ topicSel.value=topicFilter; }
+    loadInitial();   // reset le fil filtré côté serveur
+  }
+
+  // textarea auto-grow + compteur + bouton state
+  function syncTA(){
+    ta.style.height="auto";
+    ta.style.height=Math.min(128, ta.scrollHeight)+"px";
+    var len=ta.value.length;
+    sendBtn.disabled = !ta.value.trim();
+    if(len>3500){ counter.style.display="block"; counter.textContent=(4000-len)+"";
+      counter.classList.toggle("warn",len>=4000); } else counter.style.display="none";
+    measureComposer();
+  }
+  ta.addEventListener("input",syncTA);
+  ta.addEventListener("focus",function(){ setTimeout(function(){ if(atBottom()) scrollBottom(true); },250); });
+
+  composer.addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var text=ta.value.trim(); if(!text) return;
+    if(text.length>4000) text=text.slice(0,4000);
+    var topic = topicSel.value==="__new__"? "" : topicSel.value;
+    sendBtn.disabled=true; sendBtn.innerHTML='<span class="spin"></span>';
+    var keepTopic=topicSel.value;
+    doSend(text, topic).finally(function(){
+      sendBtn.innerHTML="⬆"; ta.value=""; syncTA(); sendBtn.disabled=true;
+      if(keepTopic!=="__new__") topicSel.value=keepTopic;
+    });
+  });
+
+  topicSel.addEventListener("change",function(){
+    if(topicSel.value==="__new__"){
+      var nt=(prompt("Nouveau thème (a-z, 0-9, tirets) :")||"").trim().toLowerCase();
+      if(validId(nt)){ knownTopics[nt]=true; mergeTopics(); topicSel.value=nt; }
+      else topicSel.value=topicFilter||"";
+    }
+  });
+
+  // tap pastille topic dans une bulle -> filtre
+  feed.addEventListener("click",function(ev){
+    var p=ev.target.closest(".pill.topic");
+    if(p){ setFilter(p.dataset.topic); }
+  });
+  feed.addEventListener("scroll",function(){ if(atBottom()){ newCount=0; updateJump(); } });
+  jumpBtn.addEventListener("click",function(){ scrollBottom(true); newCount=0; updateJump(); });
+
+  // lightbox
+  function openLightbox(kind,url){
+    lightbox.innerHTML="";
+    var el = kind==="img"? document.createElement("img") : document.createElement("video");
+    if(kind!=="img"){ el.controls=true; el.setAttribute("playsinline",""); el.playsInline=true; }
+    el.src=url; lightbox.appendChild(el); lightbox.classList.add("show");
+  }
+  lightbox.addEventListener("click",function(){ lightbox.classList.remove("show"); lightbox.innerHTML=""; });
+
+  // réglages agent
+  var modal=$("#modal"), agentin=$("#agentin");
+  $("#gear").addEventListener("click",function(){ agentin.value=agent; modal.classList.add("show"); setTimeout(function(){agentin.focus();},50); });
+  $("#agentcancel").addEventListener("click",function(){ modal.classList.remove("show"); });
+  $("#agentsave").addEventListener("click",function(){
+    var v=(agentin.value||"").trim().toLowerCase();
+    if(validId(v)){ agent=v; localStorage.setItem("xi0n.agent",agent); }
+    modal.classList.remove("show"); render();
+  });
+  modal.addEventListener("click",function(e){ if(e.target===modal) modal.classList.remove("show"); });
+
+  // Page Visibility : pause/reprise du poll + rattrapage immédiat
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden){ pollDelay=POLL_MS; poll(); }
+  });
+  window.addEventListener("online",function(){ pollDelay=POLL_MS; poll(); });
+
+  // visualViewport : recaler quand le clavier s'ouvre (composer visible)
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize",function(){
+      if(atBottom()) scrollBottom(false);
+    });
+  }
+
+  // mesure hauteur composer pour positionner la pilule ↓
+  function measureComposer(){
+    document.documentElement.style.setProperty("--composer-h", composer.offsetHeight+"px");
+  }
+
+  // ====================================================================
+  // whoami + boot
+  // ====================================================================
+  async function whoami(){
+    if(agent) return;            // déjà mémorisé -> on garde
+    try{
+      var w=await apiGet("/whoami");
+      if(w && w.agent && validId(String(w.agent).toLowerCase())){
+        agent=String(w.agent).toLowerCase();
+        localStorage.setItem("xi0n.agent",agent);
+      }
+    }catch(e){ /* défaut 'jose' à l'envoi */ }
+  }
+
+  function boot(){
+    measureComposer(); syncTA();
+    // données injectées par le backend pour 1er paint instantané
+    if(window.__BOOT__ && window.__BOOT__.messages){
+      try{
+        (window.__BOOT__.messages||[]).forEach(function(m){m.topic&&(knownTopics[m.topic]=true);});
+        ingest(window.__BOOT__.messages, "init");
+        if(typeof window.__BOOT__.last_id==="number") lastId=Math.max(lastId,window.__BOOT__.last_id);
+        if(window.__BOOT__.agent && !agent && validId(String(window.__BOOT__.agent).toLowerCase())){
+          agent=String(window.__BOOT__.agent).toLowerCase(); localStorage.setItem("xi0n.agent",agent);
+        }
+        mergeTopics(); render(); scrollBottom(false); setLive(true);
+      }catch(e){}
+    } else {
+      mergeTopics();
+    }
+    whoami().then(loadInitial).then(function(){ schedulePoll(); });
+    if(!window.__BOOT__) schedulePoll();
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

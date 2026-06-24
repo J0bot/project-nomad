@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Texte — PL0XI0N</title>
+<style>
+    html, body { margin:0; padding:0; height:100%; }
+    body { background:#06090d; }
+    .txt { display:flex; flex-direction:column; height:100vh; background:#06090d;
+        color:rgba(220,232,240,.92); font-family:ui-sans-serif,system-ui,sans-serif; }
+    .txt__tabs { flex:0 0 auto; display:flex; align-items:center; gap:4px; padding:6px 8px;
+        border-bottom:1px solid rgba(120,160,230,.18); overflow-x:auto; }
+    .txt__tab { display:flex; align-items:center; gap:6px; padding:4px 9px; border-radius:7px; cursor:pointer;
+        border:1px solid rgba(120,160,230,.2); background:rgba(18,26,42,.4); font-size:.74rem; color:rgba(190,212,228,.8); white-space:nowrap; }
+    .txt__tab.on { background:rgba(120,160,230,.16); color:#fff; border-color:rgba(120,160,230,.45); }
+    .txt__tab b { font-weight:600; }
+    .txt__tx { cursor:pointer; border:0; background:none; color:rgba(190,212,228,.5); font-size:.78rem; line-height:1; }
+    .txt__tx:hover { color:rgba(255,140,140,.95); }
+    .txt__add { cursor:pointer; padding:4px 9px; border-radius:7px; border:1px dashed rgba(120,160,230,.35);
+        background:none; color:rgba(160,195,255,.85); font-size:.78rem; flex:0 0 auto; }
+    .txt__add:hover { background:rgba(120,160,230,.12); color:#fff; }
+    .txt__area { flex:1; min-height:0; width:100%; border:0; outline:none; resize:none; box-sizing:border-box;
+        padding:14px 18px; background:none; color:rgba(228,238,246,.96); font-family:ui-monospace,'Share Tech Mono',monospace;
+        font-size:.9rem; line-height:1.55; }
+    .txt__foot { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:5px 12px;
+        border-top:1px solid rgba(120,160,230,.18); font-size:.68rem; color:rgba(150,180,220,.6); font-family:ui-monospace,monospace; }
+    .txt__sp { flex:1; }
+    .txt__btn { cursor:pointer; padding:2px 9px; border-radius:6px; border:1px solid rgba(120,160,230,.3);
+        background:none; color:rgba(160,195,255,.85); font-size:.68rem; }
+    .txt__btn:hover { background:rgba(120,160,230,.12); color:#fff; }
+    .txt__name { background:none; border:0; color:inherit; font:inherit; width:auto; max-width:120px; outline:none; }
+</style>
+</head>
+<body>
+<div class="txt">
+    <div class="txt__tabs"></div>
+    <textarea class="txt__area" placeholder="écris…" spellcheck="false"></textarea>
+    <div class="txt__foot">
+        <span class="txt__name-wrap">📝 <input class="txt__name" /></span>
+        <span class="txt__sp"></span><span class="txt__stat"></span>
+        <button class="txt__btn" data-export>export .txt</button>
+    </div>
+</div>
+<script>
+(function () {
+    var KEY = 'xb:text';
+    function load() {
+        try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && d.docs && d.docs.length) return d; } catch (e) {}
+        return { active: 0, docs: [{ id: 'd0', name: 'doc-1', body: '' }] };
+    }
+    function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+    var st = load();
+    var tabs = document.querySelector('.txt__tabs');
+    var area = document.querySelector('.txt__area');
+    var nameI = document.querySelector('.txt__name');
+    var stat = document.querySelector('.txt__stat');
+
+    function cur() { return st.docs[st.active]; }
+    function persist() { save(st); }
+    function updStat() {
+        var b = area.value; var w = b.trim() ? b.trim().split(/\s+/).length : 0;
+        stat.textContent = w + ' mots · ' + b.length + ' car.';
+    }
+    function renderTabs() {
+        tabs.innerHTML = '';
+        st.docs.forEach(function (d, i) {
+            var t = document.createElement('div'); t.className = 'txt__tab' + (i === st.active ? ' on' : '');
+            t.innerHTML = '<b></b>'; t.querySelector('b').textContent = d.name;
+            t.addEventListener('click', function () { st.active = i; persist(); paint(); });
+            if (st.docs.length > 1) {
+                var x = document.createElement('button'); x.className = 'txt__tx'; x.textContent = '✕';
+                x.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    st.docs.splice(i, 1); if (st.active >= st.docs.length) st.active = st.docs.length - 1;
+                    persist(); paint();
+                });
+                t.appendChild(x);
+            }
+            tabs.appendChild(t);
+        });
+        var add = document.createElement('button'); add.className = 'txt__add'; add.textContent = '+';
+        add.title = 'nouveau document';
+        add.addEventListener('click', function () {
+            st.docs.push({ id: 'd' + Date.now().toString(36), name: 'doc-' + (st.docs.length + 1), body: '' });
+            st.active = st.docs.length - 1; persist(); paint(); area.focus();
+        });
+        tabs.appendChild(add);
+    }
+    function paint() {
+        renderTabs(); area.value = cur().body; nameI.value = cur().name; updStat();
+    }
+
+    area.addEventListener('input', function () { cur().body = area.value; persist(); updStat(); });
+    nameI.addEventListener('input', function () { cur().name = nameI.value || 'sans-nom'; persist(); renderTabs(); });
+    document.querySelector('[data-export]').addEventListener('click', function () {
+        var a = document.createElement('a');
+        var url = URL.createObjectURL(new Blob([cur().body], { type: 'text/plain' }));
+        a.href = url;
+        a.download = (cur().name || 'doc') + '.txt'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Droit au silence : on persiste une dernière fois en quittant.
+    function silence() { persist(); }
+    window.addEventListener('pagehide', silence);
+    window.addEventListener('beforeunload', silence);
+
+    paint();
+})();
+</script>
+</body>
+</html>

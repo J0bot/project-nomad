@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-gitea-adapter"
+description = "Pure-WASM service adapter: with net.fetch it plc_fetches the LIVE gitea (git.j0bot.ch) repo search and emits git.list onto the bus"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk", features = ["net-fetch"] }

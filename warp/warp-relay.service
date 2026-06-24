@@ -1,0 +1,35 @@
+[Unit]
+Description=warp-relay — relais aveugle E2E du /warp (content-blind, RAM-only)
+Documentation=file:///home/debian/xerboxion-rt/warp/warp-relay.py
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian
+# PHASE LOCALE (defaut) : bind prive 127.0.0.1, rien d'expose publiquement.
+# PHASE EXPOSEE (feu vert Jose) : passer WARP_ADDR a 10.0.0.1 pour que Traefik
+# (host.docker.internal) puisse l'atteindre, puis poser warp.yaml. Voir deploy.
+Environment=WARP_ADDR=127.0.0.1
+Environment=WARP_PORT=8732
+Environment=WARP_LOG=quiet
+ExecStart=/usr/bin/python3 /opt/warp/warp-relay.py
+# le relais s'arrete proprement sur SIGINT (droit au silence)
+KillSignal=SIGINT
+TimeoutStopSec=10
+# garde-fou RAM : kill avant d'asphyxier le VPS (Minecraft tourne)
+MemoryMax=64M
+Restart=always
+RestartSec=3
+# durcissement : aucun secret, aucun FS en ecriture necessaire
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/opt/warp
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

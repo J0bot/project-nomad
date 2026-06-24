@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>⏳ Capsule</title>
+<style>
+    html, body { margin:0; height:100%; }
+    body { background:#070a0f; }
+    .cp { display:flex; flex-direction:column; height:100%; box-sizing:border-box;
+        background:radial-gradient(circle at 50% 0%, rgba(60,40,110,.25), #070a0f 70%);
+        color:#ece9f6; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.84rem; }
+    .cp__bar { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid rgba(150,130,255,.18); }
+    .cp__t { font-weight:800; color:#c4b5fd; }
+    .cp__new { flex:0 0 auto; padding:11px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid rgba(150,130,255,.12); }
+    .cp__new textarea { box-sizing:border-box; resize:none; min-height:54px; background:rgba(0,0,0,.3); border:1px solid rgba(150,130,255,.25); border-radius:10px; color:#eae6fb; padding:10px; font:0.88rem ui-sans-serif,system-ui; outline:none; }
+    .cp__new textarea:focus { border-color:rgba(167,139,250,.6); }
+    .cp__when { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .cp__chip { cursor:pointer; font-size:.72rem; padding:5px 11px; border-radius:16px; border:1px solid rgba(150,130,255,.3); background:rgba(28,22,46,.5); color:rgba(220,210,245,.85); }
+    .cp__chip.on { background:rgba(124,92,250,.45); border-color:rgba(167,139,250,.7); color:#fff; }
+    .cp__seal { cursor:pointer; border-radius:10px; border:0; background:#a78bfa; color:#1a1030; font-weight:800; padding:9px 18px; margin-left:auto; }
+    .cp__seal:hover { filter:brightness(1.08); }
+    .cp__list { flex:1; min-height:0; overflow-y:auto; padding:10px 11px; display:flex; flex-direction:column; gap:9px; }
+    .cp__c { border:1px solid rgba(150,130,255,.2); border-radius:13px; padding:12px; background:rgba(255,255,255,.022); }
+    .cp__c.sealed { background:linear-gradient(135deg, rgba(40,30,70,.5), rgba(20,16,36,.5)); }
+    .cp__h { display:flex; align-items:center; gap:8px; font-size:.72rem; color:rgba(200,190,235,.7); }
+    .cp__h .ic { font-size:1.05rem; } .cp__sp { flex:1; }
+    .cp__del { cursor:pointer; border:0; background:none; color:rgba(255,150,150,.6); font-size:.72rem; }
+    .cp__body { margin-top:8px; font-size:.92rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+    .cp__locked { margin-top:8px; font-size:.82rem; color:rgba(190,180,225,.6); font-style:italic; }
+    .cp__cd { color:#c4b5fd; font-weight:700; font-variant-numeric:tabular-nums; }
+    .cp__empty { text-align:center; color:rgba(190,180,225,.5); padding:24px; font-size:.85rem; line-height:1.5; }
+    .cp__toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:50;
+        max-width:80%; padding:9px 16px; border-radius:11px; font-size:.8rem; font-weight:600;
+        background:rgba(124,92,250,.92); color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.45);
+        opacity:0; transition:opacity .2s; pointer-events:none; }
+    .cp__toast.on { opacity:1; }
+    .cp__toast.bad { background:rgba(220,80,90,.94); }
+</style>
+</head>
+<body>
+<div class="cp">
+    <div class="cp__bar"><span class="cp__t">⏳ Capsule</span><span style="font-size:.66rem;color:rgba(200,190,235,.55)">scelle un truc chill pour le futur</span></div>
+    <div class="cp__new"><textarea data-text placeholder="un message, une pensée, un état d'esprit… pour plus tard"></textarea>
+        <div class="cp__when" data-whens></div></div>
+    <div class="cp__list" data-list></div>
+</div>
+<div class="cp__toast" data-toast></div>
+<script>
+(function () {
+    'use strict';
+    var DAY = 86400000;
+    var KEY = 'xb:capsules';
+    var WHENS = [['1 jour', DAY], ['1 semaine', 7 * DAY], ['1 mois', 30 * DAY], ['1 an', 365 * DAY], ['10 ans', 3650 * DAY]];
+
+    // --- bions inlinés (ex window.jOSb) ---
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+    function loadCaps() { try { var v = localStorage.getItem(KEY); return v == null ? [] : (JSON.parse(v) || []); } catch (e) { return []; } }
+    function saveCaps(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+    var toastEl = document.querySelector('[data-toast]'), toastTimer = null;
+    function toast(msg, bad) {
+        toastEl.textContent = msg; toastEl.classList.toggle('bad', !!bad); toastEl.classList.add('on');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toastEl.classList.remove('on'); toastTimer = null; }, 2600);
+    }
+
+    // --- bus same-origin (la page est servie à /px/capsule/index.html) ---
+    function emit(topic, payload) {
+        try {
+            fetch('/emit', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, payload: payload }) }).catch(function () {});
+        } catch (e) {}
+    }
+    var es = null;
+    try {
+        es = new EventSource('/events');
+        es.onmessage = function (ev) {
+            // quand une capsule arrive à terme ailleurs dans l'écosystème, on rafraîchit l'affichage
+            try {
+                var d = JSON.parse(ev.data), t = d.topic || '';
+                if (t.indexOf('capsule') === 0) render();
+            } catch (e) {}
+        };
+    } catch (e) { es = null; }
+
+    var caps = loadCaps(), when = DAY, tick = null;
+    var elText = document.querySelector('[data-text]'), list = document.querySelector('[data-list]'), whensWrap = document.querySelector('[data-whens]');
+
+    // chips "quand" + bouton sceller
+    whensWrap.innerHTML = WHENS.map(function (w, i) {
+        return '<span class="cp__chip' + (i === 0 ? ' on' : '') + '" data-when="' + w[1] + '">' + w[0] + '</span>';
+    }).join('') + '<button class="cp__seal" data-seal>⧗ sceller</button>';
+
+    function fmtLeft(ms) {
+        if (ms <= 0) return 'maintenant';
+        var d = Math.floor(ms / DAY), h = Math.floor((ms % DAY) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+        if (d > 0) return d + 'j ' + h + 'h';
+        if (h > 0) return h + 'h ' + m + 'm';
+        return m + 'm';
+    }
+    function fmtDate(ts) { try { return new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
+
+    function render() {
+        if (!caps.length) {
+            list.innerHTML = '<div class="cp__empty">aucune capsule.<br>Écris un truc chill, choisis quand, et scelle-le — il t\'attendra dans le futur.</div>';
+            return;
+        }
+        var now = Date.now();
+        list.innerHTML = caps.slice().sort(function (a, b) { return a.at - b.at; }).map(function (c) {
+            var open = now >= c.at, left = c.at - now;
+            return '<div class="cp__c ' + (open ? 'open' : 'sealed') + '" data-id="' + c.id + '">'
+                + '<div class="cp__h"><span class="ic">' + (open ? '✨' : '🔒') + '</span>'
+                + '<span>' + (open ? 'livrée · scellée le ' + fmtDate(c.sealed) : 'arrive le ' + fmtDate(c.at) + ' · <span class="cp__cd">' + fmtLeft(left) + '</span>') + '</span>'
+                + '<span class="cp__sp"></span><button class="cp__del" data-del="' + c.id + '">✕</button></div>'
+                + (open ? '<div class="cp__body">' + esc(c.text) + '</div>' : '<div class="cp__locked">🔮 scellée — révélée à sa livraison</div>')
+                + '</div>';
+        }).join('');
+        list.querySelectorAll('[data-del]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                caps = caps.filter(function (x) { return x.id !== b.getAttribute('data-del'); });
+                saveCaps(caps); render();
+            });
+        });
+    }
+
+    function seal() {
+        var txt = elText.value.trim();
+        if (!txt) { toast('écris quelque chose d\'abord', true); return; }
+        var c = { id: 'c' + Date.now().toString(36), text: txt, sealed: Date.now(), at: Date.now() + when };
+        caps.push(c); saveCaps(caps); elText.value = '';
+        // c'est un tsoin adressé au futur : on l'émet sur le bus (ex window.jOSTsoin.mark)
+        emit('capsule.sealed', { id: c.id, at: c.at, sealed: c.sealed, future: fmtDate(c.at) });
+        toast('⧗ capsule scellée — rendez-vous dans le futur');
+        render();
+    }
+
+    whensWrap.querySelector('[data-seal]').addEventListener('click', seal);
+    whensWrap.querySelectorAll('[data-when]').forEach(function (ch) {
+        ch.addEventListener('click', function () {
+            when = +ch.getAttribute('data-when');
+            whensWrap.querySelectorAll('.cp__chip').forEach(function (x) { x.classList.toggle('on', x === ch); });
+        });
+    });
+
+    render();
+    tick = setInterval(render, 30000);   // rafraîchit les comptes à rebours
+
+    // --- droit au silence : la page disparaît → on coupe tout ---
+    function silence() {
+        if (tick !== null) { clearInterval(tick); tick = null; }
+        if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+        if (es) { try { es.close(); } catch (e) {} es = null; }
+    }
+    window.addEventListener('pagehide', silence);
+    window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "xerboxion-os",
+	"version": "${version}",
+	"name": "Minecraft OS (xerboxion)",
+	"description": "Fait de Minecraft une surface/dimension du xerboxion-os : ponte les events du jeu vers le bus du xion (POST /emit), HUD client des tsoins, hook Simple Voice Chat. Grammaire bion->cubion->ploxion->xion.",
+	"authors": ["j0bot"],
+	"contact": {
+		"homepage": "https://xion.j0bot.ch",
+		"sources": "https://github.com/simplifaisoul/xerboxion-rt"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"ch.j0bot.minecraftos.XerboxionOsMod"
+		],
+		"server": [
+			"ch.j0bot.minecraftos.XerboxionOsServer"
+		],
+		"client": [
+			"ch.j0bot.minecraftos.client.XerboxionOsClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=21"
+	},
+	"suggests": {
+		"voicechat": "*"
+	}
+}

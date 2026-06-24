@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-carte"
+description = "WASM ploxion: le cartographe 4D. Place chaque donnee en (x,y,z,t=coherence) et replie les amas trop denses en cubions (generateur+residu)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

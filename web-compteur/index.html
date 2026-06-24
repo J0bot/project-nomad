@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--
+  compteur · UI A (boutons) — UNE vue du core `compteur` (descripteur /px/compteur/core.json).
+  La valeur N'est PAS stockée ici : elle est dérivée du ruban d'événements compteur.inc/reset sur le
+  bus (SSE /events). Émettre = POST /emit compteur.inc ; on n'incrémente l'affichage QUE quand le bus
+  renvoie l'événement (contrat : la vérité vient du core, pas du UI). Ouvre /px/compteur-jauge en
+  parallèle (ou le binder /px/binder) → tous restent synchronisés. Preuve « un core, N UI ».
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>compteur</title>
+<style>
+  :root{--bg:#070a0f;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif;height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden;text-align:center}
+  .val{font-size:6rem;font-weight:800;line-height:1;letter-spacing:-.02em;color:#fff;text-shadow:0 0 40px rgba(106,208,255,.3);font-variant-numeric:tabular-nums}
+  .row{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;max-width:320px}
+  .b{font-size:1rem;font-weight:700;padding:11px 18px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(30,42,66,.6);color:var(--ink);cursor:pointer;min-width:58px;transition:.12s}
+  .b:hover{border-color:var(--acc);color:#fff;transform:translateY(-1px)}
+  .b.big{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none}
+  .b.rst{color:var(--warn);border-color:rgba(231,198,106,.4)}
+  .meta{font-size:.7rem;color:var(--dim);max-width:340px;line-height:1.6}
+  .meta b{color:var(--acc2)}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:5px;vertical-align:middle}
+  .live.on{background:var(--ok);box-shadow:0 0 7px var(--ok)}
+  .note{font-size:.66rem;color:var(--warn);min-height:1em}
+</style></head>
+<body>
+  <div class="meta">core <b>compteur</b> · UI boutons<br><span class="live" id="live"></span><span id="conn">bus…</span></div>
+  <div class="val" id="val">0</div>
+  <div class="row">
+    <button class="b" data-by="-1">−1</button>
+    <button class="b big" data-by="1">+1</button>
+    <button class="b" data-by="5">+5</button>
+    <button class="b" data-by="10">+10</button>
+    <button class="b rst" id="rst">reset</button>
+  </div>
+  <div class="note" id="note"></div>
+  <div class="meta">La valeur est dérivée du <b>ruban d'événements</b> du bus — pas stockée ici.<br>Ouvre aussi <b>compteur-jauge</b> ou le <b>binder</b> : ils affichent la même valeur, synchronisée.</div>
+<script>
+"use strict";
+var value = 0;
+function render(){ document.getElementById('val').textContent = value; }
+function applyEv(ev){
+  if(!ev || ev.kind!=='emit') return;
+  if(ev.topic==='compteur.inc'){ var by=1; try{ var p=JSON.parse(ev.payload||'{}'); by=(+p.by)||1; }catch(e){ by=(+ev.payload)||1; } value+=by; render(); }
+  else if(ev.topic==='compteur.reset'){ value=0; render(); }
+}
+function connectBus(){
+  try{ var es=new EventSource('/events');
+    var live=document.getElementById('live'), conn=document.getElementById('conn');
+    es.onopen=function(){ live.classList.add('on'); conn.textContent='bus live'; };
+    es.onerror=function(){ live.classList.remove('on'); conn.textContent='reconnexion…'; };
+    ['emit'].forEach(function(k){ es.addEventListener(k,function(e){ try{ applyEv(JSON.parse(e.data)); }catch(_){} }); });
+  }catch(e){}
+}
+function emit(topic,payload){
+  var note=document.getElementById('note');
+  fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:topic,payload:payload||''})})
+    .then(function(r){ if(!r.ok){ note.textContent = r.status===401 ? 'écriture gardée — utilise le bus authentifié (xion.j0bot.ch)' : 'échec '+r.status; }
+      else { note.textContent=''; } setTimeout(function(){ if(note.textContent.indexOf('écriture')<0) note.textContent=''; },2500); })
+    .catch(function(){ note.textContent='bus injoignable'; });
+}
+document.querySelectorAll('[data-by]').forEach(function(b){ b.onclick=function(){ emit('compteur.inc', JSON.stringify({by:+b.getAttribute('data-by')})); }; });
+document.getElementById('rst').onclick=function(){ emit('compteur.reset',''); };
+connectBus(); render();
+</script>
+</body></html>

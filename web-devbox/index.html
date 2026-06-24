@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Devbox — PL0XI0N</title>
+<style>
+    html, body { margin:0; padding:0; height:100%; }
+    body { background:#070a0f; }
+    .dv { display:flex; flex-direction:column; height:100vh; background:#070a0f; color:#e6edf6; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.84rem; }
+    .dv__io { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:11px; }
+    .dv textarea { flex:1; min-height:60px; box-sizing:border-box; resize:none; background:rgba(0,0,0,.32); border:1px solid rgba(120,180,255,.22);
+        border-radius:10px; color:#dce8fb; padding:10px; font:0.8rem ui-monospace,monospace; outline:none; }
+    .dv textarea:focus { border-color:rgba(120,180,255,.55); }
+    .dv__out { position:relative; }
+    .dv__copy { position:absolute; top:7px; right:7px; cursor:pointer; font-size:.66rem; padding:3px 9px; border-radius:7px; border:1px solid rgba(120,180,255,.35); background:rgba(20,32,54,.8); color:#bcd8ff; }
+    .dv__copy:hover { background:rgba(40,60,100,.8); color:#fff; }
+    .dv__ops { flex:0 0 auto; display:flex; flex-wrap:wrap; gap:5px; padding:9px 11px; border-top:1px solid rgba(120,180,255,.14); max-height:160px; overflow-y:auto; }
+    .dv__grp { display:flex; gap:4px; align-items:center; padding:2px 7px 2px 0; }
+    .dv__gl { font-size:.56rem; text-transform:uppercase; letter-spacing:.05em; color:rgba(150,180,230,.55); margin-right:3px; }
+    .dv__op { cursor:pointer; font-size:.74rem; padding:5px 10px; border-radius:8px; border:1px solid rgba(120,180,255,.3); background:rgba(18,28,48,.6); color:#cfe0fb; }
+    .dv__op:hover { background:rgba(40,64,110,.6); color:#fff; }
+    .dv__bar { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:7px 11px; border-bottom:1px solid rgba(120,180,255,.18); }
+    .dv__t { font-weight:800; color:#7cc4ff; } .dv__stat { font-size:.66rem; color:rgba(160,190,235,.6); margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="dv">
+    <div class="dv__bar"><span class="dv__t">🛠 Devbox</span><span class="dv__stat" data-stat></span></div>
+    <div class="dv__io">
+        <textarea data-in placeholder="colle ton texte / json / base64 ici…"></textarea>
+        <div class="dv__out"><textarea data-out readonly placeholder="résultat…"></textarea><button class="dv__copy" data-copy>copier</button></div>
+    </div>
+    <div class="dv__ops"></div>
+</div>
+<script>
+(function () {
+    'use strict';
+
+    // bion copy (autonome, ex-window.jOSb.copy) : presse-papier avec fallback.
+    function copy(text) {
+        try { return navigator.clipboard.writeText(text); }
+        catch (e) {
+            try { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } catch (e2) {}
+            return Promise.resolve();
+        }
+    }
+
+    var elIn = document.querySelector('[data-in]'),
+        elOut = document.querySelector('[data-out]'),
+        elStat = document.querySelector('[data-stat]'),
+        elOps = document.querySelector('.dv__ops');
+
+    function out(s) { elOut.value = s == null ? '' : s; }
+    function utf8b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+    function b64utf8(s) { return decodeURIComponent(escape(atob(s.trim()))); }
+
+    var GROUPS = [
+        ['Base64', [
+            ['encode', function (v) { return utf8b64(v); }],
+            ['decode', function (v) { return b64utf8(v); }]
+        ]],
+        ['URL', [
+            ['encode', function (v) { return encodeURIComponent(v); }],
+            ['decode', function (v) { return decodeURIComponent(v); }]
+        ]],
+        ['JSON', [
+            ['beautify', function (v) { return JSON.stringify(JSON.parse(v), null, 2); }],
+            ['minify', function (v) { return JSON.stringify(JSON.parse(v)); }]
+        ]],
+        ['Texte', [
+            ['MAJ', function (v) { return v.toUpperCase(); }],
+            ['min', function (v) { return v.toLowerCase(); }],
+            ['trim', function (v) { return v.replace(/^\s+|\s+$/g, ''); }],
+            ['inverser', function (v) { return v.split('').reverse().join(''); }]
+        ]],
+        ['Hash', [
+            ['SHA-256', function (v) { return digest('SHA-256', v); }],
+            ['SHA-1', function (v) { return digest('SHA-1', v); }]
+        ]],
+        ['Génère', [
+            ['UUID', function () { return uuid(); }],
+            ['timestamp', function () { return Date.now() + '  (' + new Date().toISOString() + ')'; }]
+        ]],
+        ['Time', [
+            ['ts→date', function (v) { var n = parseInt(v, 10); if (isNaN(n)) throw 0; if (v.trim().length <= 10) n *= 1000; return new Date(n).toString(); }],
+            ['date→ts', function (v) { var d = new Date(v.trim()); if (isNaN(d)) throw 0; return d.getTime() + ''; }]
+        ]]
+    ];
+
+    function uuid() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (window.crypto ? crypto.getRandomValues(new Uint8Array(1))[0] : Math.floor(Math.random() * 256)) % 16;
+            var v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16);
+        });
+    }
+    function digest(algo, v) {
+        if (!(window.crypto && crypto.subtle)) return Promise.reject(new Error('crypto.subtle indisponible (http?)'));
+        return crypto.subtle.digest(algo, new TextEncoder().encode(v)).then(function (buf) {
+            return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        });
+    }
+    function run(fn) {
+        try {
+            var r = fn(elIn.value);
+            if (r && typeof r.then === 'function') { out('…'); r.then(out).catch(function (e) { out('⚠ ' + (e && e.message || 'erreur')); }); }
+            else out(r);
+        } catch (e) { out('⚠ entrée invalide pour cette opération'); }
+    }
+
+    elOps.innerHTML = GROUPS.map(function (g) {
+        return '<div class="dv__grp"><span class="dv__gl">' + g[0] + '</span>' + g[1].map(function (op, i) {
+            return '<button class="dv__op" data-g="' + g[0] + '" data-i="' + i + '">' + op[0] + '</button>';
+        }).join('') + '</div>';
+    }).join('');
+    elOps.querySelectorAll('[data-op],[data-g]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var g = GROUPS.filter(function (x) { return x[0] === b.getAttribute('data-g'); })[0]; if (!g) return;
+            run(g[1][+b.getAttribute('data-i')][1]);
+        });
+    });
+
+    function stat() { var v = elIn.value; elStat.textContent = v.length + ' car · ' + (v.trim() ? v.trim().split(/\s+/).length : 0) + ' mots'; }
+    elIn.addEventListener('input', stat); stat();
+
+    document.querySelector('[data-copy]').addEventListener('click', function () {
+        if (!elOut.value) return;
+        copy(elOut.value);
+        var b = document.querySelector('[data-copy]'); b.textContent = '✓ copié'; setTimeout(function () { b.textContent = 'copier'; }, 1200);
+    });
+
+    setTimeout(function () { elIn.focus(); }, 30);
+})();
+</script>
+</body>
+</html>

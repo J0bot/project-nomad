@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>❝ Citations</title>
+<style>
+    html, body { margin:0; height:100%; }
+    body { background:#070a0f; }
+    .ct { position:fixed; inset:0; display:flex; flex-direction:column; height:100%; background:#0b0d10; color:#eef2f7; font-family:ui-serif,Georgia,serif; }
+    .ct__bar { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid rgba(140,180,230,.16); font-family:ui-sans-serif,system-ui; }
+    .ct__t { font-weight:800; color:#86b8ff; font-family:ui-sans-serif,system-ui; }
+    .ct__tabs { margin-left:auto; display:flex; gap:5px; }
+    .ct__tab { cursor:pointer; font-size:.72rem; padding:4px 10px; border-radius:14px; border:1px solid rgba(140,180,230,.25); background:rgba(20,28,44,.5); color:rgba(200,215,240,.8); font-family:ui-sans-serif,system-ui; }
+    .ct__tab.on { background:rgba(56,110,200,.4); border-color:rgba(134,184,255,.6); color:#fff; }
+    .ct__main { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:24px; text-align:center; }
+    .ct__q { font-size:clamp(20px,4.2vmin,30px); line-height:1.4; max-width:680px; color:#f3f6fb; }
+    .ct__q::before { content:'\00ab\00a0'; color:rgba(134,184,255,.6); } .ct__q::after { content:'\00a0\00bb'; color:rgba(134,184,255,.6); }
+    .ct__a { font-size:.92rem; color:rgba(190,210,240,.75); font-family:ui-sans-serif,system-ui; font-style:italic; }
+    .ct__row { flex:0 0 auto; display:flex; gap:8px; justify-content:center; padding:12px; border-top:1px solid rgba(140,180,230,.14); font-family:ui-sans-serif,system-ui; flex-wrap:wrap; }
+    .ct__b { cursor:pointer; border-radius:9px; border:1px solid rgba(134,184,255,.4); background:rgba(20,40,70,.5); color:#cfe2ff; font-size:.82rem; padding:9px 16px; font-weight:600; }
+    .ct__b:hover { background:rgba(34,60,104,.6); }
+    .ct__b.main { background:#86b8ff; color:#06182e; border:0; font-weight:800; }
+    .ct__b.fav.on { color:#fbbf24; border-color:#fbbf24; }
+    .ct__empty { color:rgba(190,210,240,.5); font-size:.9rem; font-family:ui-sans-serif,system-ui; }
+</style>
+</head>
+<body>
+<div class="ct">
+    <div class="ct__bar"><span class="ct__t">❝ Citations</span><div class="ct__tabs"><span class="ct__tab on" data-tab="all">toutes</span><span class="ct__tab" data-tab="fav">favorites</span></div></div>
+    <div class="ct__main" data-main></div>
+    <div class="ct__row"><button class="ct__b fav" data-fav>★ favorite</button><button class="ct__b main" data-next>↻ une autre</button><button class="ct__b" data-copy>copier</button></div>
+</div>
+<script>
+(function () {
+    'use strict';
+
+    // --- bions d'interface inlinés (ex-window.jOSb), 100% vanilla ---
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+    function copy(text) {
+        try { return navigator.clipboard.writeText(text); }
+        catch (e) {
+            try { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } catch (e2) {}
+            return Promise.resolve();
+        }
+    }
+    function toast(host, msg) {
+        if (!host) return;
+        try { if (getComputedStyle(host).position === 'static') host.style.position = 'relative'; } catch (e) {}
+        var t = document.createElement('div'); t.textContent = msg;
+        t.style.cssText = 'position:absolute;left:50%;top:46px;transform:translateX(-50%);z-index:40;'
+            + 'padding:6px 13px;border-radius:18px;font-size:.74rem;color:#fff;border:1px solid rgba(255,255,255,.16);'
+            + 'box-shadow:0 6px 22px rgba(0,0,0,.5);background:rgba(20,80,60,.96)';
+        host.appendChild(t);
+        setTimeout(function () { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 400); }, 1600);
+    }
+    var KEY = 'xb:citations';
+    function favsLoad() { try { var v = localStorage.getItem(KEY); return v == null ? [] : (JSON.parse(v) || []); } catch (e) { return []; } }
+    function favsSave(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+
+    var Q = [
+        ["La science, c'est ce que le père enseigne à son fils. La technologie, ce que le fils enseigne à son papa.", "Michel Serres"],
+        ["Ce que nous appelons le hasard n'est et ne peut être que la cause ignorée d'un effet connu.", "Voltaire"],
+        ["La simplicité est la sophistication suprême.", "Léonard de Vinci"],
+        ["Tout devrait être rendu aussi simple que possible, mais pas plus simple.", "Albert Einstein"],
+        ["Ce qui est simple est toujours faux. Ce qui ne l'est pas est inutilisable.", "Paul Valéry"],
+        ["On ne comprend vraiment une chose que lorsqu'on est capable de la fabriquer.", "Giambattista Vico"],
+        ["La connaissance s'accroît quand on la partage.", "proverbe"],
+        ["Donnez-moi un point d'appui et je soulèverai le monde.", "Archimède"],
+        ["Nous sommes faits de poussière d'étoiles.", "Carl Sagan"],
+        ["L'imagination est plus importante que le savoir.", "Albert Einstein"],
+        ["Ce n'est pas la plus forte des espèces qui survit, mais celle qui s'adapte le mieux au changement.", "d'après Darwin"],
+        ["Un petit pas pour l'homme, un bond de géant pour l'humanité.", "Neil Armstrong"],
+        ["Le tout est plus que la somme de ses parties.", "Aristote"],
+        ["Ce que tu fais aujourd'hui peut améliorer tous tes lendemains.", "Ralph Marston"],
+        ["Le code, c'est de la poésie qui s'exécute.", "anonyme"],
+        ["La perfection est atteinte non pas lorsqu'il n'y a plus rien à ajouter, mais plus rien à retirer.", "Saint-Exupéry"],
+        ["Programmer, c'est l'art de dire à un autre humain ce qu'on veut que l'ordinateur fasse.", "Donald Knuth"],
+        ["Premièrement, fais que ça marche. Ensuite, fais que ça soit beau.", "Kent Beck"],
+        ["Les détails font la perfection, et la perfection n'est pas un détail.", "Léonard de Vinci"],
+        ["Là où la volonté est grande, les difficultés diminuent.", "Machiavel"],
+        ["La curiosité est une des plus permanentes et des plus sûres caractéristiques d'une intelligence vigoureuse.", "Samuel Johnson"],
+        ["Ce qui ne se mesure pas ne s'améliore pas.", "d'après Lord Kelvin"],
+        ["La meilleure façon de prédire l'avenir, c'est de l'inventer.", "Alan Kay"],
+        ["Toute technologie suffisamment avancée est indiscernable de la magie.", "Arthur C. Clarke"],
+        ["Le réel, c'est ce qui ne disparaît pas quand on cesse d'y croire.", "Philip K. Dick"],
+        ["Apprends comme si tu devais vivre toujours, vis comme si tu devais mourir demain.", "Gandhi"],
+        ["Itère, mesure, recommence : c'est ainsi qu'on converge.", "XERB0XI0N"],
+        ["Tout est un ploxion. Tout est un repo. Ne pas nuire.", "XERB0XI0N"]
+    ];
+
+    // la page EST le ploxion : on travaille directement sur le DOM rendu dans le body
+    var root = document.querySelector('.ct');
+    var favs = favsLoad(), tab = 'all', cur = 0;
+    var main = document.querySelector('[data-main]'), favBtn = document.querySelector('[data-fav]');
+
+    function pool() { return tab === 'fav' ? favs.map(function (i) { return Q[i]; }).filter(Boolean) : Q; }
+    function idxInQ(q) { return Q.indexOf(q); }
+    function render() {
+        var p = pool();
+        if (!p.length) { main.innerHTML = '<div class="ct__empty">aucune favorite — clique ★ sur une citation</div>'; favBtn.classList.remove('on'); return; }
+        var q = p[cur % p.length];
+        main.innerHTML = '<div class="ct__q">' + esc(q[0]) + '</div><div class="ct__a">— ' + esc(q[1]) + '</div>';
+        favBtn.classList.toggle('on', favs.indexOf(idxInQ(q)) >= 0);
+    }
+    function next() { var p = pool(); if (!p.length) return; cur = Math.floor(Math.random() * p.length); render(); }
+
+    document.querySelector('[data-next]').addEventListener('click', next);
+    document.querySelector('[data-copy]').addEventListener('click', function () {
+        var p = pool(); if (!p.length) return; var q = p[cur % p.length];
+        copy('« ' + q[0] + ' » — ' + q[1]); toast(root, '✓ copié');
+    });
+    favBtn.addEventListener('click', function () {
+        var p = pool(); if (!p.length) return; var qi = idxInQ(p[cur % p.length]); if (qi < 0) return;
+        var k = favs.indexOf(qi); if (k >= 0) favs.splice(k, 1); else favs.push(qi);
+        favsSave(favs); render();
+    });
+    document.querySelectorAll('[data-tab]').forEach(function (t) { t.addEventListener('click', function () {
+        tab = t.getAttribute('data-tab'); document.querySelectorAll('.ct__tab').forEach(function (x) { x.classList.toggle('on', x === t); }); cur = 0; render();
+    }); });
+
+    next();
+})();
+</script>
+</body>
+</html>

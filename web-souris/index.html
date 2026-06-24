@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Souris — wormion</title>
+<style>
+  html,body{margin:0;height:100%;background:#070a0f}
+  .pms{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,#0a1410,#04060a);color:rgba(220,240,235,.92);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden;cursor:crosshair;touch-action:none}
+  .pms__hint{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:.82rem;color:rgba(180,210,200,.55);pointer-events:none}
+  .pms__hud{position:absolute;bottom:12px;left:14px;font-family:'Share Tech Mono',ui-monospace,monospace;font-size:.82rem;color:rgba(0,255,159,.85);pointer-events:none}
+  .pms__cursor{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border:2px solid rgba(0,255,159,.9);border-radius:50%;box-shadow:0 0 12px rgba(0,255,159,.6);pointer-events:none;transition:transform .04s linear}
+  .pms__dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:rgba(0,200,255,.7);pointer-events:none;animation:pmsfade 1s ease forwards}
+  @keyframes pmsfade{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(.3)}}
+  .pms__ring{position:absolute;border:2px solid rgba(0,255,159,.8);border-radius:50%;margin:-6px 0 0 -6px;width:12px;height:12px;pointer-events:none;animation:pmsring .5s ease-out forwards}
+  @keyframes pmsring{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(5)}}
+</style>
+</head>
+<body>
+<div class="pms" data-root tabindex="0">
+  <div class="pms__hint">🖱 Souris — le wormion suit ton geste. Bouge / clique ici.</div>
+  <div class="pms__cursor" data-cur style="display:none"></div>
+  <div class="pms__hud" data-hud>x — · y — · btn —</div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var ID='souris';
+  var root=document.querySelector('[data-root]');
+  var cur=document.querySelector('[data-cur]');
+  var hud=document.querySelector('[data-hud]');
+  var last=0;
+  var timers=new Set();
+  var es=null;
+
+  // Bus same-origin (best-effort, silencieux si indisponible).
+  function emit(topic,payload){
+    try{
+      fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({topic:topic,payload:payload}),keepalive:true}).catch(function(){});
+    }catch(e){}
+  }
+  try{
+    es=new EventSource('/events');
+    es.onerror=function(){ if(es&&es.readyState===2){ es=null; } };
+  }catch(e){ es=null; }
+
+  function pos(e){ var r=root.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+
+  function onMove(e){
+    var p=pos(e);
+    cur.style.display='block';
+    cur.style.transform='translate('+p.x+'px,'+p.y+'px)';
+    hud.textContent='x '+Math.round(p.x)+' · y '+Math.round(p.y)+' · btn '+(e.buttons||'—');
+    var now=Date.now();
+    if(now-last>28){
+      last=now;
+      var d=document.createElement('div');
+      d.className='pms__dot'; d.style.left=p.x+'px'; d.style.top=p.y+'px';
+      root.appendChild(d);
+      var t=setTimeout(function(){ d.remove(); timers.delete(t); },1000);
+      timers.add(t);
+    }
+  }
+
+  function onDown(e){
+    var p=pos(e);
+    var r=document.createElement('div');
+    r.className='pms__ring'; r.style.left=p.x+'px'; r.style.top=p.y+'px';
+    root.appendChild(r);
+    var t=setTimeout(function(){ r.remove(); timers.delete(t); },500);
+    timers.add(t);
+    emit('souris.click',{x:Math.round(p.x),y:Math.round(p.y),btn:e.button});
+    try{ localStorage.setItem('xb:souris:lastClick',JSON.stringify({x:Math.round(p.x),y:Math.round(p.y),t:Date.now()})); }catch(e){}
+  }
+
+  root.addEventListener('pointermove',onMove);
+  root.addEventListener('pointerdown',onDown);
+
+  // Droit au silence : on relâche tout à la disparition de la page.
+  function silence(){
+    root.removeEventListener('pointermove',onMove);
+    root.removeEventListener('pointerdown',onDown);
+    timers.forEach(function(t){ clearTimeout(t); });
+    timers.clear();
+    if(es){ try{ es.close(); }catch(e){} es=null; }
+  }
+  window.addEventListener('pagehide',silence);
+  window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

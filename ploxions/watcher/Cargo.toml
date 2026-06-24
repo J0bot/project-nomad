@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-watcher"
+description = "WASM ploxion: subscribes to service.health and reacts to the live deployed services (logs UP/DOWN, counts, alerts)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

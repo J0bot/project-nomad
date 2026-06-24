@@ -1,0 +1,2558 @@
+{
+ "laws": [
+  {
+   "id": "math.quadratic",
+   "name": "Formule quadratique",
+   "statement": "Les racines de ax^2+bx+c=0 sont x = (-b ± sqrt(b^2-4ac)) / (2a). Le discriminant b^2-4ac décide du nombre de racines réelles.",
+   "formula": "x = (-b + sqrt(b^2 - 4ac)) / (2a)",
+   "python": "lambda a,b,c: (-b + sqrt(b*b - 4*a*c)) / (2*a)",
+   "test_inputs": {
+    "a": 1,
+    "b": -5,
+    "c": 6
+   },
+   "expected": 3,
+   "tol": 1e-09,
+   "units": "sans dimension",
+   "links": [
+    {
+     "to": "phys.projectile_range",
+     "relation": "résout le temps de vol / portée (équation du 2e degré en t)"
+    },
+    {
+     "to": "phys.kinematics",
+     "relation": "inverse x=x0+v0t+½at² pour t"
+    },
+    {
+     "to": "chem.equilibrium_quadratic",
+     "relation": "résout les concentrations à l'équilibre (loi d'action de masse → équation quadratique en x)"
+    }
+   ],
+   "brief": "Générateur des racines d'un polynôme de degré 2 ; brique de résolution dans toute la physique/chimie.",
+   "domain": "math"
+  },
+  {
+   "id": "math.derivative",
+   "name": "Dérivée (différence centrée)",
+   "statement": "La dérivée f'(x) = lim_{h→0} (f(x+h)-f(x-h))/(2h) est le taux de variation instantané. Test : d/dx[x^3] en x=2 vaut 12.",
+   "formula": "f'(x) ≈ (f(x+h) - f(x-h)) / (2h)",
+   "python": "lambda x,h: ((x+h)**3 - (x-h)**3) / (2*h)",
+   "test_inputs": {
+    "x": 2,
+    "h": 1e-05
+   },
+   "expected": 12,
+   "tol": 0.001,
+   "units": "[f]/[x]",
+   "links": [
+    {
+     "to": "phys.newton2",
+     "relation": "la vitesse et l'accélération SONT des dérivées de la position"
+    },
+    {
+     "to": "phys.velocity",
+     "relation": "v = dx/dt définit la cinématique"
+    },
+    {
+     "to": "quant.schrodinger",
+     "relation": "l'opérateur impulsion -iħ d/dx est une dérivée"
+    },
+    {
+     "to": "bio.population_growth",
+     "relation": "dN/dt = rN : la croissance est une dérivée"
+    }
+   ],
+   "brief": "Générateur du taux de variation ; fondation du calcul différentiel sur lequel reposent toutes les lois dynamiques.",
+   "domain": "math"
+  },
+  {
+   "id": "math.integral",
+   "name": "Intégrale définie (trapèzes)",
+   "statement": "L'intégrale ∫_a^b f dx est l'aire sous la courbe, approchée par la somme des trapèzes. Test : ∫_0^1 x^2 dx = 1/3.",
+   "formula": "∫_a^b f(x)dx ≈ (Δx)[½(f(a)+f(b)) + Σ f(a+iΔx)]",
+   "python": "lambda a,b,n: ((b-a)/n)*(0.5*(a*a+b*b) + sum((a+i*(b-a)/n)**2 for i in range(1,int(n))))",
+   "test_inputs": {
+    "a": 0,
+    "b": 1,
+    "n": 100000
+   },
+   "expected": 0.3333333333333333,
+   "tol": 0.0001,
+   "units": "[f]·[x]",
+   "links": [
+    {
+     "to": "phys.work",
+     "relation": "le travail W = ∫F·dx est une intégrale"
+    },
+    {
+     "to": "phys.kinematics",
+     "relation": "position = ∫vitesse dt (intégrale inverse de la dérivée)"
+    },
+    {
+     "to": "quant.normalization",
+     "relation": "∫|ψ|² dx = 1 normalise la fonction d'onde"
+    },
+    {
+     "to": "chem.thermo_entropy",
+     "relation": "ΔS = ∫dQ/T accumule l'entropie thermodynamique"
+    }
+   ],
+   "brief": "Générateur de l'aire/accumulation ; réciproque de la dérivée (théorème fondamental), branche vers travail/charge/probabilité.",
+   "domain": "math"
+  },
+  {
+   "id": "math.taylor_exp",
+   "name": "Série de Taylor (exp)",
+   "statement": "Toute fonction lisse s'écrit comme somme de puissances : e^x = Σ x^k/k!. Test : avec x=1 et 20 termes on retrouve e ≈ 2.718281828.",
+   "formula": "e^x = Σ_{k=0}^∞ x^k / k!",
+   "python": "lambda x,N: sum(x**k/factorial(k) for k in range(int(N)))",
+   "test_inputs": {
+    "x": 1,
+    "N": 20
+   },
+   "expected": 2.718281828459045,
+   "tol": 1e-09,
+   "units": "sans dimension",
+   "links": [
+    {
+     "to": "phys.pendulum_smallangle",
+     "relation": "sin θ ≈ θ (Taylor ordre 1) linéarise le pendule"
+    },
+    {
+     "to": "phys.relativity_energy",
+     "relation": "E = mc²+½mv²+... est le développement de Taylor de l'énergie relativiste"
+    },
+    {
+     "to": "quant.perturbation",
+     "relation": "la théorie des perturbations EST un développement en série"
+    },
+    {
+     "to": "chem.arrhenius",
+     "relation": "linéarisation de e^{-Ea/RT} par développement local"
+    }
+   ],
+   "brief": "Générateur d'approximation polynomiale ; toute physique 'au premier ordre' est un tronquage de Taylor.",
+   "domain": "math"
+  },
+  {
+   "id": "math.pythagoras",
+   "name": "Théorème de Pythagore",
+   "statement": "Dans un triangle rectangle, l'hypoténuse vérifie c = sqrt(a²+b²). C'est aussi la norme euclidienne d'un vecteur 2D. Test : (3,4)→5.",
+   "formula": "c = sqrt(a^2 + b^2)",
+   "python": "lambda a,b: sqrt(a*a + b*b)",
+   "test_inputs": {
+    "a": 3,
+    "b": 4
+   },
+   "expected": 5,
+   "tol": 1e-09,
+   "units": "[longueur]",
+   "links": [
+    {
+     "to": "phys.vector_magnitude",
+     "relation": "la norme d'un vecteur force/vitesse EST Pythagore généralisé"
+    },
+    {
+     "to": "phys.relativity_energy",
+     "relation": "E² = (pc)²+(mc²)² est un Pythagore dans l'espace énergie-impulsion"
+    },
+    {
+     "to": "part.invariant_mass",
+     "relation": "la masse invariante combine énergie et impulsion par une relation pythagoricienne"
+    }
+   ],
+   "brief": "Générateur de distance/norme ; la métrique euclidienne dont dérivent toutes les longueurs et la relativité restreinte.",
+   "domain": "math"
+  },
+  {
+   "id": "math.gcd_euclid",
+   "name": "PGCD — algorithme d'Euclide",
+   "statement": "Le plus grand commun diviseur s'obtient par soustractions/restes successifs : pgcd(a,b)=pgcd(b, a mod b) jusqu'à reste nul. Test : pgcd(48,18)=6.",
+   "formula": "pgcd(a,b) = pgcd(b, a mod b), pgcd(a,0)=a",
+   "python": "lambda a,b: a if b==0 else (lambda f: f(f,a,b))(lambda s,x,y: x if y==0 else s(s,y,x%y))",
+   "test_inputs": {
+    "a": 48,
+    "b": 18
+   },
+   "expected": 6,
+   "tol": 0,
+   "units": "entier",
+   "links": [
+    {
+     "to": "phys.beat_frequency",
+     "relation": "les fréquences commensurables (rapports rationnels) se réduisent via le PGCD"
+    },
+    {
+     "to": "chem.stoichiometry",
+     "relation": "équilibrer une réaction = trouver les plus petits coefficients entiers (division par le PGCD)"
+    },
+    {
+     "to": "bio.codon_period",
+     "relation": "les périodicités de séquence se résolvent par arithmétique modulaire"
+    }
+   ],
+   "brief": "Générateur arithmétique le plus ancien (≈300 av. J.-C.) ; cœur de la théorie des nombres et de la cryptographie.",
+   "domain": "math"
+  },
+  {
+   "id": "math.prime_test",
+   "name": "Test de primalité (division d'essai)",
+   "statement": "n≥2 est premier s'il n'a aucun diviseur entre 2 et sqrt(n). Renvoie 1 si premier, 0 sinon. Test : 97 est premier (→1).",
+   "formula": "premier(n) ⇔ ∄ d∈[2, ⌊√n⌋] : n mod d = 0",
+   "python": "lambda n: 1 if n>=2 and sum(1 for d in range(2,int(sqrt(n))+1) if n%d==0)==0 else 0",
+   "test_inputs": {
+    "n": 97
+   },
+   "expected": 1,
+   "tol": 0,
+   "units": "booléen (0/1)",
+   "links": [
+    {
+     "to": "chem.atomic_number",
+     "relation": "les nombres premiers indexent l'irréductibilité, écho de l'indivisibilité atomique/élémentaire"
+    },
+    {
+     "to": "bio.genetic_code_combinatorics",
+     "relation": "les comptages combinatoires de séquences reposent sur la factorisation"
+    },
+    {
+     "to": "phys.quantum_rng",
+     "relation": "la cryptographie (primalité) fonde la sécurité, testée contre le hasard quantique"
+    }
+   ],
+   "brief": "Générateur d'irréductibilité ; les premiers sont les 'atomes' multiplicatifs des entiers.",
+   "domain": "math"
+  },
+  {
+   "id": "math.bayes",
+   "name": "Théorème de Bayes",
+   "statement": "Met à jour une croyance avec une observation : P(A|B) = P(B|A)P(A) / P(B). Test diagnostic : sensibilité 0.99, prévalence 0.01, faux positifs 0.05 → P(malade|test+) ≈ 0.167.",
+   "formula": "P(A|B) = P(B|A)·P(A) / [P(B|A)·P(A) + P(B|¬A)·P(¬A)]",
+   "python": "lambda pba,pa,pbna: (pba*pa) / (pba*pa + pbna*(1-pa))",
+   "test_inputs": {
+    "pba": 0.99,
+    "pa": 0.01,
+    "pbna": 0.05
+   },
+   "expected": 0.16666666666666669,
+   "tol": 1e-09,
+   "units": "probabilité",
+   "links": [
+    {
+     "to": "med.diagnostic_test",
+     "relation": "la valeur prédictive positive d'un test médical EST une application de Bayes"
+    },
+    {
+     "to": "quant.measurement",
+     "relation": "la mise à jour de l'état après mesure suit une logique bayésienne (règle de Born conditionnelle)"
+    },
+    {
+     "to": "bio.evolution_selection",
+     "relation": "la sélection naturelle réajuste les fréquences alléliques comme une mise à jour bayésienne"
+    }
+   ],
+   "brief": "Générateur d'inférence ; règle universelle de mise à jour des croyances, du diagnostic médical à l'apprentissage.",
+   "domain": "math"
+  },
+  {
+   "id": "math.normal_pdf",
+   "name": "Loi normale (gaussienne)",
+   "statement": "La densité de probabilité gaussienne : f(x) = exp(-(x-μ)²/2σ²) / (σ√(2π)). Test : au centre μ=0, σ=1 → 1/√(2π) ≈ 0.3989.",
+   "formula": "f(x) = exp(-(x-μ)²/(2σ²)) / (σ·sqrt(2π))",
+   "python": "lambda x,mu,sigma: exp(-((x-mu)**2)/(2*sigma*sigma)) / (sigma*sqrt(2*pi))",
+   "test_inputs": {
+    "x": 0,
+    "mu": 0,
+    "sigma": 1
+   },
+   "expected": 0.3989422804014327,
+   "tol": 1e-12,
+   "units": "densité (1/[x])",
+   "links": [
+    {
+     "to": "phys.maxwell_boltzmann",
+     "relation": "la distribution des vitesses des gaz est une gaussienne en chaque composante"
+    },
+    {
+     "to": "quant.gaussian_wavepacket",
+     "relation": "le paquet d'ondes de moindre incertitude est gaussien"
+    },
+    {
+     "to": "bio.quantitative_trait",
+     "relation": "les caractères polygéniques suivent une loi normale (théorème central limite)"
+    },
+    {
+     "to": "med.reference_range",
+     "relation": "les valeurs biologiques de référence (±2σ) reposent sur la normale"
+    }
+   ],
+   "brief": "Générateur de la cloche ; loi limite universelle (TCL) reliant bruit thermique, mesure quantique et variation biologique.",
+   "domain": "math"
+  },
+  {
+   "id": "math.binomial",
+   "name": "Loi binomiale",
+   "statement": "Probabilité de k succès en n essais indépendants de proba p : P = C(n,k) p^k (1-p)^{n-k}. Test : 2 piles sur 5 lancers équilibrés → 0.3125.",
+   "formula": "P(k) = [n!/(k!(n-k)!)] · p^k · (1-p)^{n-k}",
+   "python": "lambda n,k,p: (factorial(n)/(factorial(k)*factorial(n-k))) * p**k * (1-p)**(n-k)",
+   "test_inputs": {
+    "n": 5,
+    "k": 2,
+    "p": 0.5
+   },
+   "expected": 0.3125,
+   "tol": 1e-12,
+   "units": "probabilité",
+   "links": [
+    {
+     "to": "part.radioactive_decay",
+     "relation": "le nombre de désintégrations sur un intervalle suit une binomiale (→ Poisson)"
+    },
+    {
+     "to": "bio.hardy_weinberg",
+     "relation": "les fréquences génotypiques (p²,2pq,q²) sont un développement binomial"
+    },
+    {
+     "to": "phys.statistical_mechanics",
+     "relation": "le comptage des micro-états (spins haut/bas) est binomial"
+    },
+    {
+     "to": "med.clinical_trial",
+     "relation": "le nombre de répondeurs dans un essai suit une binomiale"
+    }
+   ],
+   "brief": "Générateur du comptage de succès ; relie combinatoire, génétique des populations et désintégration radioactive.",
+   "domain": "math"
+  },
+  {
+   "id": "math.shannon_entropy",
+   "name": "Entropie de Shannon",
+   "statement": "L'information moyenne d'une source : H = -Σ p_i log2(p_i), en bits. Test : pièce équilibrée (p=0.5) → exactement 1 bit.",
+   "formula": "H = -Σ p_i · log2(p_i)",
+   "python": "lambda p: -(p*log(p)/log(2) + (1-p)*log(1-p)/log(2))",
+   "test_inputs": {
+    "p": 0.5
+   },
+   "expected": 1,
+   "tol": 1e-12,
+   "units": "bits",
+   "links": [
+    {
+     "to": "chem.thermo_entropy",
+     "relation": "l'entropie de Boltzmann S=k·ln(W) est l'entropie de Shannon en unités physiques (k·ln2 par bit)"
+    },
+    {
+     "to": "quant.von_neumann_entropy",
+     "relation": "l'entropie d'intrication d'un état quantique généralise Shannon aux matrices densité"
+    },
+    {
+     "to": "bio.sequence_information",
+     "relation": "le contenu informationnel d'une séquence ADN/protéine se mesure en bits de Shannon"
+    },
+    {
+     "to": "phys.landauer",
+     "relation": "effacer 1 bit coûte kT·ln2 d'énergie (principe de Landauer)"
+    }
+   ],
+   "brief": "Générateur de l'information/incertitude ; pont profond entre théorie de l'information, thermodynamique et biologie moléculaire.",
+   "domain": "math"
+  },
+  {
+   "id": "phys.newton2",
+   "name": "Deuxieme loi de Newton",
+   "statement": "La force resultante sur un corps egale sa masse multipliee par son acceleration.",
+   "formula": "F = m * a",
+   "python": "lambda m, a: m * a",
+   "test_inputs": {
+    "m": 2,
+    "a": 3
+   },
+   "expected": 6,
+   "tol": 1e-09,
+   "units": "N (kg*m/s^2)",
+   "links": [
+    {
+     "to": "math.derivative",
+     "relation": "a est la derivee seconde de la position; la loi est une equation differentielle"
+    },
+    {
+     "to": "quant.schrodinger",
+     "relation": "limite classique de l'equation de Schrodinger (theoreme d'Ehrenfest)"
+    },
+    {
+     "to": "part.lorentz_force",
+     "relation": "F=ma applique a la force de Lorentz donne le mouvement des particules chargees"
+    }
+   ],
+   "brief": "Fondation de la mecanique: relie force, masse et acceleration; generatrice de toutes les equations du mouvement.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.kinetic_energy",
+   "name": "Energie cinetique",
+   "statement": "L'energie cinetique d'un corps est la moitie du produit de sa masse par le carre de sa vitesse.",
+   "formula": "E_k = 1/2 * m * v^2",
+   "python": "lambda m, v: 0.5 * m * v**2",
+   "test_inputs": {
+    "m": 2,
+    "v": 10
+   },
+   "expected": 100,
+   "tol": 1e-09,
+   "units": "J (kg*m^2/s^2)",
+   "links": [
+    {
+     "to": "phys.newton2",
+     "relation": "derivee du travail de la force de Newton (theoreme energie-travail)"
+    },
+    {
+     "to": "chem.arrhenius",
+     "relation": "l'energie cinetique des molecules fonde la distribution de vitesses et l'energie d'activation"
+    },
+    {
+     "to": "quant.photoelectric",
+     "relation": "l'energie cinetique des electrons ejectes mesure l'effet photoelectrique"
+    }
+   ],
+   "brief": "Energie du mouvement; pont vers la thermodynamique statistique (energie cinetique moyenne = temperature).",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.gravitation",
+   "name": "Gravitation universelle de Newton",
+   "statement": "Deux masses s'attirent avec une force proportionnelle au produit des masses et inversement proportionnelle au carre de leur distance.",
+   "formula": "F = G * m1 * m2 / r^2",
+   "python": "lambda m1, m2, r: 6.674e-11 * m1 * m2 / r**2",
+   "test_inputs": {
+    "m1": 5.972e+24,
+    "m2": 7.348e+22,
+    "r": 384400000
+   },
+   "expected": 198202163610789540000,
+   "tol": 1000000000000,
+   "units": "N",
+   "links": [
+    {
+     "to": "phys.newton2",
+     "relation": "fournit la force F que l'on injecte dans F=ma pour les orbites"
+    },
+    {
+     "to": "math.inverse_square",
+     "relation": "loi en 1/r^2, meme structure geometrique que Coulomb"
+    },
+    {
+     "to": "part.coulomb",
+     "relation": "forme mathematiquement identique a la loi de Coulomb electrostatique"
+    }
+   ],
+   "brief": "Force attractive Terre-Lune calculee ici; unifie chute des corps et mouvement des planetes.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.pendulum",
+   "name": "Periode du pendule simple",
+   "statement": "La periode d'un pendule simple aux petites oscillations vaut deux pi fois la racine du rapport longueur sur gravite.",
+   "formula": "T = 2 * pi * sqrt(L / g)",
+   "python": "lambda L, g: 2 * pi * sqrt(L / g)",
+   "test_inputs": {
+    "L": 1,
+    "g": 9.80665
+   },
+   "expected": 2.0064092925890407,
+   "tol": 1e-09,
+   "units": "s",
+   "links": [
+    {
+     "to": "math.harmonic_oscillator",
+     "relation": "solution de l'equation differentielle de l'oscillateur harmonique"
+    },
+    {
+     "to": "phys.wave_relation",
+     "relation": "meme formalisme periodique que les ondes (frequence = 1/T)"
+    },
+    {
+     "to": "quant.harmonic_oscillator",
+     "relation": "analogue classique de l'oscillateur harmonique quantique"
+    }
+   ],
+   "brief": "Horloge mecanique; demontre l'oscillation harmonique et l'independance de l'amplitude (petits angles).",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.ideal_gas",
+   "name": "Loi des gaz parfaits",
+   "statement": "La pression d'un gaz parfait egale le nombre de moles fois la constante des gaz fois la temperature, divise par le volume.",
+   "formula": "P = n * R * T / V",
+   "python": "lambda n, T, V: n * 8.314 * T / V",
+   "test_inputs": {
+    "n": 1,
+    "T": 273.15,
+    "V": 0.0224
+   },
+   "expected": 101382.54910714286,
+   "tol": 0.001,
+   "units": "Pa",
+   "links": [
+    {
+     "to": "phys.kinetic_energy",
+     "relation": "derivee de la theorie cinetique: PV = (2/3) N <E_k>"
+    },
+    {
+     "to": "chem.molar_volume",
+     "relation": "donne le volume molaire 22.4 L aux conditions normales"
+    },
+    {
+     "to": "phys.carnot",
+     "relation": "equation d'etat utilisee dans les cycles thermodynamiques"
+    }
+   ],
+   "brief": "Conditions normales reproduites; relie pression, volume, temperature et nombre de particules.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.carnot",
+   "name": "Rendement de Carnot",
+   "statement": "Le rendement maximal d'une machine thermique vaut un moins le rapport de la temperature froide sur la temperature chaude.",
+   "formula": "eta = 1 - Tc / Th",
+   "python": "lambda Tc, Th: 1 - Tc / Th",
+   "test_inputs": {
+    "Tc": 300,
+    "Th": 600
+   },
+   "expected": 0.5,
+   "tol": 1e-09,
+   "units": "sans dimension (fraction)",
+   "links": [
+    {
+     "to": "phys.entropy",
+     "relation": "decoule directement de la conservation d'entropie reversible dS=dQ/T"
+    },
+    {
+     "to": "phys.ideal_gas",
+     "relation": "le cycle de Carnot est trace sur l'equation d'etat des gaz parfaits"
+    },
+    {
+     "to": "bio.metabolic_efficiency",
+     "relation": "borne thermodynamique sur le rendement des moteurs biologiques"
+    }
+   ],
+   "brief": "Limite ultime de tout moteur thermique; impose la fleche du temps via le second principe.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.entropy",
+   "name": "Variation d'entropie (detente isotherme gaz parfait)",
+   "statement": "Lors d'une detente isotherme reversible d'un gaz parfait, la variation d'entropie vaut n R fois le logarithme du rapport des volumes.",
+   "formula": "dS = n * R * ln(V2 / V1)",
+   "python": "lambda n, V2, V1: n * 8.314 * log(V2 / V1)",
+   "test_inputs": {
+    "n": 1,
+    "V2": 2,
+    "V1": 1
+   },
+   "expected": 5.762825659175385,
+   "tol": 1e-06,
+   "units": "J/K",
+   "links": [
+    {
+     "to": "phys.carnot",
+     "relation": "fonde le rendement de Carnot et le second principe"
+    },
+    {
+     "to": "quant.boltzmann_entropy",
+     "relation": "version macroscopique de S = k_B ln(W) statistique"
+    },
+    {
+     "to": "bio.evolution_information",
+     "relation": "entropie et information relient thermodynamique et selection naturelle"
+    }
+   ],
+   "brief": "Mesure du desordre; pont entre thermodynamique macroscopique et comptage microscopique des etats.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.coulomb",
+   "name": "Loi de Coulomb",
+   "statement": "La force electrostatique entre deux charges egale la constante de Coulomb fois le produit des charges divise par le carre de la distance.",
+   "formula": "F = k * q1 * q2 / r^2",
+   "python": "lambda q1, q2, r: 8.9875e9 * q1 * q2 / r**2",
+   "test_inputs": {
+    "q1": 1e-06,
+    "q2": 1e-06,
+    "r": 0.1
+   },
+   "expected": 0.89875,
+   "tol": 1e-06,
+   "units": "N",
+   "links": [
+    {
+     "to": "phys.gravitation",
+     "relation": "meme forme en 1/r^2 que la gravitation universelle"
+    },
+    {
+     "to": "part.coulomb",
+     "relation": "force qui lie noyau et electrons dans la structure atomique"
+    },
+    {
+     "to": "chem.bonding",
+     "relation": "fonde la liaison chimique ionique et covalente"
+    }
+   ],
+   "brief": "Force entre charges; soubassement de la chimie et de la structure de la matiere.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.ohm",
+   "name": "Loi d'Ohm",
+   "statement": "La tension aux bornes d'un conducteur ohmique egale le produit du courant par la resistance.",
+   "formula": "V = I * R",
+   "python": "lambda I, R: I * R",
+   "test_inputs": {
+    "I": 2,
+    "R": 5
+   },
+   "expected": 10,
+   "tol": 1e-09,
+   "units": "V",
+   "links": [
+    {
+     "to": "phys.coulomb",
+     "relation": "le courant resulte du deplacement de charges sous force electrostatique"
+    },
+    {
+     "to": "med.bioimpedance",
+     "relation": "base de l'impedance des tissus biologiques et de l'ECG"
+    },
+    {
+     "to": "bio.neuron_cable",
+     "relation": "loi appliquee a la conduction electrique dans les neurones (modele cable)"
+    }
+   ],
+   "brief": "Relation tension-courant-resistance; fondement de l'electronique et de l'electrophysiologie.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.lorentz_force",
+   "name": "Force de Lorentz (composante magnetique)",
+   "statement": "Une charge en mouvement perpendiculaire a un champ magnetique subit une force egale au produit de la charge, de la vitesse et du champ.",
+   "formula": "F = q * v * B",
+   "python": "lambda q, v, B: q * v * B",
+   "test_inputs": {
+    "q": 1.602176634e-19,
+    "v": 1000000,
+    "B": 0.5
+   },
+   "expected": 8.010883169999999e-14,
+   "tol": 1e-20,
+   "units": "N",
+   "links": [
+    {
+     "to": "phys.newton2",
+     "relation": "force injectee dans F=ma pour le mouvement cyclotron"
+    },
+    {
+     "to": "part.cyclotron",
+     "relation": "regit la trajectoire circulaire des particules dans accelerateurs"
+    },
+    {
+     "to": "med.mri",
+     "relation": "principe physique sous-jacent a l'IRM et a la deflexion des particules chargees"
+    }
+   ],
+   "brief": "Force magnetique sur une charge; relie electromagnetisme, accelerateurs de particules et imagerie medicale.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.wave_relation",
+   "name": "Relation de dispersion des ondes",
+   "statement": "La frequence d'une onde egale sa vitesse de propagation divisee par sa longueur d'onde.",
+   "formula": "f = c / lambda",
+   "python": "lambda c, lam: c / lam",
+   "test_inputs": {
+    "c": 299792458,
+    "lam": 0.5
+   },
+   "expected": 599584916,
+   "tol": 1e-06,
+   "units": "Hz",
+   "links": [
+    {
+     "to": "phys.pendulum",
+     "relation": "meme structure periodique (f = 1/T) que l'oscillation mecanique"
+    },
+    {
+     "to": "quant.de_broglie",
+     "relation": "etendue a la matiere par la longueur d'onde de de Broglie"
+    },
+    {
+     "to": "quant.planck",
+     "relation": "la frequence determine l'energie du photon E = h f"
+    }
+   ],
+   "brief": "Lien universel vitesse-frequence-longueur d'onde; pont vers l'optique, l'acoustique et la mecanique quantique.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.doppler",
+   "name": "Effet Doppler (source approchante)",
+   "statement": "Pour une source sonore qui se rapproche, la frequence percue augmente selon le rapport de la vitesse du son sur la vitesse du son moins celle de la source.",
+   "formula": "f' = f * c / (c - vs)",
+   "python": "lambda f, c, vs: f * c / (c - vs)",
+   "test_inputs": {
+    "f": 1000,
+    "c": 343,
+    "vs": 34.3
+   },
+   "expected": 1111.111111111111,
+   "tol": 1e-06,
+   "units": "Hz",
+   "links": [
+    {
+     "to": "phys.wave_relation",
+     "relation": "transformation de la relation frequence-vitesse pour des reperes en mouvement"
+    },
+    {
+     "to": "med.doppler_echo",
+     "relation": "base de l'echographie Doppler mesurant le flux sanguin"
+    },
+    {
+     "to": "quant.redshift",
+     "relation": "analogue acoustique du decalage vers le rouge cosmologique"
+    }
+   ],
+   "brief": "Decalage de frequence du au mouvement; applique de l'echographie medicale a l'astrophysique.",
+   "domain": "phys"
+  },
+  {
+   "id": "phys.bernoulli",
+   "name": "Equation de Bernoulli",
+   "statement": "Dans un ecoulement de fluide parfait, la somme de la pression, de l'energie cinetique volumique et de l'energie potentielle volumique se conserve le long d'une ligne de courant.",
+   "formula": "P2 = P1 + 1/2*rho*(v1^2 - v2^2) + rho*g*(h1 - h2)",
+   "python": "lambda P1, rho, v1, v2, g, h1, h2: P1 + 0.5*rho*(v1**2 - v2**2) + rho*g*(h1 - h2)",
+   "test_inputs": {
+    "P1": 101325,
+    "rho": 1000,
+    "v1": 2,
+    "v2": 5,
+    "g": 9.81,
+    "h1": 0,
+    "h2": 0
+   },
+   "expected": 90825,
+   "tol": 1e-06,
+   "units": "Pa",
+   "links": [
+    {
+     "to": "phys.kinetic_energy",
+     "relation": "conservation de l'energie appliquee a un volume de fluide en mouvement"
+    },
+    {
+     "to": "med.hemodynamics",
+     "relation": "explique les chutes de pression dans les stenoses arterielles"
+    },
+    {
+     "to": "bio.circulation",
+     "relation": "regit l'ecoulement sanguin et la portance des ailes biologiques"
+    }
+   ],
+   "brief": "Conservation de l'energie pour les fluides; relie aerodynamique, hydraulique et hemodynamique.",
+   "domain": "phys"
+  },
+  {
+   "id": "quant.planck",
+   "name": "Relation de Planck-Einstein",
+   "statement": "L'energie d'un quantum de lumiere est proportionnelle a sa frequence, E = h*f, avec h la constante de Planck. C'est l'acte de naissance de la quantification de l'energie.",
+   "formula": "E = h*f",
+   "python": "lambda f: 6.62607015e-34*f",
+   "test_inputs": {
+    "f": 500000000000000
+   },
+   "expected": 3.313035075e-19,
+   "tol": 1e-25,
+   "units": "J (E), Hz (f)",
+   "links": [
+    {
+     "to": "phys.wave_speed",
+     "relation": "applique f=c/lambda pour relier energie et longueur d'onde via la vitesse de l'onde"
+    },
+    {
+     "to": "part.photon",
+     "relation": "definit l'energie du photon, particule mediatrice de l'interaction electromagnetique"
+    },
+    {
+     "to": "chem.bond_energy",
+     "relation": "fournit l'energie des photons absorbes/emis dans les transitions electroniques moleculaires"
+    }
+   ],
+   "brief": "E=hf : la quantification de l'energie lumineuse, brique de toute la mecanique quantique.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.de_broglie",
+   "name": "Longueur d'onde de de Broglie",
+   "statement": "Toute particule de quantite de mouvement p possede une longueur d'onde associee lambda = h/p. La matiere a une nature ondulatoire.",
+   "formula": "lambda = h/p",
+   "python": "lambda p: 6.62607015e-34/p",
+   "test_inputs": {
+    "p": 1e-24
+   },
+   "expected": 6.62607015e-10,
+   "tol": 1e-16,
+   "units": "m (lambda), kg*m/s (p)",
+   "links": [
+    {
+     "to": "phys.momentum",
+     "relation": "transforme la quantite de mouvement classique p=m*v en une onde quantique"
+    },
+    {
+     "to": "part.electron_diffraction",
+     "relation": "predit la diffraction des electrons, confirmee par Davisson-Germer"
+    },
+    {
+     "to": "med.electron_microscopy",
+     "relation": "fonde la resolution du microscope electronique (lambda tres courte = haute resolution)"
+    }
+   ],
+   "brief": "lambda=h/p : la matiere est aussi une onde ; pont entre mecanique classique et quantique.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.heisenberg",
+   "name": "Principe d'incertitude de Heisenberg",
+   "statement": "On ne peut connaitre simultanement position et quantite de mouvement avec une precision arbitraire : dx*dp >= hbar/2. Ici on calcule l'incertitude minimale dp = hbar/(2*dx).",
+   "formula": "dp_min = hbar/(2*dx),  hbar = h/(2*pi)",
+   "python": "lambda dx: (6.62607015e-34/(2*pi))/(2*dx)",
+   "test_inputs": {
+    "dx": 1e-10
+   },
+   "expected": 5.272859088230783e-25,
+   "tol": 1e-31,
+   "units": "kg*m/s (dp), m (dx)",
+   "links": [
+    {
+     "to": "math.fourier_transform",
+     "relation": "est mathematiquement le theoreme de support conjugue de la transformee de Fourier (etalement temps/frequence)"
+    },
+    {
+     "to": "quant.zero_point_energy",
+     "relation": "explique pourquoi l'energie minimale d'un oscillateur ne peut etre nulle"
+    },
+    {
+     "to": "part.virtual_particle",
+     "relation": "via dE*dt>=hbar/2, autorise les particules virtuelles et l'energie du vide"
+    }
+   ],
+   "brief": "dx*dp>=hbar/2 : limite fondamentale a la connaissance simultanee, dual de Fourier.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.hydrogen_levels",
+   "name": "Niveaux d'energie de l'hydrogene (Bohr)",
+   "statement": "Les energies permises de l'electron de l'hydrogene sont quantifiees : E_n = -13.6 eV / n^2, n entier >= 1. L'etat fondamental (n=1) vaut -13.6 eV.",
+   "formula": "E_n = -13.605693 eV / n^2",
+   "python": "lambda n: -13.605693/(n*n)",
+   "test_inputs": {
+    "n": 2
+   },
+   "expected": -3.40142325,
+   "tol": 1e-06,
+   "units": "eV",
+   "links": [
+    {
+     "to": "quant.rydberg",
+     "relation": "les differences E_n2 - E_n1 donnent les raies spectrales de la formule de Rydberg"
+    },
+    {
+     "to": "chem.periodic_table",
+     "relation": "fonde la structure en couches electroniques et donc la table periodique"
+    },
+    {
+     "to": "phys.coulomb",
+     "relation": "derive du potentiel coulombien -k*e^2/r entre proton et electron"
+    }
+   ],
+   "brief": "E_n=-13.6/n^2 eV : quantification des orbites, base de la spectroscopie et de la chimie.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.rydberg",
+   "name": "Formule de Rydberg (raies spectrales)",
+   "statement": "La longueur d'onde des raies emises par l'hydrogene suit 1/lambda = R*(1/n1^2 - 1/n2^2). Pour n1=2, n2=3 on obtient la raie H-alpha (rouge, ~656 nm).",
+   "formula": "1/lambda = R_H*(1/n1^2 - 1/n2^2)",
+   "python": "lambda n1,n2: 1.0/(1.0973731568e7*(1.0/(n1*n1)-1.0/(n2*n2)))",
+   "test_inputs": {
+    "n1": 2,
+    "n2": 3
+   },
+   "expected": 6.561122764288852e-07,
+   "tol": 1e-12,
+   "units": "m (lambda)",
+   "links": [
+    {
+     "to": "quant.hydrogen_levels",
+     "relation": "se derive directement des differences de niveaux de Bohr E_n2 - E_n1 = h*c/lambda"
+    },
+    {
+     "to": "phys.doppler",
+     "relation": "appliquee avec le decalage Doppler pour mesurer la vitesse/redshift des etoiles"
+    },
+    {
+     "to": "chem.atomic_spectroscopy",
+     "relation": "fonde l'identification des elements par leurs raies spectrales caracteristiques"
+    }
+   ],
+   "brief": "1/lambda=R(1/n1^2-1/n2^2) : les couleurs des atomes, pont spectroscopie<->astrophysique.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.photoelectric",
+   "name": "Effet photoelectrique (Einstein)",
+   "statement": "Un photon arrache un electron si son energie depasse le travail de sortie W : l'energie cinetique max vaut KE = h*f - W. Pour f=1e15 Hz et W=2 eV, KE ~ 3.42e-19 J.",
+   "formula": "KE_max = h*f - W",
+   "python": "lambda f,W: 6.62607015e-34*f - W",
+   "test_inputs": {
+    "f": 1000000000000000,
+    "W": 3.204353268e-19
+   },
+   "expected": 3.4217168820000004e-19,
+   "tol": 1e-25,
+   "units": "J (KE, W), Hz (f)",
+   "links": [
+    {
+     "to": "quant.planck",
+     "relation": "utilise E=h*f pour l'energie du photon incident"
+    },
+    {
+     "to": "part.photon",
+     "relation": "prouve la nature corpusculaire de la lumiere (un photon = un electron)"
+    },
+    {
+     "to": "chem.work_function",
+     "relation": "W est une propriete de surface du materiau, cle en electrochimie et catalyse"
+    },
+    {
+     "to": "bio.photosynthesis",
+     "relation": "meme principe de seuil energetique photon->excitation electronique dans la chlorophylle"
+    }
+   ],
+   "brief": "KE=hf-W : Nobel d'Einstein, preuve du photon, pont vers chimie de surface et photosynthese.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.wien",
+   "name": "Loi du deplacement de Wien (corps noir)",
+   "statement": "Le pic d'emission d'un corps noir se deplace vers les courtes longueurs d'onde quand il chauffe : lambda_max = b/T. Le Soleil (T=5778 K) culmine vers 501 nm (vert).",
+   "formula": "lambda_max = b/T,  b = 2.897771955e-3 m*K",
+   "python": "lambda T: 2.897771955e-3/T",
+   "test_inputs": {
+    "T": 5778
+   },
+   "expected": 5.015181645898235e-07,
+   "tol": 1e-12,
+   "units": "m (lambda_max), K (T)",
+   "links": [
+    {
+     "to": "quant.planck",
+     "relation": "decoule de la loi de Planck du rayonnement du corps noir (quantification des modes)"
+    },
+    {
+     "to": "phys.stefan_boltzmann",
+     "relation": "complement de la loi de Stefan sur la puissance totale rayonnee P=sigma*T^4"
+    },
+    {
+     "to": "bio.thermoregulation",
+     "relation": "explique l'imagerie infrarouge des corps vivants (pic d'emission a temperature corporelle)"
+    },
+    {
+     "to": "med.thermal_imaging",
+     "relation": "fonde la thermographie medicale (detection de zones chaudes/inflammees)"
+    }
+   ],
+   "brief": "lambda_max=b/T : couleur d'un objet chaud, pont astrophysique<->imagerie thermique medicale.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.zero_point_energy",
+   "name": "Energie de point zero de l'oscillateur",
+   "statement": "Un oscillateur harmonique quantique ne peut etre au repos total : son energie minimale est E0 = (1/2)*h*f, meme a temperature nulle. Consequence du principe d'incertitude.",
+   "formula": "E0 = (1/2)*h*f",
+   "python": "lambda f: 0.5*6.62607015e-34*f",
+   "test_inputs": {
+    "f": 10000000000000
+   },
+   "expected": 3.313035075e-21,
+   "tol": 1e-27,
+   "units": "J (E0), Hz (f)",
+   "links": [
+    {
+     "to": "quant.heisenberg",
+     "relation": "decoule directement de dx*dp>=hbar/2 : immobilite parfaite interdite"
+    },
+    {
+     "to": "quant.planck",
+     "relation": "utilise le quantum h*f, ici a moitie (terme +1/2 du spectre E_n=(n+1/2)hf)"
+    },
+    {
+     "to": "chem.vibrational_spectroscopy",
+     "relation": "decale les niveaux vibrationnels des molecules (infrarouge, energie de liaison residuelle)"
+    },
+    {
+     "to": "part.vacuum_energy",
+     "relation": "somme sur tous les modes du champ -> energie du vide et effet Casimir"
+    }
+   ],
+   "brief": "E0=hf/2 : le vide vibre toujours ; consequence directe de Heisenberg, pont vers effet Casimir.",
+   "domain": "quantique"
+  },
+  {
+   "id": "quant.tunnel",
+   "name": "Effet tunnel (transmission, ordre de grandeur)",
+   "statement": "Une particule peut traverser une barriere de potentiel plus haute que son energie. La probabilite de transmission decroit exponentiellement : T ~ exp(-2*kappa*L) avec kappa=sqrt(2*m*(V-E))/hbar.",
+   "formula": "T ~ exp(-2*L*sqrt(2*m*(V-E))/hbar),  hbar=h/(2*pi)",
+   "python": "lambda m,V_minus_E,L: exp(-2*L*sqrt(2*m*V_minus_E)/(6.62607015e-34/(2*pi)))",
+   "test_inputs": {
+    "m": 9.109e-31,
+    "V_minus_E": 1.602e-19,
+    "L": 1e-09
+   },
+   "expected": 3.551505639840532e-05,
+   "tol": 1e-09,
+   "units": "sans dimension (T), kg (m), J (V-E), m (L)",
+   "links": [
+    {
+     "to": "quant.de_broglie",
+     "relation": "kappa est l'inverse d'une longueur d'onde imaginaire, prolongement de lambda=h/p sous la barriere"
+    },
+    {
+     "to": "part.alpha_decay",
+     "relation": "explique la radioactivite alpha (l'alpha s'echappe du noyau par effet tunnel, loi de Gamow)"
+    },
+    {
+     "to": "chem.enzyme_catalysis",
+     "relation": "le tunneling de protons/electrons accelere certaines reactions enzymatiques"
+    },
+    {
+     "to": "bio.dna_mutation",
+     "relation": "le tunnel de protons dans les paires de bases peut causer des mutations tautomeres"
+    },
+    {
+     "to": "med.stm_imaging",
+     "relation": "principe du microscope a effet tunnel (STM) pour imager des surfaces atome par atome"
+    }
+   ],
+   "brief": "T~exp(-2*kappa*L) : passer un mur interdit ; pont vers radioactivite, enzymes et mutations ADN.",
+   "domain": "quantique"
+  },
+  {
+   "id": "part.mass_energy",
+   "name": "Equivalence masse-energie (E=mc2)",
+   "statement": "L'energie au repos d'un corps egale sa masse multipliee par le carre de la vitesse de la lumiere. Une masse de 1 kg vaut ~8.99e16 joules.",
+   "formula": "E = m c^2",
+   "python": "lambda m: m*299792458**2",
+   "test_inputs": {
+    "m": 1
+   },
+   "expected": 89875517873681760,
+   "tol": 1000000000,
+   "units": "J (m en kg)",
+   "links": [
+    {
+     "to": "phys.kinetic_energy",
+     "relation": "generalise l'energie classique vers le repos"
+    },
+    {
+     "to": "quant.planck_relation",
+     "relation": "couple a E=hf pour les photons (m=0)"
+    },
+    {
+     "to": "chem.nuclear_mass_defect",
+     "relation": "le defaut de masse libere de l'energie nucleaire"
+    }
+   ],
+   "brief": "Le coeur du lien masse<->energie : toute masse est de l'energie condensee, base de la physique des particules.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.rel_energy",
+   "name": "Energie relativiste totale (relation energie-impulsion)",
+   "statement": "L'energie totale d'une particule combine son impulsion et sa masse au repos via E^2 = (pc)^2 + (mc^2)^2. Pour un electron (mc2=0.511 MeV) a pc=1 MeV, E~1.123 MeV.",
+   "formula": "E = sqrt((p c)^2 + (m c^2)^2)",
+   "python": "lambda p_c, mc2: sqrt(p_c**2 + mc2**2)",
+   "test_inputs": {
+    "p_c": 1,
+    "mc2": 0.511
+   },
+   "expected": 1.1229964381065507,
+   "tol": 1e-06,
+   "units": "MeV (p_c et mc2 en MeV)",
+   "links": [
+    {
+     "to": "part.mass_energy",
+     "relation": "cas particulier a p=0"
+    },
+    {
+     "to": "phys.momentum",
+     "relation": "etend l'impulsion classique au regime relativiste"
+    },
+    {
+     "to": "quant.dirac_equation",
+     "relation": "racine de cette relation pour les fermions de spin 1/2"
+    }
+   ],
+   "brief": "Le pont vers la mecanique classique : a basse vitesse redonne E=mc2+p^2/2m ; gouverne toute la cinematique des collisionneurs.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.electron_rest",
+   "name": "Masse au repos de l'electron (0.511 MeV)",
+   "statement": "L'energie de masse au repos de l'electron, m_e c^2 convertie en MeV, vaut 0.511 MeV. On part de m_e=9.109e-31 kg.",
+   "formula": "E = m_e c^2 / e / 10^6",
+   "python": "lambda: 9.1093837015e-31*299792458**2/1.602176634e-19/1e6",
+   "test_inputs": {},
+   "expected": 0.51099895,
+   "tol": 0.0001,
+   "units": "MeV",
+   "links": [
+    {
+     "to": "part.mass_energy",
+     "relation": "applique E=mc2 a l'electron"
+    },
+    {
+     "to": "quant.bohr_energy",
+     "relation": "fixe l'echelle d'energie de l'atome d'hydrogene"
+    },
+    {
+     "to": "chem.periodic_shell",
+     "relation": "la masse de l'electron structure les couches atomiques"
+    }
+   ],
+   "brief": "Echelle de masse fondamentale du lepton ; relie particules<->chimie atomique.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.proton_rest",
+   "name": "Masse au repos du proton (938.3 MeV)",
+   "statement": "L'energie de masse au repos du proton, m_p c^2 en MeV, vaut 938.3 MeV (~1836 fois l'electron). On part de m_p=1.6726e-27 kg.",
+   "formula": "E = m_p c^2 / e / 10^6",
+   "python": "lambda: 1.67262192369e-27*299792458**2/1.602176634e-19/1e6",
+   "test_inputs": {},
+   "expected": 938.272,
+   "tol": 0.1,
+   "units": "MeV",
+   "links": [
+    {
+     "to": "part.mass_energy",
+     "relation": "applique E=mc2 au proton"
+    },
+    {
+     "to": "part.binding",
+     "relation": "constitue les noyaux dont on calcule l'energie de liaison"
+    },
+    {
+     "to": "chem.nuclear_mass_defect",
+     "relation": "masse de reference des nucleons dans le defaut de masse"
+    }
+   ],
+   "brief": "Echelle de masse du baryon (presque toute la masse de la matiere ordinaire vient du proton/neutron).",
+   "domain": "particules"
+  },
+  {
+   "id": "part.time_dilation",
+   "name": "Dilatation du temps (facteur de Lorentz)",
+   "statement": "Une horloge en mouvement bat plus lentement d'un facteur gamma = 1/sqrt(1-(v/c)^2). A v=0.8c, gamma=5/3~1.667.",
+   "formula": "gamma = 1 / sqrt(1 - beta^2), beta = v/c",
+   "python": "lambda beta: 1/sqrt(1-beta**2)",
+   "test_inputs": {
+    "beta": 0.8
+   },
+   "expected": 1.6666666666666667,
+   "tol": 1e-06,
+   "units": "sans dimension",
+   "links": [
+    {
+     "to": "phys.galilean_time",
+     "relation": "remplace le temps absolu newtonien (gamma->1 a basse vitesse)"
+    },
+    {
+     "to": "part.radioactive",
+     "relation": "explique la duree de vie allongee des muons cosmiques"
+    },
+    {
+     "to": "math.hyperbolic",
+     "relation": "gamma=cosh(rapidite) en geometrie de Minkowski"
+    }
+   ],
+   "brief": "Pilier de la relativite restreinte ; mesure directement au labo via la survie des particules rapides.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.compton",
+   "name": "Longueur d'onde de Compton de l'electron",
+   "statement": "L'echelle quantique de l'electron lambda_C = h/(m_e c) vaut 2.426e-12 m ; c'est le decalage maximal de longueur d'onde dans la diffusion Compton.",
+   "formula": "lambda_C = h / (m_e c)",
+   "python": "lambda: 6.62607015e-34/(9.1093837015e-31*299792458)",
+   "test_inputs": {},
+   "expected": 2.42631023867e-12,
+   "tol": 1e-15,
+   "units": "m",
+   "links": [
+    {
+     "to": "quant.planck_relation",
+     "relation": "marie h (quantique) a c (relativite)"
+    },
+    {
+     "to": "quant.uncertainty",
+     "relation": "echelle ou la localisation cree des paires e+e-"
+    },
+    {
+     "to": "part.de_broglie",
+     "relation": "longueur d'onde quand pc = mc^2"
+    }
+   ],
+   "brief": "Le point de jonction quantique<->relativite : taille intrinseque de l'electron en theorie quantique des champs.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.de_broglie",
+   "name": "Longueur d'onde de de Broglie",
+   "statement": "Toute particule de quantite de mouvement p a une longueur d'onde lambda = h/p. Pour p=1e-24 kg.m/s, lambda~6.63e-10 m (echelle atomique).",
+   "formula": "lambda = h / p",
+   "python": "lambda p: 6.62607015e-34/p",
+   "test_inputs": {
+    "p": 1e-24
+   },
+   "expected": 6.62607015e-10,
+   "tol": 1e-13,
+   "units": "m (p en kg.m/s)",
+   "links": [
+    {
+     "to": "quant.schrodinger",
+     "relation": "fonde la nature ondulatoire decrite par la fonction d'onde"
+    },
+    {
+     "to": "part.compton",
+     "relation": "cas particulier relativiste"
+    },
+    {
+     "to": "chem.electron_diffraction",
+     "relation": "explique la diffraction des electrons sur les cristaux"
+    }
+   ],
+   "brief": "La dualite onde-corpuscule : transforme la matiere en onde, pont particules<->quantique<->chimie cristalline.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.radioactive",
+   "name": "Desintegration radioactive (demi-vie)",
+   "statement": "Le nombre de noyaux restants suit N = N0 * (1/2)^(t/T) ou T est la demi-vie. Apres 3 demi-vies, il reste 1/8 de 1000 = 125.",
+   "formula": "N = N0 * (1/2)^(t/T)",
+   "python": "lambda N0,t,T: N0*0.5**(t/T)",
+   "test_inputs": {
+    "N0": 1000,
+    "t": 3,
+    "T": 1
+   },
+   "expected": 125,
+   "tol": 1e-09,
+   "units": "nombre de noyaux (t et T memes unites)",
+   "links": [
+    {
+     "to": "math.exponential",
+     "relation": "loi exponentielle decroissante (N=N0 e^{-lambda t})"
+    },
+    {
+     "to": "med.radiotherapy",
+     "relation": "dose les radio-isotopes et leur duree d'action"
+    },
+    {
+     "to": "bio.carbon_dating",
+     "relation": "datation au carbone-14 des fossiles"
+    }
+   ],
+   "brief": "Le generateur stochastique-moyen des noyaux ; branche particules<->math<->medecine<->datation biologique.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.binding",
+   "name": "Energie de liaison nucleaire (defaut de masse)",
+   "statement": "L'energie liant un noyau egale son defaut de masse fois 931.494 MeV/u. Pour l'helium-4 (2p+2n), B~28.3 MeV (~7.07 MeV/nucleon).",
+   "formula": "B = (Z m_p + N m_n - m_noyau) * 931.494 MeV/u",
+   "python": "lambda Z,N,mp,mn,m_nuc: (Z*mp+N*mn-m_nuc)*931.49410242",
+   "test_inputs": {
+    "Z": 2,
+    "N": 2,
+    "mp": 1.007276466,
+    "mn": 1.008664916,
+    "m_nuc": 4.001506179
+   },
+   "expected": 28.29560977916062,
+   "tol": 0.2,
+   "units": "MeV (masses en u)",
+   "links": [
+    {
+     "to": "part.mass_energy",
+     "relation": "convertit le defaut de masse en energie via E=mc2"
+    },
+    {
+     "to": "chem.nuclear_mass_defect",
+     "relation": "la chimie nucleaire repose sur ce defaut"
+    },
+    {
+     "to": "phys.stellar_fusion",
+     "relation": "la courbe B/A pilote fusion (etoiles) et fission (reacteurs)"
+    }
+   ],
+   "brief": "Pourquoi les noyaux tiennent et liberent de l'energie ; pont particules<->chimie nucleaire<->astrophysique stellaire.",
+   "domain": "particules"
+  },
+  {
+   "id": "part.force_ratio",
+   "name": "Hierarchie des forces (ratio electromagnetique/gravitation)",
+   "statement": "Entre deux protons, la force electromagnetique surpasse la gravitation d'un facteur ~1.24e36, illustrant la hierarchie des 4 interactions (forte~1, EM~1/137, faible~1e-6, gravite~1e-39 relatif au forte).",
+   "formula": "ratio = e^2 / (4 pi eps0 G m_p^2)",
+   "python": "lambda: (1.602176634e-19)**2/(4*pi*8.8541878128e-12*6.67430e-11*1.67262192369e-27**2)",
+   "test_inputs": {},
+   "expected": 1.2355516357613853e+36,
+   "tol": 1e+34,
+   "units": "sans dimension",
+   "links": [
+    {
+     "to": "phys.coulomb",
+     "relation": "utilise la loi de Coulomb au numerateur"
+    },
+    {
+     "to": "phys.gravitation",
+     "relation": "utilise la loi de Newton au denominateur"
+    },
+    {
+     "to": "quant.fine_structure",
+     "relation": "le couplage EM est fixe par alpha~1/137"
+    }
+   ],
+   "brief": "La carte des 4 forces fondamentales : montre pourquoi la gravite est negligeable a l'echelle des particules ; pont vers gravitation et constante de structure fine.",
+   "domain": "particules"
+  },
+  {
+   "id": "chem.stoichiometry_moles",
+   "name": "Stoechiometrie - nombre de moles",
+   "statement": "Le nombre de moles d'une substance est sa masse divisee par sa masse molaire : n = m / M.",
+   "formula": "n = m / M",
+   "python": "lambda m, M: m / M",
+   "test_inputs": {
+    "m": 18.015,
+    "M": 18.015
+   },
+   "expected": 1,
+   "tol": 1e-09,
+   "units": "mol (m en g, M en g/mol)",
+   "links": [
+    {
+     "to": "phys.mass",
+     "relation": "applique la notion de masse de la physique a la matiere comptable"
+    },
+    {
+     "to": "chem.avogadro_number",
+     "relation": "le nombre de moles se convertit en nombre d'entites via N_A"
+    },
+    {
+     "to": "math.division",
+     "relation": "operation arithmetique fondamentale de proportion"
+    }
+   ],
+   "brief": "1 mole d'eau pese 18.015 g ; m/M reproduit n=1. Brique de base de toute la chimie quantitative.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.avogadro_number",
+   "name": "Nombre d'Avogadro",
+   "statement": "Le nombre d'entites elementaires (atomes, molecules) vaut le nombre de moles multiplie par la constante d'Avogadro N_A = 6.02214076e23 mol^-1.",
+   "formula": "N = n * N_A",
+   "python": "lambda n: n * 6.02214076e23",
+   "test_inputs": {
+    "n": 2
+   },
+   "expected": 1.204428152e+24,
+   "tol": 1000000000000000,
+   "units": "entites (sans dimension)",
+   "links": [
+    {
+     "to": "phys.mole_si",
+     "relation": "N_A definit l'unite SI mole depuis 2019"
+    },
+    {
+     "to": "part.atom_count",
+     "relation": "fait le pont entre echelle macroscopique (moles) et particules individuelles"
+    },
+    {
+     "to": "quant.planck_constant",
+     "relation": "N_A et h fixent ensemble les constantes SI redefinies en 2019"
+    }
+   ],
+   "brief": "2 mol contiennent 1.2044e24 entites. Pont macro<->microscopique : compte les particules derriere une masse pesable.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.ideal_gas",
+   "name": "Loi des gaz parfaits",
+   "statement": "Pour un gaz parfait, pression x volume = nombre de moles x constante des gaz x temperature : PV = nRT, donc P = nRT/V.",
+   "formula": "P = n R T / V",
+   "python": "lambda n, T, V: n * 8.314462618 * T / V",
+   "test_inputs": {
+    "n": 1,
+    "T": 273.15,
+    "V": 0.0224136
+   },
+   "expected": 101325,
+   "tol": 5,
+   "units": "Pa (n en mol, T en K, V en m^3)",
+   "links": [
+    {
+     "to": "phys.pressure",
+     "relation": "relie pression mecanique et etat thermodynamique"
+    },
+    {
+     "to": "quant.boltzmann_distribution",
+     "relation": "se derive de la theorie cinetique et de la distribution de Maxwell-Boltzmann"
+    },
+    {
+     "to": "part.kinetic_theory",
+     "relation": "P emerge des chocs des particules sur les parois"
+    },
+    {
+     "to": "chem.gibbs_free_energy",
+     "relation": "fournit la dependance en pression de l'energie libre des gaz"
+    }
+   ],
+   "brief": "1 mol a 273.15 K dans 22.4136 L donne 101325 Pa (CNTP). Equation d'etat reliant thermo et mecanique.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.henderson_hasselbalch",
+   "name": "Henderson-Hasselbalch (pH d'un tampon)",
+   "statement": "Le pH d'une solution tampon vaut le pKa de l'acide plus le logarithme decimal du rapport base conjuguee sur acide : pH = pKa + log10([A-]/[HA]).",
+   "formula": "pH = pKa + log10([A-] / [HA])",
+   "python": "lambda pKa, A, HA: pKa + log10(A / HA)",
+   "test_inputs": {
+    "pKa": 4.76,
+    "A": 0.2,
+    "HA": 0.1
+   },
+   "expected": 5.061029995663981,
+   "tol": 1e-09,
+   "units": "sans dimension (pH)",
+   "links": [
+    {
+     "to": "chem.water_ionization",
+     "relation": "decoule de la constante d'acidite Ka et de l'autoprotolyse de l'eau"
+    },
+    {
+     "to": "bio.blood_buffering",
+     "relation": "explique le tampon bicarbonate qui regule le pH sanguin"
+    },
+    {
+     "to": "med.acid_base_balance",
+     "relation": "base du diagnostic des acidoses/alcaloses cliniques"
+    },
+    {
+     "to": "math.logarithm",
+     "relation": "utilise le log decimal pour comprimer le rapport de concentrations"
+    }
+   ],
+   "brief": "Tampon acetate (pKa 4.76) avec [A-]/[HA]=2 donne pH=5.06. Coeur de la regulation acido-basique du vivant.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.water_ionization",
+   "name": "Autoprotolyse de l'eau (Kw, pH)",
+   "statement": "Le produit ionique de l'eau Kw = [H+][OH-] = 1e-14 a 25 C ; le pH d'une solution est pH = -log10([H+]).",
+   "formula": "pH = -log10([H+])",
+   "python": "lambda H: -log10(H)",
+   "test_inputs": {
+    "H": 1e-07
+   },
+   "expected": 7,
+   "tol": 1e-09,
+   "units": "sans dimension (pH ; [H+] en mol/L)",
+   "links": [
+    {
+     "to": "chem.henderson_hasselbalch",
+     "relation": "Kw fixe la neutralite et relie pH et pOH des tampons"
+    },
+    {
+     "to": "quant.proton_tunneling",
+     "relation": "le transfert de proton dans l'eau implique l'effet tunnel quantique"
+    },
+    {
+     "to": "med.acid_base_balance",
+     "relation": "le pH 7.4 du sang se mesure relativement a la neutralite 7"
+    },
+    {
+     "to": "math.logarithm",
+     "relation": "le pH est une echelle logarithmique de la concentration en protons"
+    }
+   ],
+   "brief": "[H+]=1e-7 mol/L donne pH=7 (eau pure neutre a 25 C). Definit l'echelle de toute l'acidite.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.gibbs_free_energy",
+   "name": "Energie libre de Gibbs",
+   "statement": "La variation d'energie libre de Gibbs vaut l'enthalpie moins la temperature fois l'entropie : G = H - T*S ; G<0 indique une reaction spontanee.",
+   "formula": "dG = dH - T * dS",
+   "python": "lambda H, T, S: H - T * S",
+   "test_inputs": {
+    "H": -285800,
+    "T": 298.15,
+    "S": -163.3
+   },
+   "expected": -237112.105,
+   "tol": 1e-06,
+   "units": "J/mol (H en J/mol, T en K, S en J/(mol*K))",
+   "links": [
+    {
+     "to": "phys.thermodynamics_second_law",
+     "relation": "G combine 1er principe (H) et 2e principe (S) en critere de spontaneite"
+    },
+    {
+     "to": "chem.equilibrium_constant",
+     "relation": "dG standard fixe la constante d'equilibre via dG=-RT ln K"
+    },
+    {
+     "to": "chem.nernst_equation",
+     "relation": "dG = -nFE relie energie libre et potentiel electrochimique"
+    },
+    {
+     "to": "bio.atp_hydrolysis",
+     "relation": "le dG de l'hydrolyse de l'ATP fournit l'energie du metabolisme"
+    }
+   ],
+   "brief": "Formation de l'eau liquide : dG=-237.1 kJ/mol (spontanee). Critere universel de spontaneite chimique.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.equilibrium_constant",
+   "name": "Constante d'equilibre depuis Gibbs",
+   "statement": "La constante d'equilibre se deduit de l'energie libre standard : dG0 = -RT ln K, donc K = exp(-dG0/(R*T)).",
+   "formula": "K = exp(-dG0 / (R*T))",
+   "python": "lambda dG0, T: exp(-dG0 / (8.314462618 * T))",
+   "test_inputs": {
+    "dG0": -32800,
+    "T": 298.15
+   },
+   "expected": 557585.391411144,
+   "tol": 0.001,
+   "units": "sans dimension (dG0 en J/mol, T en K)",
+   "links": [
+    {
+     "to": "chem.gibbs_free_energy",
+     "relation": "transforme le dG standard en position d'equilibre"
+    },
+    {
+     "to": "quant.boltzmann_distribution",
+     "relation": "le facteur exp(-dG/RT) est un facteur de Boltzmann sur les etats"
+    },
+    {
+     "to": "chem.henderson_hasselbalch",
+     "relation": "Ka est un cas particulier de constante d'equilibre acido-basique"
+    },
+    {
+     "to": "bio.enzyme_kinetics",
+     "relation": "les equilibres de liaison enzyme-substrat obeissent a la meme loi"
+    }
+   ],
+   "brief": "dG0=-32.8 kJ/mol donne K~5.6e5 (equilibre tres deplace). Lie thermodynamique et composition a l'equilibre.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.arrhenius",
+   "name": "Loi d'Arrhenius (cinetique)",
+   "statement": "La constante de vitesse depend exponentiellement de la temperature : k = A * exp(-Ea/(R*T)), ou Ea est l'energie d'activation.",
+   "formula": "k = A * exp(-Ea / (R*T))",
+   "python": "lambda A, Ea, T: A * exp(-Ea / (8.314462618 * T))",
+   "test_inputs": {
+    "A": 10000000000000,
+    "Ea": 75000,
+    "T": 300
+   },
+   "expected": 0.8741681309553754,
+   "tol": 1e-06,
+   "units": "meme unite que A (Ea en J/mol, T en K)",
+   "links": [
+    {
+     "to": "quant.boltzmann_distribution",
+     "relation": "le facteur exp(-Ea/RT) est la fraction de molecules au-dela de la barriere"
+    },
+    {
+     "to": "phys.activation_energy",
+     "relation": "Ea est une barriere de potentiel franchie par agitation thermique"
+    },
+    {
+     "to": "bio.enzyme_kinetics",
+     "relation": "les enzymes accelerent les reactions en abaissant Ea"
+    },
+    {
+     "to": "med.drug_stability",
+     "relation": "predit la degradation des medicaments et leur date de peremption"
+    }
+   ],
+   "brief": "A=1e13, Ea=75 kJ/mol a 300 K donne k~0.874 s^-1. Loi de la vitesse des reactions et de l'effet de la temperature.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.nernst_equation",
+   "name": "Equation de Nernst (electrochimie)",
+   "statement": "Le potentiel d'une cellule electrochimique vaut le potentiel standard moins (RT/nF) fois le logarithme naturel du quotient reactionnel : E = E0 - (RT/nF)*ln(Q).",
+   "formula": "E = E0 - (R*T / (n*F)) * ln(Q)",
+   "python": "lambda E0, n, Q, T: E0 - (8.314462618 * T / (n * 96485.33212)) * log(Q)",
+   "test_inputs": {
+    "E0": 1.1,
+    "n": 2,
+    "Q": 0.01,
+    "T": 298.15
+   },
+   "expected": 1.1591593496857215,
+   "tol": 1e-09,
+   "units": "V (E0 en V, T en K, Q sans dimension)",
+   "links": [
+    {
+     "to": "chem.gibbs_free_energy",
+     "relation": "E se relie a dG par dG=-nFE, traduisant la chimie en electricite"
+    },
+    {
+     "to": "phys.faraday_constant",
+     "relation": "F=N_A*e relie la charge electrique a la quantite de matiere"
+    },
+    {
+     "to": "bio.membrane_potential",
+     "relation": "fixe le potentiel de repos des neurones via les gradients ioniques"
+    },
+    {
+     "to": "med.ecg_electrophysiology",
+     "relation": "sous-tend les potentiels d'action mesures en cardiologie"
+    }
+   ],
+   "brief": "Cellule Daniell (E0=1.10 V, n=2) avec Q=0.01 donne E=1.159 V. Pont chimie<->electricite et bioelectricite.",
+   "domain": "chimie"
+  },
+  {
+   "id": "chem.dilution",
+   "name": "Loi de dilution (C1V1 = C2V2)",
+   "statement": "Lors d'une dilution, la quantite de solute est conservee : C1*V1 = C2*V2, donc le volume final V2 = C1*V1/C2.",
+   "formula": "V2 = C1 * V1 / C2",
+   "python": "lambda C1, V1, C2: C1 * V1 / C2",
+   "test_inputs": {
+    "C1": 2,
+    "V1": 0.05,
+    "C2": 0.5
+   },
+   "expected": 0.2,
+   "tol": 1e-12,
+   "units": "L (C en mol/L, V en L)",
+   "links": [
+    {
+     "to": "chem.stoichiometry_moles",
+     "relation": "exprime la conservation du nombre de moles de solute C*V=n"
+    },
+    {
+     "to": "phys.conservation_law",
+     "relation": "cas particulier de conservation de la matiere"
+    },
+    {
+     "to": "med.iv_drug_dosing",
+     "relation": "calcule les dilutions de medicaments pour perfusion intraveineuse"
+    },
+    {
+     "to": "bio.serial_dilution",
+     "relation": "base des dilutions en serie pour titres et cultures cellulaires"
+    }
+   ],
+   "brief": "Diluer 50 mL de 2 mol/L vers 0.5 mol/L donne 200 mL. Conservation du solute : pilier des manips de paillasse.",
+   "domain": "chimie"
+  },
+  {
+   "id": "bio.hardy_weinberg",
+   "name": "Equilibre de Hardy-Weinberg",
+   "statement": "Dans une population panmictique infinie sans selection, mutation ni migration, les frequences genotypiques se deduisent des frequences alleliques : p^2 + 2pq + q^2 = 1. La frequence des heterozygotes est 2pq.",
+   "formula": "f(Aa) = 2pq, avec p+q=1",
+   "python": "lambda p: 2*p*(1-p)",
+   "test_inputs": {
+    "p": 0.7
+   },
+   "expected": 0.42,
+   "tol": 1e-09,
+   "units": "fraction (sans dimension)",
+   "links": [
+    {
+     "to": "math.binomial_theorem",
+     "relation": "est le developpement du binome (p+q)^2 = p^2+2pq+q^2"
+    },
+    {
+     "to": "math.probability_independence",
+     "relation": "applique l'independance des tirages d'alleles (multiplication des probabilites)"
+    },
+    {
+     "to": "med.allele_disease_frequency",
+     "relation": "predit la frequence des porteurs sains d'une maladie recessive a partir de la frequence des malades q^2"
+    }
+   ],
+   "brief": "Loi de reference: les frequences genotypiques sont l'expansion binomiale des frequences alleliques.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.exponential_growth",
+   "name": "Croissance exponentielle des populations (Malthus)",
+   "statement": "Une population a ressources illimitees croit exponentiellement : N(t) = N0 * e^(r*t), ou r est le taux de croissance intrinseque.",
+   "formula": "N(t) = N0 e^{rt}",
+   "python": "lambda N0,r,t: N0*exp(r*t)",
+   "test_inputs": {
+    "N0": 100,
+    "r": 0.1,
+    "t": 10
+   },
+   "expected": 271.8281828459045,
+   "tol": 1e-06,
+   "units": "individus",
+   "links": [
+    {
+     "to": "math.exponential_function",
+     "relation": "est la solution de l'EDO dN/dt = rN, identique a e^x"
+    },
+    {
+     "to": "phys.radioactive_decay",
+     "relation": "meme forme mathematique que la decroissance radioactive (signe oppose du taux)"
+    },
+    {
+     "to": "chem.first_order_kinetics",
+     "relation": "meme EDO du premier ordre que la cinetique chimique d'ordre 1"
+    }
+   ],
+   "brief": "Solution de dN/dt=rN: croissance geometrique sans limite, base de l'argument malthusien de Darwin.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.logistic_growth",
+   "name": "Croissance logistique (Verhulst)",
+   "statement": "Avec une capacite de charge K finie, la population suit N(t) = K / (1 + ((K-N0)/N0) e^(-r*t)), qui sature a K.",
+   "formula": "N(t) = K / (1 + ((K-N0)/N0) e^{-rt})",
+   "python": "lambda N0,r,t,K: K/(1+((K-N0)/N0)*exp(-r*t))",
+   "test_inputs": {
+    "N0": 10,
+    "r": 0.5,
+    "t": 10,
+    "K": 1000
+   },
+   "expected": 599.8596018130347,
+   "tol": 1e-06,
+   "units": "individus",
+   "links": [
+    {
+     "to": "math.differential_equation",
+     "relation": "solution analytique de l'EDO non lineaire dN/dt = rN(1-N/K)"
+    },
+    {
+     "to": "bio.michaelis_menten",
+     "relation": "meme forme de saturation hyperbolique que la cinetique enzymatique"
+    },
+    {
+     "to": "chem.autocatalysis",
+     "relation": "decrit une reaction autocatalytique a ressource limitee"
+    }
+   ],
+   "brief": "Verhulst: la croissance ralentit a l'approche de la capacite de charge K, courbe sigmoide.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.michaelis_menten",
+   "name": "Cinetique de Michaelis-Menten",
+   "statement": "La vitesse d'une reaction enzymatique en fonction de la concentration en substrat S : v = Vmax * S / (Km + S). Quand S = Km, v = Vmax/2.",
+   "formula": "v = Vmax S / (Km + S)",
+   "python": "lambda Vmax,Km,S: Vmax*S/(Km+S)",
+   "test_inputs": {
+    "Vmax": 10,
+    "Km": 2,
+    "S": 2
+   },
+   "expected": 5,
+   "tol": 1e-12,
+   "units": "mol/(L*s) (vitesse)",
+   "links": [
+    {
+     "to": "chem.law_of_mass_action",
+     "relation": "se derive de la loi d'action de masse appliquee au complexe enzyme-substrat"
+    },
+    {
+     "to": "chem.equilibrium_constant",
+     "relation": "Km est une constante de dissociation apparente du complexe ES"
+    },
+    {
+     "to": "bio.logistic_growth",
+     "relation": "meme saturation hyperbolique (forme de Monod pour la croissance microbienne)"
+    },
+    {
+     "to": "med.drug_receptor_binding",
+     "relation": "identique a l'equation de liaison ligand-recepteur (occupation) en pharmacologie"
+    }
+   ],
+   "brief": "Saturation enzymatique: Km = concentration a demi-Vmax, pont direct vers la chimie d'action de masse.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.kleiber_law",
+   "name": "Loi de Kleiber (scaling allometrique du metabolisme)",
+   "statement": "Le taux metabolique basal d'un organisme varie comme la masse a la puissance 3/4 : B = a * M^0.75. Avec a~70 kcal/jour, un mammifere de 1 kg consomme ~70 kcal/jour.",
+   "formula": "B = a M^{3/4}",
+   "python": "lambda a,M: a*pow(M,0.75)",
+   "test_inputs": {
+    "a": 70,
+    "M": 70
+   },
+   "expected": 1694.031844745511,
+   "tol": 1e-06,
+   "units": "kcal/jour",
+   "links": [
+    {
+     "to": "math.power_law",
+     "relation": "est une loi de puissance, lineaire en log-log (exposant 3/4)"
+    },
+    {
+     "to": "phys.fractal_scaling",
+     "relation": "explique par la geometrie fractale des reseaux de distribution (West-Brown-Enquist)"
+    },
+    {
+     "to": "phys.surface_volume_ratio",
+     "relation": "liee au rapport surface/volume et a la dissipation thermique"
+    },
+    {
+     "to": "med.drug_dosing_allometry",
+     "relation": "sert a extrapoler les doses pharmacologiques entre especes (allometrie)"
+    }
+   ],
+   "brief": "Metabolisme ~ M^0.75: loi de puissance universelle reliant taille et energie via la geometrie des reseaux.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.selection_delta_p",
+   "name": "Changement de frequence allelique sous selection",
+   "statement": "Pour un locus diallelique avec fitness w11, w12, w22, la variation de frequence de l'allele A par generation est dp = p*q*(p*(w11-w12)+q*(w12-w22)) / wbar, ou wbar = p^2 w11 + 2pq w12 + q^2 w22 est la fitness moyenne.",
+   "formula": "dp = pq[p(w11-w12)+q(w12-w22)] / wbar",
+   "python": "lambda p,w11,w12,w22: (lambda q,wbar: p*q*(p*(w11-w12)+q*(w12-w22))/wbar)(1-p, p*p*w11+2*p*(1-p)*w12+(1-p)*(1-p)*w22)",
+   "test_inputs": {
+    "p": 0.5,
+    "w11": 1,
+    "w12": 0.9,
+    "w22": 0.8
+   },
+   "expected": 0.027777777777777776,
+   "tol": 1e-09,
+   "units": "fraction par generation",
+   "links": [
+    {
+     "to": "bio.hardy_weinberg",
+     "relation": "part des frequences genotypiques HW puis applique le tri par fitness"
+    },
+    {
+     "to": "math.optimization_gradient",
+     "relation": "dp suit le gradient de la fitness moyenne (theoreme fondamental de Fisher)"
+    },
+    {
+     "to": "med.antibiotic_resistance",
+     "relation": "modelise la propagation d'un allele de resistance sous pression de selection"
+    }
+   ],
+   "brief": "Moteur de l'evolution: la frequence d'un allele monte proportionnellement a son avantage de fitness relatif.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.mutation_selection_balance",
+   "name": "Equilibre mutation-selection",
+   "statement": "Pour un allele deletere recessif, l'apport par mutation (taux mu) equilibre l'elimination par selection (coefficient s) a la frequence q_hat = sqrt(mu/s).",
+   "formula": "q_hat = sqrt(mu/s)",
+   "python": "lambda mu,s: sqrt(mu/s)",
+   "test_inputs": {
+    "mu": 1e-06,
+    "s": 0.01
+   },
+   "expected": 0.01,
+   "tol": 1e-09,
+   "units": "frequence allelique",
+   "links": [
+    {
+     "to": "bio.selection_delta_p",
+     "relation": "resout l'etat stationnaire ou la perte par selection compense le gain par mutation"
+    },
+    {
+     "to": "math.fixed_point",
+     "relation": "est un point fixe (equilibre) d'une dynamique recurrente"
+    },
+    {
+     "to": "med.genetic_load",
+     "relation": "quantifie la charge genetique residuelle des maladies recessives dans une population"
+    }
+   ],
+   "brief": "Equilibre stationnaire: persistance d'alleles deleteres a frequence sqrt(mu/s) malgre la selection.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.nei_genetic_distance",
+   "name": "Distance genetique de Nei",
+   "statement": "La distance genetique entre deux populations se mesure D = -ln(I), ou I est l'identite genetique normalisee. Une identite I=0.9 donne D~0.105.",
+   "formula": "D = -ln(I)",
+   "python": "lambda I: -log(I)",
+   "test_inputs": {
+    "I": 0.9
+   },
+   "expected": 0.10536051565782628,
+   "tol": 1e-09,
+   "units": "distance (sans dimension)",
+   "links": [
+    {
+     "to": "math.logarithm",
+     "relation": "transforme une identite multiplicative en distance additive via -ln"
+    },
+    {
+     "to": "math.information_entropy",
+     "relation": "parente formelle avec la divergence / l'entropie (mesure de dissimilarite)"
+    },
+    {
+     "to": "bio.molecular_clock",
+     "relation": "D croit lineairement avec le temps de divergence sous horloge moleculaire"
+    }
+   ],
+   "brief": "Distance phylogenetique: -ln de l'identite genetique, additive et proportionnelle au temps de divergence.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "bio.effective_population_size",
+   "name": "Taille efficace de population (sex-ratio desequilibre)",
+   "statement": "Avec Nm males et Nf femelles reproducteurs, la taille efficace est Ne = 4*Nm*Nf/(Nm+Nf). Un fort desequilibre reduit drastiquement Ne (10 males, 90 femelles -> Ne=36).",
+   "formula": "Ne = 4 Nm Nf / (Nm + Nf)",
+   "python": "lambda Nm,Nf: 4*Nm*Nf/(Nm+Nf)",
+   "test_inputs": {
+    "Nm": 10,
+    "Nf": 90
+   },
+   "expected": 36,
+   "tol": 1e-09,
+   "units": "individus (effectif)",
+   "links": [
+    {
+     "to": "math.harmonic_mean",
+     "relation": "est une moyenne harmonique ponderee des effectifs des deux sexes"
+    },
+    {
+     "to": "bio.hardy_weinberg",
+     "relation": "Ne fini cause une derive qui ecarte la population de l'equilibre HW ideal"
+    },
+    {
+     "to": "med.conservation_genetics",
+     "relation": "seuil critique (Ne) pour la viabilite des especes menacees et la consanguinite"
+    }
+   ],
+   "brief": "Effectif genetique reel: domine par le sexe rare, gouverne l'intensite de la derive genetique.",
+   "domain": "biologie-evolutionniste"
+  },
+  {
+   "id": "med.elimination_half_life",
+   "name": "Demi-vie d'elimination",
+   "statement": "Le temps necessaire pour que la concentration plasmatique d'un medicament diminue de moitie depend du volume de distribution Vd et de la clairance CL : t1/2 = ln(2) * Vd / CL.",
+   "formula": "t_{1/2} = \\frac{\\ln 2 \\cdot V_d}{CL}",
+   "python": "lambda Vd, CL: log(2) * Vd / CL",
+   "test_inputs": {
+    "Vd": 50,
+    "CL": 10
+   },
+   "expected": 3.4657359027997265,
+   "tol": 1e-09,
+   "units": "h (Vd en L, CL en L/h)",
+   "links": [
+    {
+     "to": "phys.exponential_decay",
+     "relation": "est la meme loi de decroissance exponentielle du premier ordre que la desintegration radioactive (t1/2 = ln2/k)"
+    },
+    {
+     "to": "chem.first_order_kinetics",
+     "relation": "applique la cinetique chimique d'ordre 1 ; CL/Vd = constante d'elimination ke"
+    },
+    {
+     "to": "math.natural_log",
+     "relation": "utilise ln(2) issu de l'integration de l'exponentielle"
+    }
+   ],
+   "brief": "Demi-vie pharmacocinetique = decroissance exponentielle d'ordre 1 ; pont direct vers la physique de la desintegration radioactive.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.plasma_concentration",
+   "name": "Concentration plasmatique initiale (modele monocompartimental)",
+   "statement": "Apres administration d'une dose dans un volume de distribution Vd, la concentration plasmatique vaut C = Dose / Vd ; c'est la dilution de la masse de medicament dans le volume apparent.",
+   "formula": "C = \\frac{Dose}{V_d}",
+   "python": "lambda Dose, Vd: Dose / Vd",
+   "test_inputs": {
+    "Dose": 500,
+    "Vd": 50
+   },
+   "expected": 10,
+   "tol": 1e-09,
+   "units": "mg/L (Dose en mg, Vd en L)",
+   "links": [
+    {
+     "to": "chem.concentration_dilution",
+     "relation": "est la definition meme de la concentration (masse/volume), pont vers la chimie des solutions"
+    },
+    {
+     "to": "phys.density",
+     "relation": "meme structure que masse volumique : grandeur extensive divisee par un volume"
+    },
+    {
+     "to": "math.proportionality",
+     "relation": "relation de proportionnalite inverse entre C et Vd"
+    }
+   ],
+   "brief": "Concentration = dose diluee dans le volume de distribution ; brique de base de la pharmacocinetique reliant chimie des solutions et physique.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.hill_dose_response",
+   "name": "Equation de Hill (dose-reponse, EC50)",
+   "statement": "L'effet d'un ligand suit une sigmoide : E = Emax * C^n / (EC50^n + C^n), ou EC50 est la concentration produisant 50 pourcent de l'effet maximal et n le coefficient de Hill (cooperativite).",
+   "formula": "E = E_{max} \\frac{C^{n}}{EC_{50}^{n} + C^{n}}",
+   "python": "lambda Emax, C, EC50, n: Emax * pow(C, n) / (pow(EC50, n) + pow(C, n))",
+   "test_inputs": {
+    "Emax": 100,
+    "C": 20,
+    "EC50": 10,
+    "n": 2
+   },
+   "expected": 80,
+   "tol": 1e-09,
+   "units": "pourcent (E et Emax meme unite, C et EC50 meme unite)",
+   "links": [
+    {
+     "to": "chem.michaelis_menten",
+     "relation": "generalise la cinetique de Michaelis-Menten (cas n=1) a la liaison cooperative ligand-recepteur"
+    },
+    {
+     "to": "bio.cooperative_binding",
+     "relation": "decrit la fixation cooperative (ex : O2 sur l'hemoglobine), pont vers la biochimie"
+    },
+    {
+     "to": "chem.law_of_mass_action",
+     "relation": "derive de la loi d'action de masse appliquee a l'equilibre recepteur-ligand"
+    }
+   ],
+   "brief": "Sigmoide dose-reponse pharmacologique ; generalise Michaelis-Menten et la liaison cooperative biochimique.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.bmi",
+   "name": "Indice de masse corporelle (IMC)",
+   "statement": "L'IMC normalise la masse par le carre de la taille pour estimer la corpulence : BMI = masse / taille^2 ; il suppose une croissance de la masse en surface plutot qu'en volume.",
+   "formula": "BMI = \\frac{m}{h^{2}}",
+   "python": "lambda m, h: m / (h * h)",
+   "test_inputs": {
+    "m": 70,
+    "h": 1.75
+   },
+   "expected": 22.857142857142858,
+   "tol": 1e-09,
+   "units": "kg/m^2 (m en kg, h en m)",
+   "links": [
+    {
+     "to": "math.allometric_scaling",
+     "relation": "exposant 2 (au lieu de 3) reflete une loi d'echelle allometrique non isometrique du corps"
+    },
+    {
+     "to": "bio.body_surface_area",
+     "relation": "approche la surface corporelle, utilisee pour le dosage des chimiotherapies"
+    },
+    {
+     "to": "phys.density",
+     "relation": "indicateur de densite corporelle apparente (masse rapportee a une dimension geometrique)"
+    }
+   ],
+   "brief": "Normalisation masse/taille^2 ; exemple concret de loi d'echelle allometrique reliant geometrie et biologie.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.herd_immunity_threshold",
+   "name": "Seuil d'immunite collective (modele SIR)",
+   "statement": "Une epidemie regresse quand la fraction d'immuns depasse le seuil critique pc = 1 - 1/R0, ou R0 est le nombre de reproduction de base ; au-dela, le nombre de reproduction effectif passe sous 1.",
+   "formula": "p_c = 1 - \\frac{1}{R_0}",
+   "python": "lambda R0: 1 - 1 / R0",
+   "test_inputs": {
+    "R0": 2.5
+   },
+   "expected": 0.6,
+   "tol": 1e-09,
+   "units": "fraction (sans unite)",
+   "links": [
+    {
+     "to": "bio.logistic_growth",
+     "relation": "decoule de la dynamique du modele compartimental SIR, parent de la croissance logistique des populations"
+    },
+    {
+     "to": "math.fixed_point",
+     "relation": "seuil = condition de point fixe stable (Reff = R0*S = 1)"
+    },
+    {
+     "to": "phys.percolation_threshold",
+     "relation": "analogue du seuil de percolation : transition de phase entre propagation et extinction"
+    }
+   ],
+   "brief": "Seuil critique d'immunite issu du modele SIR ; transition de phase epidemiologique reliee a la percolation et a la dynamique des populations.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.cockcroft_gault_gfr",
+   "name": "Debit de filtration glomerulaire (Cockcroft-Gault)",
+   "statement": "La clairance de la creatinine estime la fonction renale : CLcr = (140 - age) * poids / (72 * creatininemie), proportionnelle a la masse musculaire et inverse de la creatininemie.",
+   "formula": "CL_{cr} = \\frac{(140 - age) \\cdot poids}{72 \\cdot S_{cr}}",
+   "python": "lambda age, poids, Scr: (140 - age) * poids / (72 * Scr)",
+   "test_inputs": {
+    "age": 60,
+    "poids": 72,
+    "Scr": 1
+   },
+   "expected": 80,
+   "tol": 1e-09,
+   "units": "mL/min (age en annees, poids en kg, Scr en mg/dL)",
+   "links": [
+    {
+     "to": "med.elimination_half_life",
+     "relation": "la clairance renale CLcr alimente la clairance totale CL qui fixe la demi-vie des medicaments a elimination renale"
+    },
+    {
+     "to": "phys.flow_rate",
+     "relation": "est un debit volumique de plasma epure par unite de temps (analogue d'un debit hydraulique)"
+    },
+    {
+     "to": "chem.mass_balance",
+     "relation": "repose sur le bilan de masse : creatinine produite = creatinine excretee a l'etat stationnaire"
+    }
+   ],
+   "brief": "Estimation du debit de filtration glomerulaire ; debit volumique qui pilote la clairance et donc la demi-vie pharmacocinetique.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.fick_diffusion",
+   "name": "Loi de Fick (diffusion a travers une membrane)",
+   "statement": "Le flux de diffusion d'un solute a travers une membrane est proportionnel a la surface A, au coefficient de diffusion D et au gradient de concentration : J = D * A * (C1 - C2) / L (en valeur absolue du flux).",
+   "formula": "J = D \\, A \\, \\frac{\\Delta C}{L}",
+   "python": "lambda D, A, dC, L: D * A * dC / L",
+   "test_inputs": {
+    "D": 1e-05,
+    "A": 2,
+    "dC": 0.5,
+    "L": 0.1
+   },
+   "expected": 0.0001,
+   "tol": 1e-12,
+   "units": "mol/s (D en cm^2/s, A en cm^2, dC en mol/cm^3, L en cm)",
+   "links": [
+    {
+     "to": "phys.fick_first_law",
+     "relation": "est exactement la premiere loi de Fick de la physique du transport, appliquee aux echanges alveolaires/capillaires"
+    },
+    {
+     "to": "chem.diffusion",
+     "relation": "decrit la diffusion moleculaire passive selon le gradient de potentiel chimique"
+    },
+    {
+     "to": "phys.fourier_heat",
+     "relation": "structurellement identique a la loi de Fourier (flux proportionnel au gradient)"
+    }
+   ],
+   "brief": "Diffusion membranaire (echanges gazeux pulmonaires) ; identique a la premiere loi de Fick physique et analogue de la conduction thermique.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.odds_ratio",
+   "name": "Rapport des cotes (odds ratio, table 2x2)",
+   "statement": "Le rapport des cotes mesure l'association entre exposition et maladie a partir d'une table de contingence : OR = (a*d)/(b*c), ou a,b,c,d sont les effectifs exposes-malades, exposes-sains, non exposes-malades, non exposes-sains.",
+   "formula": "OR = \\frac{a \\cdot d}{b \\cdot c}",
+   "python": "lambda a, b, c, d: (a * d) / (b * c)",
+   "test_inputs": {
+    "a": 30,
+    "b": 10,
+    "c": 20,
+    "d": 40
+   },
+   "expected": 6,
+   "tol": 1e-09,
+   "units": "sans unite (rapport)",
+   "links": [
+    {
+     "to": "math.bayes_theorem",
+     "relation": "le log-odds est la quantite mise a jour par le theoreme de Bayes (vraisemblance des cotes)"
+    },
+    {
+     "to": "math.logistic_regression",
+     "relation": "exp des coefficients d'une regression logistique = odds ratios ajustes"
+    },
+    {
+     "to": "bio.relative_fitness",
+     "relation": "structurellement parent du rapport de fitness relatif en biologie evolutionniste (succes relatif d'un trait)"
+    }
+   ],
+   "brief": "Mesure d'association epidemiologique ; pont vers les odds bayesiens, la regression logistique et le rapport de fitness evolutionniste.",
+   "domain": "medecine"
+  },
+  {
+   "id": "med.henderson_hasselbalch",
+   "name": "Equation de Henderson-Hasselbalch (equilibre acido-basique)",
+   "statement": "Le pH sanguin depend du rapport bicarbonate/acide carbonique : pH = pKa + log10([HCO3-]/(0.03*pCO2)), avec pKa=6.1 ; gouverne le tampon physiologique du plasma.",
+   "formula": "pH = pK_a + \\log_{10}\\frac{[HCO_3^-]}{[H_2CO_3]}",
+   "python": "lambda HCO3, H2CO3: 6.1 + log10(HCO3 / H2CO3)",
+   "test_inputs": {
+    "HCO3": 24,
+    "H2CO3": 1.2
+   },
+   "expected": 7.401029995663981,
+   "tol": 1e-09,
+   "units": "sans unite (pH ; HCO3 et H2CO3 en mmol/L)",
+   "links": [
+    {
+     "to": "chem.acid_base_equilibrium",
+     "relation": "est l'equation de Henderson-Hasselbalch de la chimie des tampons, derivee de la constante d'acidite Ka"
+    },
+    {
+     "to": "chem.ph_definition",
+     "relation": "utilise la definition pH = -log10[H+] de la chimie"
+    },
+    {
+     "to": "phys.le_chatelier",
+     "relation": "le tampon respiratoire/renal illustre le principe de Le Chatelier (compensation du deplacement d'equilibre)"
+    }
+   ],
+   "brief": "Tampon acido-basique du sang ; application physiologique directe de l'equilibre acide-base et de la definition du pH en chimie.",
+   "domain": "medecine"
+  }
+ ],
+ "links": [
+  {
+   "from": "math.quadratic",
+   "to": "phys.kinetic_energy",
+   "relation": "applique",
+   "why": "Resoudre une trajectoire balistique ou une vitesse a energie donnee revient a resoudre une equation du second degre."
+  },
+  {
+   "from": "math.derivative",
+   "to": "phys.newton2",
+   "relation": "formalise",
+   "why": "La 2e loi de Newton est F=m*d2x/dt2 : l'acceleration EST la derivee seconde formalisee par la difference centree."
+  },
+  {
+   "from": "math.integral",
+   "to": "phys.kinetic_energy",
+   "relation": "derive",
+   "why": "L'energie cinetique se derive de l'integrale du travail de la force le long du deplacement (theoreme de l'energie cinetique)."
+  },
+  {
+   "from": "math.taylor_exp",
+   "to": "phys.pendulum",
+   "relation": "limite-de",
+   "why": "La periode du pendule en sin(theta)~theta est le premier terme de Taylor de la vraie equation, valable aux petites oscillations."
+  },
+  {
+   "from": "math.pythagoras",
+   "to": "part.rel_energy",
+   "relation": "generalise",
+   "why": "La relation E^2=(pc)^2+(mc^2)^2 est un Pythagore dans l'espace energie-impulsion de Minkowski."
+  },
+  {
+   "from": "math.normal_pdf",
+   "to": "phys.entropy",
+   "relation": "derive",
+   "why": "La gaussienne est la distribution de maximum d'entropie a variance fixee : elle sort du principe entropique de la meca stat."
+  },
+  {
+   "from": "math.binomial",
+   "to": "bio.hardy_weinberg",
+   "relation": "applique",
+   "why": "Le terme heterozygote 2pq de Hardy-Weinberg est exactement le coefficient binomial C(2,1)p q : developpement de (p+q)^2."
+  },
+  {
+   "from": "math.binomial",
+   "to": "part.radioactive",
+   "relation": "formalise",
+   "why": "La desintegration de chaque noyau est un tirage de Bernoulli ; la loi N0*(1/2)^(t/T) est l'esperance du processus binomial sous-jacent."
+  },
+  {
+   "from": "math.shannon_entropy",
+   "to": "phys.entropy",
+   "relation": "generalise",
+   "why": "L'entropie thermodynamique nR ln(V2/V1) est l'entropie de Shannon des micro-etats accessibles (Boltzmann/Gibbs), au facteur k pres."
+  },
+  {
+   "from": "math.bayes",
+   "to": "med.odds_ratio",
+   "relation": "applique",
+   "why": "Le rapport des cotes et le test diagnostic bayesien manipulent les memes probabilites conditionnelles maladie/exposition."
+  },
+  {
+   "from": "math.bayes",
+   "to": "med.herd_immunity_threshold",
+   "relation": "applique",
+   "why": "L'inference epidemiologique de R0 puis du seuil pc=1-1/R0 repose sur la mise a jour bayesienne des probabilites de transmission."
+  },
+  {
+   "from": "math.prime_test",
+   "to": "math.gcd_euclid",
+   "relation": "applique",
+   "why": "Primalite et PGCD sont les deux briques arithmetiques de la cryptographie ; un nombre premier n'a de PGCD non trivial avec aucun plus petit."
+  },
+  {
+   "from": "phys.ideal_gas",
+   "to": "chem.ideal_gas",
+   "relation": "applique",
+   "why": "La meme loi PV=nRT est ecrite cote physique (pression d'un gaz) et cote chimie (moles d'un reactif gazeux) : generateur identique."
+  },
+  {
+   "from": "phys.entropy",
+   "to": "chem.gibbs_free_energy",
+   "relation": "derive",
+   "why": "Le terme -T*S de l'energie libre de Gibbs est directement la variation d'entropie thermodynamique de la detente isotherme."
+  },
+  {
+   "from": "phys.carnot",
+   "to": "phys.entropy",
+   "relation": "derive",
+   "why": "Le rendement de Carnot 1-Tf/Tc se demontre en imposant une variation d'entropie nulle sur le cycle reversible (2e principe)."
+  },
+  {
+   "from": "phys.coulomb",
+   "to": "part.force_ratio",
+   "relation": "applique",
+   "why": "Le ratio force EM / gravitation entre deux protons est le quotient de la force de Coulomb par la gravitation de Newton."
+  },
+  {
+   "from": "phys.gravitation",
+   "to": "part.force_ratio",
+   "relation": "applique",
+   "why": "La gravitation universelle est le denominateur du ratio des forces qui hierarchise les 4 interactions a l'echelle des particules."
+  },
+  {
+   "from": "phys.coulomb",
+   "to": "quant.hydrogen_levels",
+   "relation": "limite-de",
+   "why": "Les niveaux de Bohr E_n=-13.6/n^2 quantifient l'energie potentielle coulombienne electron-proton liee."
+  },
+  {
+   "from": "phys.wave_relation",
+   "to": "quant.de_broglie",
+   "relation": "generalise",
+   "why": "La relation onde f=v/lambda s'etend a la matiere : de Broglie attribue une longueur d'onde lambda=h/p a toute particule."
+  },
+  {
+   "from": "phys.lorentz_force",
+   "to": "part.time_dilation",
+   "relation": "applique",
+   "why": "Le mouvement de charges relativistes (accelerateurs) couple la force de Lorentz magnetique a la dilatation du temps de Lorentz."
+  },
+  {
+   "from": "quant.planck",
+   "to": "part.mass_energy",
+   "relation": "applique",
+   "why": "E=hf (quantum) et E=mc^2 (masse) sont les deux faces de l'energie : un photon convertit l'une en l'autre lors de l'annihilation."
+  },
+  {
+   "from": "quant.planck",
+   "to": "quant.photoelectric",
+   "relation": "derive",
+   "why": "L'effet photoelectrique KE=hf-W est la relation de Planck E=hf moins le travail de sortie : meme generateur etendu."
+  },
+  {
+   "from": "quant.hydrogen_levels",
+   "to": "quant.rydberg",
+   "relation": "derive",
+   "why": "La formule de Rydberg 1/lambda=R(1/n1^2-1/n2^2) se deduit de la difference des niveaux de Bohr E_n=-13.6/n^2."
+  },
+  {
+   "from": "quant.planck",
+   "to": "quant.zero_point_energy",
+   "relation": "applique",
+   "why": "L'energie de point zero E0=(1/2)hf reutilise le quantum hf de Planck comme plancher irreductible de l'oscillateur."
+  },
+  {
+   "from": "quant.heisenberg",
+   "to": "quant.zero_point_energy",
+   "relation": "derive",
+   "why": "L'energie de point zero non nulle est une consequence directe de dx*dp>=hbar/2 : l'oscillateur ne peut etre immobile."
+  },
+  {
+   "from": "quant.de_broglie",
+   "to": "part.compton",
+   "relation": "generalise",
+   "why": "La longueur de Compton h/(m c) est la longueur d'onde de de Broglie d'une particule a vitesse relativiste limite c."
+  },
+  {
+   "from": "quant.tunnel",
+   "to": "part.radioactive",
+   "relation": "applique",
+   "why": "La desintegration alpha s'explique par l'effet tunnel : la probabilite de franchissement fixe la demi-vie du noyau."
+  },
+  {
+   "from": "quant.wien",
+   "to": "phys.wave_relation",
+   "relation": "applique",
+   "why": "Wien lambda_max=b/T relie la temperature a une longueur d'onde, que la relation de dispersion convertit en frequence d'emission."
+  },
+  {
+   "from": "part.mass_energy",
+   "to": "part.binding",
+   "relation": "applique",
+   "why": "L'energie de liaison nucleaire est le defaut de masse converti en energie par E=mc^2 (931.494 MeV/u)."
+  },
+  {
+   "from": "part.mass_energy",
+   "to": "part.electron_rest",
+   "relation": "applique",
+   "why": "La masse au repos de l'electron 0.511 MeV est m_e*c^2 : application directe de l'equivalence masse-energie."
+  },
+  {
+   "from": "quant.hydrogen_levels",
+   "to": "chem.henderson_hasselbalch",
+   "relation": "explique",
+   "why": "La quantification des niveaux electroniques explique la structure des orbitales et donc l'acidite/liaison chimique mesuree par le pH."
+  },
+  {
+   "from": "quant.de_broglie",
+   "to": "chem.arrhenius",
+   "relation": "explique",
+   "why": "La nature ondulatoire des electrons fonde la liaison covalente dont la rupture est l'energie d'activation Ea d'Arrhenius."
+  },
+  {
+   "from": "phys.entropy",
+   "to": "chem.equilibrium_constant",
+   "relation": "derive",
+   "why": "La constante d'equilibre K=exp(-dG0/RT) descend de l'entropie via dG0=dH0-T dS0 de la thermodynamique."
+  },
+  {
+   "from": "chem.gibbs_free_energy",
+   "to": "chem.equilibrium_constant",
+   "relation": "derive",
+   "why": "dG0=-RT ln K relie directement l'energie libre de Gibbs a la constante d'equilibre : K=exp(-dG0/RT)."
+  },
+  {
+   "from": "chem.equilibrium_constant",
+   "to": "chem.arrhenius",
+   "relation": "applique",
+   "why": "Le facteur de Boltzmann exp(-E/RT) est le squelette commun : K (thermodynamique) et k (cinetique d'Arrhenius) partagent la meme exponentielle."
+  },
+  {
+   "from": "chem.gibbs_free_energy",
+   "to": "chem.nernst_equation",
+   "relation": "derive",
+   "why": "Le potentiel de cellule E=E0-(RT/nF)ln Q derive de dG=-nFE applique a l'energie libre de Gibbs."
+  },
+  {
+   "from": "chem.henderson_hasselbalch",
+   "to": "med.henderson_hasselbalch",
+   "relation": "applique",
+   "why": "Le meme generateur pH=pKa+log10([base]/[acide]) gouverne un tampon chimique et le tampon bicarbonate du plasma sanguin."
+  },
+  {
+   "from": "chem.water_ionization",
+   "to": "chem.henderson_hasselbalch",
+   "relation": "derive",
+   "why": "La definition pH=-log10([H+]) issue de l'autoprotolyse de l'eau fonde l'echelle utilisee par Henderson-Hasselbalch."
+  },
+  {
+   "from": "chem.arrhenius",
+   "to": "bio.michaelis_menten",
+   "relation": "explique",
+   "why": "La dependance exponentielle d'Arrhenius explique pourquoi la Vmax enzymatique de Michaelis-Menten croit avec la temperature."
+  },
+  {
+   "from": "bio.exponential_growth",
+   "to": "part.radioactive",
+   "relation": "generalise",
+   "why": "Croissance malthusienne N0 e^(rt) et decroissance radioactive partagent le meme generateur exponentiel, r positif vs negatif."
+  },
+  {
+   "from": "bio.exponential_growth",
+   "to": "bio.logistic_growth",
+   "relation": "limite-de",
+   "why": "La croissance exponentielle est la limite de la logistique quand la population est tres inferieure a la capacite de charge K."
+  },
+  {
+   "from": "bio.exponential_growth",
+   "to": "med.elimination_half_life",
+   "relation": "applique",
+   "why": "L'elimination d'ordre 1 d'un medicament est une decroissance exponentielle dont t1/2=ln2*Vd/CL est la demi-vie."
+  },
+  {
+   "from": "bio.hardy_weinberg",
+   "to": "bio.selection_delta_p",
+   "relation": "derive",
+   "why": "Le changement de frequence allelique sous selection part des proportions genotypiques p^2,2pq,q^2 de Hardy-Weinberg."
+  },
+  {
+   "from": "bio.michaelis_menten",
+   "to": "med.hill_dose_response",
+   "relation": "generalise",
+   "why": "L'equation de Hill E=Emax C^n/(EC50^n+C^n) generalise Michaelis-Menten (n=1) en ajoutant la cooperativite."
+  },
+  {
+   "from": "bio.michaelis_menten",
+   "to": "med.fick_diffusion",
+   "relation": "explique",
+   "why": "La saturation de Michaelis-Menten distingue le transport actif enzymatique de la diffusion passive lineaire de Fick a travers la membrane."
+  },
+  {
+   "from": "bio.logistic_growth",
+   "to": "med.herd_immunity_threshold",
+   "relation": "applique",
+   "why": "Le modele SIR du seuil pc=1-1/R0 est une dynamique logistique d'epidemie qui sature quand les susceptibles s'epuisent."
+  },
+  {
+   "from": "med.plasma_concentration",
+   "to": "chem.dilution",
+   "relation": "applique",
+   "why": "La concentration plasmatique C=Dose/Vd est une dilution de la dose dans le volume apparent, meme generateur que C1V1=C2V2."
+  },
+  {
+   "from": "math.normal_pdf",
+   "to": "med.bmi",
+   "relation": "applique",
+   "why": "L'IMC d'une population se lit sur une distribution gaussienne pour definir seuils et percentiles de corpulence."
+  },
+  {
+   "from": "med.fick_diffusion",
+   "to": "phys.bernoulli",
+   "relation": "explique",
+   "why": "Diffusion de Fick (transport par gradient de concentration) et Bernoulli (transport par gradient de pression) sont deux lois de flux conserve."
+  }
+ ],
+ "coverage": [
+  {
+   "domain": "math",
+   "count": 11
+  },
+  {
+   "domain": "phys",
+   "count": 13
+  },
+  {
+   "domain": "quantique",
+   "count": 9
+  },
+  {
+   "domain": "particules",
+   "count": 10
+  },
+  {
+   "domain": "chimie",
+   "count": 10
+  },
+  {
+   "domain": "biologie-evolutionniste",
+   "count": 9
+  },
+  {
+   "domain": "medecine",
+   "count": 9
+  }
+ ],
+ "bridges_narrative": "## La grande chaine : math -> physique classique -> quantique -> particules -> chimie -> biologie -> medecine\n\nL'idee directrice du ploxion est que **chaque loi est un generateur deterministe** (la regle, content-adressee en tsoin) et que les liens ne sont pas des analogies poetiques mais des **partages de generateur** : deux lois reliees reutilisent litteralement la meme structure mathematique, le meme squelette d'expression `python`. Voici les grands ponts qui montrent que TOUT se rejoint.\n\n### Pont 1 — Le socle math -> physique classique (le calcul devient mouvement)\nLa physique classique n'est que de l'analyse appliquee a la matiere. La **derivee par difference centree** (`math.derivative`, test : d/dx[x^3]=12 en x=2) *formalise* la **deuxieme loi de Newton** (`phys.newton2`, F=ma) : l'acceleration EST une derivee seconde. Reciproquement, l'**integrale par trapezes** (`math.integral`, ∫_0^1 x^2 = 1/3) *derive* l'**energie cinetique** (`phys.kinetic_energy`) via le theoreme de l'energie cinetique (integrale du travail). La **formule quadratique** (`math.quadratic`) *s'applique* a cette meme energie cinetique pour resoudre vitesses et trajectoires balistiques. Enfin la **serie de Taylor** (`math.taylor_exp`, e^1≈2.7183 a 20 termes) est la *limite* dont la **periode du pendule** (`phys.pendulum`) ne garde que le premier terme : sin(θ)≈θ aux petites oscillations. Le calcul infinitesimal et l'algebre du second degre sont donc le generateur commun de toute la mecanique.\n\n### Pont 2 — La diagonale probabiliste (math -> bio, particules, medecine)\nUn meme arbre statistique irrigue des domaines apparemment etrangers. Le coefficient **binomial** (`math.binomial`, 2 piles sur 5 → 0.3125) *s'applique* a **Hardy-Weinberg** (`bio.hardy_weinberg`) : le terme heterozygote 2pq est exactement C(2,1)·p·q, le developpement de (p+q)^2. Le meme binomial *formalise* la **desintegration radioactive** (`part.radioactive`, 1/8 apres 3 demi-vies) comme esperance d'un processus de Bernoulli. Le **theoreme de Bayes** (`math.bayes`, P(malade|test+)≈0.167) *s'applique* a la fois au **rapport des cotes** epidemiologique (`med.odds_ratio`) et au **seuil d'immunite collective** (`med.herd_immunity_threshold`, pc=1−1/R0) : meme algebre de probabilites conditionnelles maladie/exposition. La **loi normale** (`math.normal_pdf`, centre ≈0.3989) *s'applique* a l'**IMC** populationnel (`med.bmi`) pour fixer les percentiles de corpulence. Cote arithmetique pure, le **test de primalite** (`math.prime_test`) *s'applique* au **PGCD d'Euclide** (`math.gcd_euclid`) : les deux briques de la cryptographie. La probabilite est ainsi un pont transversal qui court-circuite la chaine lineaire.\n\n### Pont 3 — Le pont thermodynamique-entropique (math -> physique -> chimie)\nL'entropie est le carrefour ou la statistique devient chaleur puis reaction chimique. L'**entropie de Shannon** (`math.shannon_entropy`, piece equilibree = 1 bit) *generalise* l'**entropie thermodynamique** (`phys.entropy`, nR·ln(V2/V1)) — c'est l'identite Boltzmann/Gibbs au facteur k pres ; et la **gaussienne** (`math.normal_pdf`) *derive* de ce meme principe entropique (distribution de maximum d'entropie a variance fixee). Le **rendement de Carnot** (`phys.carnot`, 1−Tf/Tc) *derive* de l'entropie en imposant ΔS=0 sur le cycle reversible. Ensuite l'entropie *derive* l'**energie libre de Gibbs** (`phys.entropy -> chem.gibbs_free_energy`, le terme −T·S) et la **constante d'equilibre** (`phys.entropy -> chem.equilibrium_constant`, K=exp(−ΔG0/RT)). Cote chimie, **Gibbs** *derive* la meme **constante d'equilibre** (ΔG0=−RT·ln K) et le **potentiel de Nernst** (`chem.nernst_equation`, via ΔG=−nFE). Et le **facteur de Boltzmann** exp(−E/RT) est le squelette partage qui fait que la constante d'equilibre *s'applique* a la **loi d'Arrhenius** (`chem.equilibrium_constant -> chem.arrhenius`) : thermodynamique et cinetique portent la meme exponentielle.\n\n### Pont 4 — Le saut quantique (physique classique -> quantique -> particules)\nLa quantification reecrit les lois continues en niveaux discrets. La **loi de Coulomb** (`phys.coulomb`) est la *limite* classique des **niveaux d'hydrogene de Bohr** (`quant.hydrogen_levels`, E_n=−13.6/n^2) : Bohr quantifie l'energie potentielle electron-proton. Ces niveaux *derivent* la **formule de Rydberg** (`quant.rydberg`, raie H-alpha ≈656 nm) par difference d'energies. La **relation de dispersion des ondes** (`phys.wave_relation`, f=v/λ) *se generalise* en **de Broglie** (`quant.de_broglie`, λ=h/p) : la matiere devient onde. La **relation de Planck** E=hf (`quant.planck`) est le generateur-mere : elle *derive* l'**effet photoelectrique** (`quant.photoelectric`, KE=hf−W), *s'applique* a l'**energie de point zero** (`quant.zero_point_energy`, E0=½hf) — laquelle *derive* aussi du **principe d'incertitude** (`quant.heisenberg`, dx·dp≥ħ/2) — et *s'applique* a l'**equivalence masse-energie** (`quant.planck -> part.mass_energy`) : photon et masse sont deux faces de l'energie. La **loi de Wien** (`quant.wien`, Soleil ≈501 nm) boucle vers le classique en *s'appliquant* a la relation de dispersion. Vers les particules : de Broglie *se generalise* en **longueur de Compton** (`part.compton`, 2.426e-12 m), et l'**effet tunnel** (`quant.tunnel`) *s'applique* a la **radioactivite alpha** (`part.radioactive`) en fixant la demi-vie. Le pont quantique-particules se ferme par E=mc^2 : la **masse-energie** *s'applique* a la **masse au repos de l'electron** (`part.electron_rest`, 0.511 MeV) et a l'**energie de liaison nucleaire** (`part.binding`, He-4 ≈28.3 MeV).\n\n### Pont 5 — Pythagore relativiste et la hierarchie des forces (math/physique -> particules)\nDeux ponts elegants relient le socle aux particules. Le **theoreme de Pythagore** (`math.pythagoras`, (3,4)→5) *se generalise* en **energie relativiste totale** (`part.rel_energy`, E^2=(pc)^2+(mc^2)^2) : un Pythagore dans l'espace energie-impulsion de Minkowski. Et la confrontation de la **loi de Coulomb** et de la **gravitation universelle** (`phys.coulomb -> part.force_ratio` et `phys.gravitation -> part.force_ratio`) produit le **ratio des forces** (~1.24e36) qui hierarchise les 4 interactions. La **force de Lorentz** (`phys.lorentz_force`) *s'applique* a la **dilatation du temps** (`part.time_dilation`, γ=5/3 a 0.8c) dans les accelerateurs, ou champs magnetiques et relativite se rencontrent.\n\n### Pont 6 — La double identite gaz parfait et l'echelle des pH (physique <-> chimie <-> medecine)\nCertaines lois sont litteralement la MEME ecrite dans deux domaines. PV=nRT est *partage* a l'identique entre la **physique** (`phys.ideal_gas`) et la **chimie** (`chem.ideal_gas`) : generateur unique, deux contextes. De meme, l'autoprotolyse de l'eau **pH=−log10([H+])** (`chem.water_ionization`) *derive* l'echelle de **Henderson-Hasselbalch** (`chem.henderson_hasselbalch`, pH=pKa+log10([A−]/[HA])), qui *s'applique* telle quelle au **tampon bicarbonate du plasma sanguin** (`med.henderson_hasselbalch`) : un seul generateur logarithmique gouverne le becher et le sang. La quantification electronique remonte meme jusqu'a la chimie : les **niveaux d'hydrogene** *expliquent* la structure des orbitales et donc l'acidite mesuree par Henderson-Hasselbalch (`quant.hydrogen_levels -> chem.henderson_hasselbalch`), et **de Broglie** *explique* la liaison covalente dont la rupture est l'energie d'activation d'**Arrhenius** (`quant.de_broglie -> chem.arrhenius`). La concentration plasmatique C=Dose/Vd (`med.plasma_concentration`) *s'applique* a la **loi de dilution** C1V1=C2V2 (`chem.dilution`) : meme conservation de matiere.\n\n### Pont 7 — L'exponentielle du vivant et la pharmacologie (chimie -> biologie -> medecine)\nLe dernier maillon mene la chaine jusqu'au patient. **Arrhenius** *explique* **Michaelis-Menten** (`chem.arrhenius -> bio.michaelis_menten`) : la temperature fait croitre la Vmax enzymatique. La **croissance exponentielle malthusienne** (`bio.exponential_growth`, N0·e^(rt)) *generalise* la radioactivite (meme generateur, r positif vs negatif), *se specialise* en limite de la **croissance logistique** de Verhulst (`bio.logistic_growth`) quand N≪K, et *s'applique* a la **demi-vie d'elimination** d'un medicament (`med.elimination_half_life`, t1/2=ln2·Vd/CL) — cinetique d'ordre 1. **Hardy-Weinberg** *derive* le **changement de frequence allelique sous selection** (`bio.selection_delta_p`) a partir des proportions p^2,2pq,q^2. La cinetique enzymatique **Michaelis-Menten** *se generalise* en **equation de Hill** dose-reponse (`med.hill_dose_response`, n=1 → cas particulier) et *explique* par contraste la **diffusion passive de Fick** (`med.fick_diffusion`) : saturation active versus flux lineaire. La **logistique** *s'applique* au **seuil d'immunite collective** SIR (`bio.logistic_growth -> med.herd_immunity_threshold`). Et la boucle se referme sur la physique : la **diffusion de Fick** *explique* l'**equation de Bernoulli** (`med.fick_diffusion -> phys.bernoulli`) — deux lois de flux conserve, l'une par gradient de concentration, l'autre par gradient de pression. De la regle quadratique a la pharmacocinetique du patient, **49 ponts reproductibles** referment le graphe : chaque tsoin se rejoue, et le generateur EST la connaissance."
+}

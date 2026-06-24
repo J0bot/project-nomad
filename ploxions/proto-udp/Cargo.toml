@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-proto-udp"
+description = "WASM ploxion: le protocole UDP en ploxion (protocol-bion). Residu ProtocolDef + protocol_ploxion! du SDK. Vague 1 du reseau-en-ploxions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

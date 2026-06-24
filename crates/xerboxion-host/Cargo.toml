@@ -1,0 +1,66 @@
+[package]
+name = "xerboxion-host"
+description = "Operational xerboxion-core: a wasmtime host that loads, isolates, and connects WASM ploxions over the PLC bus"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "xerboxion-rt"
+path = "src/main.rs"
+
+[lib]
+name = "xerboxion_host"
+path = "src/lib.rs"
+
+[dependencies]
+xerboxion-plc = { path = "../xerboxion-plc" }
+wasmtime = { version = "27", default-features = false, features = ["cranelift", "runtime"] }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Native HTTP for the service connector (host-side I/O adapter). `ureq` is a
+# small, blocking, no-async-runtime client — the host is native Rust, so it can
+# reach the network; sandboxed WASM ploxions cannot. Kept lean: rustls TLS for
+# the https health URLs, no cookies/charset/json features.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+# The REAL tsoin engine (Adressage Génératif), depended on the HOST target so the
+# core can record its OWN bus event stream as a tsoin timeline (the thesis applied
+# reflexively: 'tout est un tsoin'). Read-only crate at /home/debian/tsoin — we
+# only depend on it, never modify it. We turn OFF the default `native` feature (it
+# pulls `clap` + on-disk `.tsoin/` persistence we don't need) and turn ON just
+# `zstd`, so the engine's `store_footprint_compressed` reports the HONEST collapse
+# (real zstd-19), never a faked number — exactly as the wasm `tsoin` ploxion does.
+tsoin = { path = "../../vendor/tsoin", default-features = false, features = ["zstd"] }
+# --- The PERSISTENT DAEMON (the `serve` subcommand). ------------------------
+# Justified now: this is a long-running SERVER with a live bus API + WebSocket
+# stream, not a one-shot CLI. The async server runs on tokio; the Host stays on a
+# dedicated OS thread (wasmtime Stores are Send but NOT Sync) and is reached only
+# through channels. `ureq` is KEPT for the host-thread plc_fetch — we do not move
+# fetch onto async. Kept lean: tokio's rt-multi-thread+net+signal+sync+macros+
+# time, axum with `ws`, and tokio-stream's broadcast wrapper for the WS feed.
+tokio = { version = "1", features = ["rt-multi-thread", "net", "signal", "sync", "macros", "time"] }
+axum = { version = "0.7", features = ["ws"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+# --- BUS FEDERATION (the inter-node protocol; opt-in via --peer). ------------
+# The daemon dials each peer as a WebSocket CLIENT to forward locally-originated
+# emits and inject remote ones onto the local bus. `connect`+`handshake` so the
+# client can carry an Authorization (basic-auth from the ws url) or an
+# X-Xion-Peer-Token header on the upgrade — the link MUST be authenticatable
+# (the real PC<->VPS link will be). Only built into the host binary, never the
+# sandboxed wasm ploxions.
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "handshake"] }
+# Encode the basic-auth `user:pass` from a `ws://user:pass@host/peer` url into the
+# Authorization header on the peer upgrade.
+base64 = "0.22"
+
+[dev-dependencies]
+# Tests build the example ploxions to wasm via a build step in scripts; the
+# wasm bytes are produced by `scripts/build-ploxions.sh` and read from
+# target/ploxions/*.wasm. See tests/ for details.
+# A WebSocket client to prove, end to end, that POST /emit flows through the REAL
+# bus and the resulting events reach a connected WS client. Offline/in-process:
+# the test binds the server to 127.0.0.1:0 and connects a client to that port.
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect"] }

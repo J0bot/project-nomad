@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/xerboxion-plc",
+    "crates/xerboxion-host",
+]
+# The example ploxions live in ./ploxions and form their OWN tiny workspace.
+# They compile to wasm32-unknown-unknown and must NOT pull host deps (wasmtime)
+# into this workspace, so they are excluded here.
+exclude = [
+    "ploxions",
+    "vendor",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+authors = ["xerboxion-rt"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true

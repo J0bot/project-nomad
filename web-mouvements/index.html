@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<!--
+  mouvements · MakeLab — le LEDGER de stock + la porte unique d'écriture des quantités. Une vue du
+  cœur `inventaire` (store du cœur /store/inventaire/*). Choisis un article, applique un delta signé
+  + une raison → crée un MOUVEMENT (append-only, audit) ET met à jour item.quantity. Historique live.
+  Écritures gardées par X-Xer-Token (token fablab). Live-refresh via le bus. Pur client, mobile-first.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>mouvements</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem} .top .sp{flex:1}
+  .ic{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-size:.95rem}
+  .ic.tok.on{border-color:var(--ok);color:var(--ok)}
+  .pick{flex:0 0 auto;padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .pick input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:.86rem;outline:none}
+  .pick input:focus{border-color:var(--acc)}
+  .sug{margin-top:6px;display:none;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:9px}
+  .sug.on{display:block}
+  .sug div{padding:8px 11px;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--line)}
+  .sug div:hover{background:var(--bg)} .sug div b{color:var(--ink)} .sug div span{color:var(--dim);font-size:.7rem;float:right}
+  .sel{flex:0 0 auto;padding:12px;border-bottom:1px solid var(--line);display:none}
+  .sel.on{display:block}
+  .sel .h{display:flex;align-items:baseline;gap:9px} .sel .h b{font-size:1rem} .sel .h .q{margin-left:auto;font-weight:800;font-size:1.3rem;font-variant-numeric:tabular-nums}
+  .sel .h .q small{font-size:.62rem;color:var(--dim)}
+  .quick{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+  .q{flex:1;min-width:52px;padding:11px 0;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:800;font-size:.95rem;cursor:pointer}
+  .q.minus{color:var(--r);border-color:rgba(255,122,138,.3)} .q.plus{color:var(--ok);border-color:rgba(92,224,140,.3)}
+  .q:active{transform:scale(.96)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+  label{display:block;font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin:0 0 3px}
+  input.f,select.f{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:.86rem;outline:none;font-family:inherit;min-height:38px}
+  input.f:focus,select.f:focus{border-color:var(--acc)}
+  .apply{width:100%;margin-top:4px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none;border-radius:10px;padding:12px;font-weight:800;font-size:.9rem;cursor:pointer}
+  .note{font-size:.68rem;color:var(--warn);min-height:1em;margin-top:7px;text-align:center}
+  .led{flex:1;min-height:0;overflow:auto;padding:8px 12px}
+  .led .t{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin:4px 0 7px}
+  .mv{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(120,160,230,.07);font-size:.8rem}
+  .mv .d{font-weight:800;font-variant-numeric:tabular-nums;min-width:48px;text-align:right} .mv .d.pos{color:var(--ok)} .mv .d.neg{color:var(--r)}
+  .mv .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mv .rs{font-size:.6rem;color:var(--dim);padding:1px 7px;border:1px solid var(--line);border-radius:20px;white-space:nowrap}
+  .mv .tm{font-size:.6rem;color:var(--dim);font-family:ui-monospace,monospace}
+  .empty{color:var(--dim);text-align:center;padding:24px;font-size:.82rem}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:6px}.live.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .sheet{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(4,7,11,.6);padding:14px}
+  .sheet.on{display:flex} .scard{width:min(420px,100%);background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:15px}
+</style></head>
+<body>
+  <div class="top"><b>📥 Mouvements<span class="live" id="live"></span></b><span class="sp"></span><button class="ic tok" id="tokBtn" title="token fablab">🔑</button></div>
+  <div class="pick">
+    <input id="q" placeholder="article à ajuster (nom / sku)…" autocomplete="off">
+    <div class="sug" id="sug"></div>
+  </div>
+  <div class="sel" id="sel"></div>
+  <div class="led" id="led"><div class="t">historique</div><div id="ledList"></div></div>
+
+  <div class="sheet" id="sheet"><div class="scard" id="scard"></div></div>
+<script>
+"use strict";
+var BASE='/store/inventaire', TOK='xer.fablab.token';
+var S={ items:[], moves:[], cur:null };
+var REASONS=['add','remove','check_out','check_in','move','audit'];
+function token(){ try{return localStorage.getItem(TOK)||'';}catch(e){return '';} }
+function hasToken(){ return !!token(); }
+function num(v){ v=parseFloat(v); return isFinite(v)?v:0; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function tfmt(t){ if(!t) return ''; try{ var d=new Date(t); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }catch(e){ return ''; } }
+
+async function dbList(coll){ try{ var r=await fetch(BASE+'/'+coll,{cache:'no-store'}); return r.ok?await r.json():[]; }catch(e){ return []; } }
+async function dbWrite(method,url,doc){
+  var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json','X-Xer-Token':token()},body:doc?JSON.stringify(doc):undefined});
+  if(r.status===401){ var e=new Error('auth'); e.auth=true; throw e; }
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json().catch(function(){return null;});
+}
+
+async function refresh(){ S.items=await dbList('items'); S.moves=await dbList('movements'); renderLedger(); if(S.cur){ var u=S.items.filter(function(i){return i.id===S.cur.id;})[0]; if(u){ S.cur=u; renderSel(); } } }
+
+document.getElementById('q').addEventListener('input',function(e){
+  var q=e.target.value.toLowerCase().trim(); var sug=document.getElementById('sug');
+  if(!q){ sug.classList.remove('on'); return; }
+  var m=S.items.filter(function(i){ return (i.name||'').toLowerCase().indexOf(q)>=0 || (i.sku||'').toLowerCase().indexOf(q)>=0; }).slice(0,8);
+  if(!m.length){ sug.classList.remove('on'); return; }
+  sug.innerHTML=m.map(function(i){ return '<div data-id="'+i.id+'"><b>'+esc(i.name)+'</b><span>'+num(i.quantity)+' '+esc(i.unit||'pcs')+'</span></div>'; }).join('');
+  sug.classList.add('on');
+  sug.querySelectorAll('div[data-id]').forEach(function(d){ d.onclick=function(){ pick(d.getAttribute('data-id')); }; });
+});
+function pick(id){ S.cur=S.items.filter(function(i){return i.id===id;})[0]||null; document.getElementById('sug').classList.remove('on'); document.getElementById('q').value=''; renderSel(); }
+
+function renderSel(){
+  var sel=document.getElementById('sel'); if(!S.cur){ sel.classList.remove('on'); return; }
+  var it=S.cur;
+  sel.classList.add('on');
+  sel.innerHTML='<div class="h"><b>'+esc(it.name)+'</b>'+(it.location?'<span class="rs" style="font-size:.6rem;color:var(--dim);padding:1px 7px;border:1px solid var(--line);border-radius:20px">'+esc(it.location)+'</span>':'')+'<span class="q" id="curq">'+num(it.quantity)+' <small>'+esc(it.unit||'pcs')+'</small></span></div>'+
+    '<div class="quick">'+
+    '<button class="q minus" data-d="-10">−10</button><button class="q minus" data-d="-1">−1</button>'+
+    '<button class="q plus" data-d="1">+1</button><button class="q plus" data-d="10">+10</button></div>'+
+    '<div class="two"><div><label>delta</label><input class="f" id="m_delta" type="number" placeholder="ex: -5 ou 20"></div>'+
+    '<div><label>raison</label><select class="f" id="m_reason">'+REASONS.map(function(r){return '<option>'+r+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="two"><div><label>qui</label><input class="f" id="m_who" placeholder="ton nom (optionnel)"></div>'+
+    '<div><label>commentaire</label><input class="f" id="m_comment" placeholder="optionnel"></div></div>'+
+    '<button class="apply" id="m_apply">appliquer le mouvement</button><div class="note" id="m_note"></div>';
+  sel.querySelectorAll('.q[data-d]').forEach(function(b){ b.onclick=function(){ apply(num(b.getAttribute('data-d')),'add'); }; });
+  sel.querySelector('#m_apply').onclick=function(){ var d=num(sel.querySelector('#m_delta').value); if(!d){ sel.querySelector('#m_note').textContent='delta requis (≠0)'; return; } apply(d, sel.querySelector('#m_reason').value); };
+}
+
+async function apply(delta,reason){
+  if(!S.cur) return;
+  if(!hasToken()){ tokenSheet(); return; }
+  var sel=document.getElementById('sel'); var note=sel.querySelector('#m_note');
+  if(note) note.textContent='…';
+  var it=S.cur, who=(sel.querySelector('#m_who')||{}).value||'', comment=(sel.querySelector('#m_comment')||{}).value||'';
+  var newq=num(it.quantity)+delta;
+  try{
+    await dbWrite('POST',BASE+'/movements',{ item_id:it.id, item_name:it.name, delta:delta, reason:reason, user_name:who, comment:comment, at:new Date().toISOString() });
+    await dbWrite('PUT',BASE+'/items/'+encodeURIComponent(it.id), Object.assign({},it,{quantity:newq}));
+    if(note) note.textContent='✓ '+(delta>0?'+':'')+delta+' → '+newq;
+    await refresh();
+  }catch(e){ if(note) note.textContent = e&&e.auth ? 'token refusé (🔑)' : 'échec : '+(e&&e.message||e); }
+}
+
+function renderLedger(){
+  var L=document.getElementById('ledList');
+  var ms=S.moves.slice().sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); }).slice(0,60);
+  if(!ms.length){ L.innerHTML='<div class="empty">Aucun mouvement encore.<br>Choisis un article et applique une entrée/sortie.</div>'; return; }
+  L.innerHTML=ms.map(function(m){ var d=num(m.delta);
+    return '<div class="mv"><span class="d '+(d>=0?'pos':'neg')+'">'+(d>0?'+':'')+d+'</span>'+
+      '<span class="nm">'+esc(m.item_name||m.item_id||'?')+'</span>'+
+      '<span class="rs">'+esc(m.reason||'')+'</span><span class="tm">'+tfmt(m.at)+'</span></div>'; }).join('');
+}
+
+function tokenSheet(){
+  var c=document.getElementById('scard');
+  c.innerHTML='<h3 style="margin:0 0 10px">🔑 Token fablab</h3><div style="font-size:.74rem;color:var(--dim);line-height:1.5;margin-bottom:9px">Nécessaire pour modifier le stock (le « compte que tout le monde connaît »).</div>'+
+    '<input class="f" id="tokIn" placeholder="fablab-…" value="'+esc(token())+'"><div style="display:flex;gap:9px;margin-top:12px"><button class="apply" style="background:var(--bg);color:var(--ink);border:1px solid var(--line)" onclick="document.getElementById(\'sheet\').classList.remove(\'on\')">annuler</button><button class="apply" id="tokSave">enregistrer</button></div>';
+  c.querySelector('#tokSave').onclick=function(){ try{ localStorage.setItem(TOK,c.querySelector('#tokIn').value.trim()); }catch(e){} document.getElementById('sheet').classList.remove('on'); document.getElementById('tokBtn').classList.toggle('on',hasToken()); };
+  document.getElementById('sheet').classList.add('on');
+}
+document.getElementById('tokBtn').onclick=tokenSheet;
+document.getElementById('sheet').onclick=function(e){ if(e.target.id==='sheet') e.currentTarget.classList.remove('on'); };
+document.getElementById('tokBtn').classList.toggle('on',hasToken());
+
+(function bus(){ try{ var es=new EventSource('/events');
+  es.onopen=function(){ document.getElementById('live').classList.add('on'); };
+  es.onerror=function(){ document.getElementById('live').classList.remove('on'); };
+  es.addEventListener('emit',function(e){ try{ var ev=JSON.parse(e.data); if(ev.topic&&ev.topic.indexOf('store.inventaire.')===0) refresh(); }catch(_){} });
+}catch(e){} })();
+refresh();
+</script>
+</body></html>

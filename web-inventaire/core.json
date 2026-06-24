@@ -1,0 +1,24 @@
+{
+  "id": "inventaire",
+  "kind": "core",
+  "title": "Inventaire MakeLab",
+  "doc": "L'inventaire du fablab — TOUT DANS LE CŒUR (José). Les données vivent dans le store du cœur sous /store/inventaire/* ; ce ploxion en est UNE vue (le binder /px/binder et de futurs UI scan/3d en sont d'autres). Lectures publiques ; écritures gardées par X-Xer-Token (token fablab partagé).",
+  "state": {
+    "collections": {
+      "items": { "key": "id", "fields": { "name": "string", "sku": "string", "quantity": "int", "unit": "enum", "location": "string", "min_stock": "int", "notes": "text", "datasheet_url": "string" } },
+      "locations": { "key": "id", "fields": { "code": "string", "label": "string", "color": "string" } },
+      "movements": { "key": "id", "fields": { "item_id": "ref:items", "delta": "int", "reason": "enum", "at": "ts" } }
+    }
+  },
+  "ports": {
+    "in": [
+      { "topic": "store.inventaire.items.changed", "doc": "(émis par le cœur à chaque écriture /store/inventaire/items) — re-fetch" }
+    ],
+    "out": [
+      { "topic": "store.inventaire.items.changed", "payload": { "id": "string" }, "doc": "un article a changé — pour le live-refresh des UI" },
+      { "topic": "store.inventaire.movements.changed", "payload": { "id": "string" }, "doc": "un mouvement de stock a été appliqué" }
+    ]
+  },
+  "store": { "base": "/store/inventaire", "collections": ["items", "locations", "movements"], "write_header": "X-Xer-Token" },
+  "tsoin": { "stream": "store.inventaire" }
+}

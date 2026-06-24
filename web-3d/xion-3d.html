@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>xerboxion-core · xion 3D/4D — station « pourriture 4 »</title>
+<!--
+  xion-3D — the live 3D/4D view of the running xerboxion-core, served by the
+  PERSISTENT daemon (`xerboxion-rt serve`) at GET /3d. This is the REFERENCE
+  3D view of the CORE: fly through your running xion like the guts of a
+  computer / a space station named « pourriture 4 ».
+
+  On load it builds the WHOLE ecosystem in 3D — « comme si c'était un
+  ordinateur » : not just the running processes, but every installed app and
+  deployed service too:
+    1. GET /ecosystem -> the FULL picture (a superset of /snapshot): every
+       ploxion = a node in 3D space.
+         · running   (loaded in this host) -> bright/active, full colour, with
+           the live bus edges + the /ws pulses.
+         · registered (known to the registry ploxi0ns.json but NOT loaded) ->
+           dimmer, wireframe "ghost" — available, not running.
+         · deployed   (a service from runtime.json) -> its own marker/colour.
+       (Falls back to GET /snapshot if /ecosystem is unavailable.)
+    2. open a WebSocket to /ws -> 4D = TIME: every live bus hop animates as a
+       PULSE travelling along the edge from emitter to subscriber, and lights
+       up the target node, in real time. The feed is the REAL bus, never faked.
+       Only the RUNNING set has live edges/pulses (registered/deployed are
+       inert until loaded).
+
+  The /ecosystem read IS the "API connector" (José: « c'est un ploxion ») — the
+  host's native adapter to the ecosystem registry API; its id + source are shown
+  in the HUD.
+
+  Same-origin, self-contained: Three.js is VENDORED and served by the daemon at
+  GET /3d/three.min.js (no CDN). Camera = orbit (drag) + zoom (scroll) + fly
+  (WASD / arrows) so you can « foncer dedans ».
+-->
+<style>
+:root{
+  --bg:#04060a; --ink:#cfe3f2; --dim:#7d93a6; --acc:#4fd6c9; --acc2:#7c9cff;
+  --warn:#ffcf6b; --ok:#5fe39a; --bad:#ff6b7a; --xstar:#ff7eb6;
+  --wasm:#4fd6c9; --native:#7c9cff; --recipe:#ffcf6b;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--mono)}
+#scene{position:fixed;inset:0;display:block}
+.hud{position:fixed;pointer-events:none;font-size:12px;line-height:1.5;text-shadow:0 0 8px rgba(0,0,0,.8)}
+
+/* top-left: station identity + core stats */
+#title{top:14px;left:16px;max-width:46vw}
+#title h1{margin:0;font-size:17px;letter-spacing:.5px}
+#title h1 .glow{color:var(--acc);text-shadow:0 0 18px rgba(79,214,201,.55)}
+#title .station{color:var(--xstar);font-size:12px;letter-spacing:1px}
+#title .sub{color:var(--dim);font-size:11px;margin-top:3px}
+#title .stats{margin-top:6px;color:var(--dim)}
+#title .stats b{color:var(--ok)}
+#title .stats .commit{color:var(--acc2)}
+
+/* live pill */
+#live{top:14px;right:16px;display:inline-flex;gap:7px;align-items:center;font-size:11px;
+  border:1px solid #1e2a36;border-radius:999px;padding:4px 11px;background:rgba(10,16,22,.7);pointer-events:none}
+#live .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+#live.on .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(95,227,154,.18);animation:pulse 1.6s infinite}
+#live.off .dot{background:var(--bad)}
+@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+
+/* bottom-left: legend */
+#legend{bottom:14px;left:16px;background:rgba(8,12,18,.62);border:1px solid #1a2530;border-radius:10px;
+  padding:9px 12px;pointer-events:none}
+#legend .row{display:flex;gap:8px;align-items:center;color:var(--dim);margin:2px 0}
+#legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
+#legend .shape{font-size:13px;width:14px;text-align:center}
+#legend hr{border:none;border-top:1px solid #1a2530;margin:6px 0}
+#legend .hint{color:var(--dim);font-size:10.5px;max-width:240px}
+#legend .hint b{color:var(--ink)}
+
+/* bottom-right: emit box (pointer-events on) */
+#emit{bottom:14px;right:16px;display:flex;gap:6px;align-items:center;pointer-events:auto;
+  background:rgba(8,12,18,.7);border:1px solid #1a2530;border-radius:10px;padding:7px 8px}
+#emit input{font-family:var(--mono);font-size:11px;background:#0e1620;color:var(--ink);
+  border:1px solid #1e2a36;border-radius:7px;padding:5px 8px}
+#emit input.topic{width:120px}
+#emit input.payload{width:130px}
+#emit button{font-family:var(--mono);font-size:11px;cursor:pointer;border:1px solid #1e2a36;
+  background:#16212c;color:var(--ink);padding:5px 11px;border-radius:8px;transition:.12s}
+#emit button:hover{border-color:var(--acc);color:var(--acc)}
+
+/* hovered-node tooltip */
+#tip{position:fixed;pointer-events:none;display:none;background:rgba(8,12,18,.92);
+  border:1px solid #243240;border-radius:8px;padding:7px 10px;font-size:11px;max-width:280px;z-index:10}
+#tip .nid{color:var(--ink);font-weight:600}
+#tip .nk{color:var(--acc)}
+#tip .nl{color:var(--dim)}
+#tip .nl b{color:var(--warn)}
+
+/* top-center: last event ticker */
+#ticker{top:14px;left:50%;transform:translateX(-50%);color:var(--dim);font-size:11px;
+  background:rgba(8,12,18,.5);border:1px solid #16212c;border-radius:999px;padding:3px 12px;max-width:42vw;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+#ticker .tk{color:var(--acc)}
+#ticker .tt{color:var(--acc2)}
+
+#err{position:fixed;top:60px;left:50%;transform:translateX(-50%);color:var(--bad);
+  background:rgba(26,13,16,.92);border:1px solid #5a2c30;border-radius:8px;padding:8px 12px;
+  font-size:12px;display:none;z-index:20}
+#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:13px;letter-spacing:1px;z-index:5}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="boot">initialising station « pourriture 4 »…</div>
+
+<div class="hud" id="title">
+  <h1><span class="glow">⟁ xerboxion-core</span> · xion 3D/4D</h1>
+  <div class="station">▣ station « pourriture 4 »</div>
+  <div class="sub">fly through the running core — the bus is alive</div>
+  <div class="stats">
+    <span id="ecoCount">— running · — registered · — services</span>
+    · <span id="edgeCount">— bus edges</span> · core <span class="commit" id="commit">—</span>
+  </div>
+  <div class="sub" id="connInfo">registry-API connector: —</div>
+</div>
+
+<div class="hud" id="live"><span class="dot"></span><span id="liveText">connecting…</span></div>
+
+<div class="hud" id="ticker"></div>
+
+<div class="hud" id="legend">
+  <div class="row"><span class="sw" style="background:var(--wasm)"></span><span class="shape">◆</span> wasm ploxion <span style="color:#46586a">(prime · octahedron)</span></div>
+  <div class="row"><span class="sw" style="background:var(--native)"></span><span class="shape">■</span> native <span style="color:#46586a">(cubion · cube)</span></div>
+  <div class="row"><span class="sw" style="background:var(--recipe)"></span><span class="shape">●</span> recipe <span style="color:#46586a">(spherion · sphere)</span></div>
+  <hr/>
+  <div class="row"><span class="sw" style="background:var(--ok);box-shadow:0 0 7px var(--ok)"></span> running <span style="color:#46586a">(loaded · bright + live bus)</span></div>
+  <div class="row"><span class="sw" style="background:#3a4756;border:1px solid #5a6b7d"></span> registered <span style="color:#46586a">(known · ghost wireframe)</span></div>
+  <div class="row"><span class="sw" style="background:var(--xstar)"></span><span class="shape">◇</span> service <span style="color:#46586a">(deployed · diamond)</span></div>
+  <hr/>
+  <div class="hint"><b>drag</b> orbit · <b>scroll</b> zoom · <b>WASD/↑↓←→</b> fly · <b>Q/E</b> up/down · <b>R</b> recenter · <b>hover</b> a node</div>
+</div>
+
+<div class="hud" id="emit">
+  <input type="text" class="topic" id="emitTopic" placeholder="topic (e.g. ping)" />
+  <input type="text" class="payload" id="emitPayload" placeholder="payload" />
+  <button id="emitBtn">emit →</button>
+</div>
+
+<div id="tip"></div>
+<div id="err"></div>
+
+<script src="/3d/three.min.js"></script>
+<script>
+"use strict";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const setErr = (m) => { const e = $("err"); if (m) { e.textContent = m; e.style.display = "block"; } else e.style.display = "none"; };
+  if (typeof THREE === "undefined") { setErr("Three.js failed to load (GET /3d/three.min.js)"); $("boot").style.display = "none"; return; }
+
+  // ---- size-to-type taxonomy: shape + colour by ploxion kind --------------
+  // wasm = prime (octahedron), native = cubion (cube), recipe = Spherion
+  // (sphere). Anything else falls back to a tetrahedron so it is still visible.
+  const KIND = {
+    wasm:   { color: 0x4fd6c9, shape: "octa" },
+    native: { color: 0x7c9cff, shape: "cube" },
+    recipe: { color: 0xffcf6b, shape: "sphere" },
+    service:{ color: 0xff7eb6, shape: "diamond" },  // deployed service marker
+  };
+  const KIND_FALLBACK = { color: 0x8aa0b6, shape: "tetra" };
+  const kindOf = (k) => KIND[k] || KIND_FALLBACK;
+
+  // A node's STATE drives running/registered/deployed rendering. The /ecosystem
+  // endpoint sets it; /snapshot nodes (fallback) are all running.
+  const stateOf = (p) => p.state || "running";
+
+  // ---- renderer / scene / camera -----------------------------------------
+  const canvas = $("scene");
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  } catch (e) {
+    setErr("WebGL is unavailable in this browser/session — the 3D view needs WebGL. (" + e.message + ")");
+    $("boot").style.display = "none";
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x04060a, 0.0016);
+
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 6000);
+  // camera state: a target we orbit + a spherical offset (the "fly" rig).
+  const target = new THREE.Vector3(0, 0, 0);
+  const sph = { radius: 360, theta: 0.6, phi: 1.15 }; // azimuth, polar
+  function applyCamera() {
+    const r = sph.radius, st = Math.sin(sph.phi);
+    camera.position.set(
+      target.x + r * st * Math.sin(sph.theta),
+      target.y + r * Math.cos(sph.phi),
+      target.z + r * st * Math.cos(sph.theta)
+    );
+    camera.lookAt(target);
+  }
+
+  // lights
+  scene.add(new THREE.AmbientLight(0x33506a, 1.1));
+  const key = new THREE.PointLight(0x9fdcff, 1.3, 0, 2); key.position.set(200, 300, 200); scene.add(key);
+  const rim = new THREE.PointLight(0xff7eb6, 0.6, 0, 2); rim.position.set(-260, -120, -180); scene.add(rim);
+
+  // ---- starfield (subtle) -------------------------------------------------
+  (function starfield() {
+    const N = 1400, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      // shell of stars well outside the station
+      let x, y, z, d;
+      do { x = (Math.random()*2-1); y = (Math.random()*2-1); z = (Math.random()*2-1); d = x*x+y*y+z*z; } while (d > 1 || d < 0.05);
+      const R = 1600 + Math.random() * 2600;
+      pos[i*3] = x*R; pos[i*3+1] = y*R; pos[i*3+2] = z*R;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const m = new THREE.PointsMaterial({ color: 0x9fb8d0, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.75 });
+    scene.add(new THREE.Points(g, m));
+  })();
+
+  // ---- shared geometries (built once) ------------------------------------
+  const GEO = {
+    octa:    new THREE.OctahedronGeometry(1, 0),
+    cube:    new THREE.BoxGeometry(1.5, 1.5, 1.5),
+    sphere:  new THREE.SphereGeometry(1, 24, 18),
+    tetra:   new THREE.TetrahedronGeometry(1.3, 0),
+    diamond: new THREE.OctahedronGeometry(1.15, 0),  // deployed service (slightly larger octa)
+  };
+
+  // ---- world state --------------------------------------------------------
+  let snap = null;
+  const nodeById = new Map();   // id -> { mesh, glow, base, baseColor, pos, kind, p }
+  let edges = [];               // { from, to, topic, line, a, b, mid }
+  const edgeKey = (f, t, topic) => f + "" + t + "" + topic;
+  const edgeIndex = new Map();  // edgeKey -> edge
+  const pulses = [];            // live travelling pulses (the 4D axis)
+  const nodeRoot = new THREE.Group(); scene.add(nodeRoot);
+  const edgeRoot = new THREE.Group(); scene.add(edgeRoot);
+  const pulseRoot = new THREE.Group(); scene.add(pulseRoot);
+
+  // colour a topic deterministically for edge tint
+  function topicColor(topic) {
+    let h = 0; for (let i = 0; i < topic.length; i++) h = (h * 31 + topic.charCodeAt(i)) >>> 0;
+    const c = new THREE.Color(); c.setHSL((h % 360) / 360, 0.55, 0.6); return c;
+  }
+
+  function disposeWorld() {
+    nodeRoot.clear(); edgeRoot.clear(); pulseRoot.clear();
+    nodeById.clear(); edges = []; edgeIndex.clear(); pulses.length = 0;
+  }
+
+  // Lay the ploxions out on nested shells (Fibonacci sphere): the RUNNING set
+  // forms the bright inner core you orbit; the registered "available" ploxions
+  // and deployed services sit on an outer shell around it — the whole computer,
+  // inner processes + outer installed/deployed ring. Each tier is its own
+  // Fibonacci sphere so it reads cleanly.
+  function shell(items, R, yScale) {
+    const n = items.length;
+    const out = [];
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    items.forEach((_, i) => {
+      const y = 1 - (i / Math.max(1, n - 1)) * 2;     // 1 .. -1
+      const rad = Math.sqrt(Math.max(0, 1 - y * y));
+      const th = golden * i + (R * 0.013);            // phase-offset per shell
+      out.push(new THREE.Vector3(Math.cos(th) * rad * R, y * R * yScale, Math.sin(th) * rad * R));
+    });
+    return out;
+  }
+
+  function buildScene() {
+    disposeWorld();
+    // Order: running first (inner core), then registered + deployed (outer ring).
+    const all = ((snap && snap.ploxions) || []).slice();
+    const running = all.filter((p) => stateOf(p) === "running");
+    const outer = all.filter((p) => stateOf(p) !== "running");
+    const ploxions = running.concat(outer);
+
+    const Rin = layoutRadius(running.length);
+    const Rout = Math.max(Rin * 1.9, layoutRadius(ploxions.length) * 1.7);
+    const posIn = shell(running, Rin, 0.82);
+    const posOut = shell(outer, Rout, 0.9);
+    const positions = posIn.concat(posOut);
+
+    ploxions.forEach((p, i) => {
+      const st = stateOf(p);
+      const running = st === "running";
+      // deployed services use the service taxonomy regardless of kind tag.
+      const kc = (st === "deployed") ? KIND.service : kindOf(p.kind);
+      const degraded = running && (p.health || 0) !== 0;
+      // size-to-type: scale by connectivity (provides+requires+capabilities).
+      // registered/deployed have no live manifest here -> a small fixed size.
+      const weight = (p.provides||[]).length + (p.requires||[]).length + (p.capabilities||[]).length;
+      const s = running ? (9 + Math.min(18, weight * 2.2)) : (st === "deployed" ? 8 : 6.5);
+      const col = new THREE.Color(degraded ? 0xff6b7a : kc.color);
+
+      // RUNNING = bright, solid, lit; REGISTERED = ghosted wireframe (available,
+      // not running); DEPLOYED = solid-but-dim service marker.
+      let mat;
+      if (running) {
+        mat = new THREE.MeshStandardMaterial({
+          color: col, emissive: col.clone().multiplyScalar(0.32),
+          metalness: 0.45, roughness: 0.35, flatShading: kc.shape === "octa" || kc.shape === "tetra",
+        });
+      } else if (st === "registered") {
+        // dim ghost: desaturate toward grey-blue, render as wireframe, low opacity
+        const ghost = col.clone().lerp(new THREE.Color(0x3a4756), 0.6);
+        mat = new THREE.MeshStandardMaterial({
+          color: ghost, emissive: ghost.clone().multiplyScalar(0.12),
+          metalness: 0.2, roughness: 0.7, wireframe: true, transparent: true, opacity: 0.5,
+        });
+      } else { // deployed
+        mat = new THREE.MeshStandardMaterial({
+          color: col, emissive: col.clone().multiplyScalar(0.22),
+          metalness: 0.5, roughness: 0.4, transparent: true, opacity: 0.85,
+        });
+      }
+      const mesh = new THREE.Mesh(GEO[kc.shape], mat);
+      mesh.scale.setScalar(s);
+      mesh.position.copy(positions[i]);
+      mesh.userData.id = p.id;
+      nodeRoot.add(mesh);
+
+      // a soft glow halo — only the RUNNING set gets the live pulse glow; the
+      // ghost/registered nodes stay inert.
+      let glow = null;
+      if (running) {
+        const glowMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false });
+        glow = new THREE.Mesh(GEO[kc.shape], glowMat);
+        glow.scale.setScalar(s * 1.6); glow.position.copy(positions[i]);
+        nodeRoot.add(glow);
+      }
+      nodeById.set(p.id, { mesh, glow, base: s, baseColor: col, pos: positions[i].clone(), kind: p.kind, state: st, p, lit: 0 });
+    });
+
+    // bus edges: from -> each to, coloured by topic
+    (snap.bus || []).forEach((e) => {
+      (e.to || []).forEach((to) => {
+        const a = nodeById.get(e.from), b = nodeById.get(to);
+        if (!a || !b) return;
+        const col = topicColor(e.topic || "");
+        const geo = new THREE.BufferGeometry().setFromPoints([a.pos, b.pos]);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.34 }));
+        edgeRoot.add(line);
+        const edge = { from: e.from, to, topic: e.topic || "", line, a: a.pos, b: b.pos,
+                       mid: a.pos.clone().add(b.pos).multiplyScalar(0.5), col };
+        edges.push(edge);
+        edgeIndex.set(edgeKey(e.from, to, e.topic || ""), edge);
+      });
+    });
+
+    // recenter on the cloud (frame the OUTER shell so the whole computer fits)
+    target.set(0, 0, 0);
+    sph.radius = Math.max(220, Rout * 2.3);
+    applyCamera();
+
+    // HUD counts: prefer the server-computed tallies; else derive from nodes.
+    const c = (snap.counts) || deriveCounts(ploxions);
+    $("ecoCount").innerHTML =
+      '<b style="color:var(--ok)">' + c.running + "</b> running · " +
+      '<span style="color:var(--dim)">' + c.registered + "</span> registered · " +
+      '<span style="color:var(--xstar)">' + c.deployed + "</span> services";
+    $("edgeCount").textContent = edges.length + " bus edge" + (edges.length === 1 ? "" : "s");
+    $("commit").textContent = (snap.core_commit || "—");
+    // The registry-API connector (José: « c'est un ploxion »).
+    if (snap.connector) {
+      const k = snap.connector;
+      $("connInfo").textContent = "registry-API connector « " + k.id + " » · " +
+        (k.registry_present ? k.registered_from_registry + " from registry" : "registry absent (loaded set only)");
+      $("connInfo").title = (k.registry_source || "") + "  +  " + (k.runtime_source || "");
+    } else {
+      $("connInfo").textContent = "/snapshot only (running set) — /ecosystem unavailable";
+    }
+  }
+  function layoutRadius(n) { return Math.max(120, 26 * Math.sqrt(n) + 70); }
+  function deriveCounts(ploxions) {
+    const c = { running: 0, registered: 0, deployed: 0 };
+    ploxions.forEach((p) => { const s = stateOf(p); if (c[s] != null) c[s]++; else c.running++; });
+    return c;
+  }
+
+  // ---- ecosystem fetch ----------------------------------------------------
+  // Prefer /ecosystem (the WHOLE computer: running + registered + deployed),
+  // normalising its `nodes` into the node array the scene builder consumes.
+  // Fall back to /snapshot (running set only) if /ecosystem is unavailable, so
+  // the view still works against an older daemon.
+  async function loadEcosystem() {
+    try {
+      const r = await fetch("/ecosystem", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const eco = await r.json();
+      // Normalise to the {ploxions, bus, core_commit, counts, connector} shape.
+      snap = {
+        ploxions: eco.nodes || [],
+        bus: eco.bus || [],
+        core_commit: eco.core_commit,
+        counts: eco.counts,
+        connector: eco.connector,
+      };
+      setErr("");
+      $("boot").style.display = "none";
+      buildScene();
+      return;
+    } catch (e) {
+      // fall through to /snapshot
+    }
+    try {
+      const r = await fetch("/snapshot", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const s = await r.json();
+      // /snapshot ploxions are all running; no counts/connector.
+      (s.ploxions || []).forEach((p) => { if (!p.state) p.state = "running"; });
+      snap = s;
+      setErr("");
+      $("boot").style.display = "none";
+      buildScene();
+    } catch (e) {
+      setErr("could not load /ecosystem or /snapshot: " + e.message);
+      $("boot").style.display = "none";
+    }
+  }
+
+  // ---- the 4D axis: a live event => a pulse along the edge + node light ----
+  // route hops carry the target in `note` ("=> id"); emit hops light the emitter
+  // and pulse along EVERY edge that leaves it on that topic.
+  function routeTarget(note) { const m = /=>\s*(\S+)/.exec(note || ""); return m ? m[1] : null; }
+
+  function lightNode(id, strength) {
+    const n = nodeById.get(id); if (!n) return;
+    n.lit = Math.max(n.lit, strength || 1);
+  }
+  function spawnPulse(edge, col) {
+    pulses.push({ edge, t: 0, speed: 0.9 + Math.random() * 0.25, col: col || edge.col });
+  }
+
+  function onLiveEvent(ev) {
+    // ticker
+    const tk = '<span class="tk">' + esc(ev.kind) + "</span>";
+    const tt = ev.topic ? ' <span class="tt">[' + esc(ev.topic) + "]</span>" : "";
+    $("ticker").innerHTML = "#" + esc(ev.seq) + " " + esc(ev.from) + " " + tk + tt;
+
+    if (ev.kind === "route") {
+      const to = routeTarget(ev.note);
+      const edge = edgeIndex.get(edgeKey(ev.from, to, ev.topic || ""));
+      lightNode(to, 1);
+      lightNode(ev.from, 0.5);
+      if (edge) spawnPulse(edge);
+      else if (to) { const e = anyEdge(ev.from, to); if (e) spawnPulse(e); }
+    } else if (ev.kind === "emit") {
+      lightNode(ev.from, 0.8);
+      // pulse along every edge leaving this emitter on this topic
+      let any = false;
+      for (const e of edges) if (e.from === ev.from && (!ev.topic || e.topic === ev.topic)) { spawnPulse(e); any = true; }
+      if (!any) for (const e of edges) if (e.from === ev.from) { spawnPulse(e); break; }
+    } else {
+      // log / life / fetch / recipe: just light the actor
+      lightNode(ev.from, 0.7);
+    }
+  }
+  function anyEdge(from, to) { for (const e of edges) if (e.from === from && e.to === to) return e; return null; }
+  const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // a small reusable pulse mesh pool
+  const pulseGeo = new THREE.SphereGeometry(3.2, 10, 8);
+
+  // ---- WebSocket ----------------------------------------------------------
+  let ws = null, reconnectTimer = null;
+  function setLive(state, text) { const p = $("live"); p.className = "hud " + state; $("liveText").textContent = text; }
+  function connectWS() {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    try { ws = new WebSocket(proto + "//" + location.host + "/ws"); }
+    catch (e) { scheduleReconnect(); return; }
+    setLive("off", "connecting…");
+    ws.onopen = () => setLive("on", "live · bus");
+    ws.onclose = () => { setLive("off", "disconnected"); scheduleReconnect(); };
+    ws.onerror = () => setLive("off", "error");
+    ws.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch (_) { return; }
+      if (m.kind === "lagged") return;
+      onLiveEvent(m);
+    };
+  }
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(() => { reconnectTimer = null; loadEcosystem().finally(connectWS); }, 1500);
+  }
+
+  // ---- emit box -----------------------------------------------------------
+  async function doEmit() {
+    const topic = $("emitTopic").value.trim(), payload = $("emitPayload").value;
+    if (!topic) return;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ emit: { topic, payload } }));
+    else { try { await fetch("/emit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, payload }) }); } catch (e) { setErr("emit failed: " + e.message); } }
+    $("emitPayload").value = "";
+  }
+  $("emitBtn").addEventListener("click", doEmit);
+  $("emitPayload").addEventListener("keydown", (e) => { if (e.key === "Enter") doEmit(); });
+  $("emitTopic").addEventListener("keydown", (e) => { if (e.key === "Enter") doEmit(); });
+
+  // ---- camera controls: orbit (drag) + zoom (scroll) + fly (WASD) ---------
+  let dragging = false, lastX = 0, lastY = 0;
+  canvas.addEventListener("pointerdown", (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointerup", (e) => { dragging = false; try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} });
+  canvas.addEventListener("pointermove", (e) => {
+    updateHover(e.clientX, e.clientY);
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+    sph.theta -= dx * 0.005;
+    sph.phi = Math.min(Math.PI - 0.05, Math.max(0.05, sph.phi - dy * 0.005));
+    applyCamera();
+  });
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    sph.radius = Math.min(3000, Math.max(30, sph.radius * (1 + Math.sign(e.deltaY) * 0.08)));
+    applyCamera();
+  }, { passive: false });
+
+  // fly: WASD / arrows move the orbit TARGET along the camera basis, so you
+  // « foncer dedans » — Q/E lift/drop, R recenters.
+  const keys = new Set();
+  const TYPING = () => { const a = document.activeElement; return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"); };
+  window.addEventListener("keydown", (e) => {
+    if (TYPING()) return;
+    const k = e.key.toLowerCase();
+    if (k === "r") { target.set(0, 0, 0); applyCamera(); return; }
+    keys.add(k);
+  });
+  window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+  function flyStep(dt) {
+    if (!keys.size) return;
+    const step = sph.radius * 0.9 * dt; // speed scales with zoom level
+    const fwd = new THREE.Vector3().subVectors(target, camera.position).setY(0).normalize();
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    let moved = false;
+    if (keys.has("w") || keys.has("arrowup"))    { target.addScaledVector(fwd, step); moved = true; }
+    if (keys.has("s") || keys.has("arrowdown"))  { target.addScaledVector(fwd, -step); moved = true; }
+    if (keys.has("a") || keys.has("arrowleft"))  { target.addScaledVector(right, -step); moved = true; }
+    if (keys.has("d") || keys.has("arrowright")) { target.addScaledVector(right, step); moved = true; }
+    if (keys.has("q")) { target.y += step; moved = true; }
+    if (keys.has("e")) { target.y -= step; moved = true; }
+    if (moved) applyCamera();
+  }
+
+  // ---- hover tooltip + raycast --------------------------------------------
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  let hovered = null;
+  function updateHover(cx, cy) {
+    const rect = canvas.getBoundingClientRect();
+    ndc.x = ((cx - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    const meshes = [];
+    nodeById.forEach((n) => meshes.push(n.mesh));
+    const hit = raycaster.intersectObjects(meshes, false)[0];
+    const tip = $("tip");
+    if (hit) {
+      const id = hit.object.userData.id, n = nodeById.get(id);
+      hovered = id;
+      const p = n.p;
+      const st = stateOf(p);
+      const stCol = st === "running" ? "var(--ok)" : (st === "deployed" ? "var(--xstar)" : "var(--dim)");
+      tip.innerHTML = '<div class="nid">' + esc(id) +
+        ' <span class="nk">· ' + esc(p.kind) + (p.version ? " v" + esc(p.version) : "") + '</span>' +
+        ' <span style="color:' + stCol + '">[' + esc(st) + ']</span></div>' +
+        (p.name && p.name !== id ? '<div class="nl">' + esc(p.name) + "</div>" : "") +
+        (st === "running" ? (
+          '<div class="nl">→ ' + esc((p.provides||[]).join(", ") || "·") + "</div>" +
+          '<div class="nl">← ' + esc((p.requires||[]).join(", ") || "·") + "</div>") : "") +
+        (p.category ? '<div class="nl">category: ' + esc(p.category) + "</div>" : "") +
+        (p.url ? '<div class="nl">' + esc(p.url) + "</div>" : "") +
+        ((p.capabilities||[]).length ? '<div class="nl"><b>⚿ ' + esc(p.capabilities.join(",")) + "</b></div>" : "") +
+        (st === "registered" ? '<div class="nl" style="color:var(--dim)">available — not loaded</div>' : "") +
+        ((p.health||0) !== 0 ? '<div class="nl" style="color:var(--bad)">degraded (health ' + esc(p.health) + ")</div>" : "");
+      tip.style.display = "block";
+      tip.style.left = (cx + 14) + "px"; tip.style.top = (cy + 14) + "px";
+    } else { hovered = null; tip.style.display = "none"; }
+  }
+
+  // ---- animation loop -----------------------------------------------------
+  let prev = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    flyStep(dt);
+
+    // slow auto-rotate of the whole node cloud (the station turns)
+    nodeRoot.rotation.y += dt * 0.04;
+    edgeRoot.rotation.y = nodeRoot.rotation.y;
+    pulseRoot.rotation.y = nodeRoot.rotation.y;
+
+    // node spin + decay the "lit" glow. Only RUNNING nodes have a glow halo and
+    // react to live bus pulses; registered/deployed nodes just turn slowly
+    // (inert until loaded) but still spin so the station reads alive.
+    nodeById.forEach((n) => {
+      const spin = (n.state === "running") ? 1 : 0.35; // ghosts turn slower
+      n.mesh.rotation.y += dt * 0.5 * spin;
+      n.mesh.rotation.x += dt * 0.18 * spin;
+      if (!n.glow) return; // non-running: no glow, no pulse reaction
+      if (n.lit > 0) {
+        n.lit = Math.max(0, n.lit - dt * 1.8);
+        const e = n.lit;
+        n.glow.material.opacity = 0.55 * e;
+        n.mesh.material.emissive.copy(n.baseColor).multiplyScalar(0.32 + e * 0.9);
+        const s = n.base * (1 + e * 0.28); n.mesh.scale.setScalar(s);
+      } else if (n.glow.material.opacity !== 0) {
+        n.glow.material.opacity = 0;
+        n.mesh.material.emissive.copy(n.baseColor).multiplyScalar(0.32);
+        n.mesh.scale.setScalar(n.base);
+      }
+      if (hovered === n.p.id) { n.glow.material.opacity = Math.max(n.glow.material.opacity, 0.3); }
+    });
+
+    // advance pulses along their edge; remove when they arrive
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      const pu = pulses[i];
+      if (!pu.mesh) {
+        pu.mesh = new THREE.Mesh(pulseGeo, new THREE.MeshBasicMaterial({ color: pu.col, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+        pulseRoot.add(pu.mesh);
+      }
+      pu.t += dt * pu.speed;
+      if (pu.t >= 1) { pulseRoot.remove(pu.mesh); pu.mesh.material.dispose(); pulses.splice(i, 1); continue; }
+      pu.mesh.position.copy(pu.edge.a).lerp(pu.edge.b, pu.t);
+      pu.mesh.material.opacity = 0.95 * (1 - Math.abs(pu.t - 0.5) * 0.6);
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  // ---- resize -------------------------------------------------------------
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+
+  // ---- boot ---------------------------------------------------------------
+  resize();
+  applyCamera();
+  requestAnimationFrame(tick);
+  loadEcosystem().finally(connectWS);
+})();
+</script>
+</body>
+</html>

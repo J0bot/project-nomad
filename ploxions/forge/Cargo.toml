@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-forge"
+description = "WASM ploxion: la FORGE idee->objet. Prend une idee + des blocs de bions (cubion/code/modele/port) et rend un OBJET complet (tsoin content-adresse) + les INSTRUCTIONS deterministes pour le construire. Sans LLM: tous les blocs existent deja, on assemble. 'De lidee a lobjet le plus vite possible' (Jose)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

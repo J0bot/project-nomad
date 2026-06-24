@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · calculatrice scientifique</title>
+<style>
+  /* Racine sombre cohérente xerboxion (le blade attendait des var --xr-* fournies par
+     l'hôte Laravel ; ici on les pose nous-mêmes, fond #070a0f). */
+  :root{
+    --xr-bg:#070a0f;
+    --xr-text:#dffbe9;
+    --xr-muted:rgba(180,210,200,.55);
+    --xr-accent:#00ff9f;
+    --xr-accent2:#f233b3;
+    --xr-border:rgba(0,255,159,.2);
+    --xr-font:'Share Tech Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:var(--xr-bg);color:var(--xr-text);font-family:var(--xr-font);overflow:hidden;}
+  /* La page EST le ploxion : on remplit tout l'écran. */
+  .pcal{height:100%;display:flex;flex-direction:column;background:var(--xr-bg);color:var(--xr-text);font-family:var(--xr-font);padding:10px;gap:8px;box-sizing:border-box;outline:none;max-width:560px;margin:0 auto;}
+  .pcal__disp{flex:0 0 auto;background:rgba(0,0,0,.35);border:1px solid var(--xr-border);border-radius:10px;padding:10px 12px;text-align:right;min-height:52px;}
+  .pcal__expr{font-size:.82rem;color:var(--xr-muted);min-height:1.1em;word-break:break-all;}
+  .pcal__res{font-size:1.5rem;color:#fff;font-weight:700;word-break:break-all;margin-top:2px;}
+  .pcal__bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--xr-muted);}
+  .pcal__bar .on{cursor:pointer;border:1px solid var(--xr-border);border-radius:6px;padding:2px 8px;color:var(--xr-accent);}
+  .pcal__mem{color:var(--xr-accent2);}
+  .pcal__grid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;min-height:0;}
+  .pcal__k{border:1px solid var(--xr-border);background:rgba(255,255,255,.03);color:var(--xr-text);border-radius:9px;font:inherit;font-size:1rem;cursor:pointer;padding:8px 0;transition:background .1s;}
+  .pcal__k:hover{background:rgba(0,255,159,.12);}
+  .pcal__k.fn{color:var(--xr-accent);font-size:.82rem;}
+  .pcal__k.op{color:var(--xr-accent2);}
+  .pcal__k.mem{color:var(--xr-accent2);font-size:.82rem;}
+  .pcal__k.eq{background:var(--xr-accent);color:#04140f;font-weight:800;grid-column:span 2;}
+  .pcal__hist{flex:0 0 auto;max-height:70px;overflow-y:auto;font-size:.72rem;color:var(--xr-muted);}
+  .pcal__hist div{cursor:pointer;padding:2px 4px;border-radius:5px;}
+  .pcal__hist div:hover{background:rgba(0,255,159,.08);color:#fff;}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  'use strict';
+  // === Moteur SAFE (tokenizer + parseur récursif, zéro eval) ============
+  function tokenize(s){
+    s=s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,' pi ').replace(/√/g,'sqrt');
+    var t=[],re=/\s*([0-9]*\.?[0-9]+(?:[eE][+\-]?[0-9]+)?|[a-z]+|[+\-*/%^!()])/g,m;
+    while((m=re.exec(s))!==null) t.push(m[1]);
+    return t;
+  }
+  function parse(tokens,deg){
+    var p=0, FUNC={sin:1,cos:1,tan:1,asin:1,acos:1,atan:1,sqrt:1,log:1,ln:1,exp:1,abs:1}, CONST={pi:Math.PI,e:Math.E};
+    function peek(){return tokens[p];} function next(){return tokens[p++];}
+    function expr(){var v=term();while(peek()==='+'||peek()==='-'){var o=next(),r=term();v=o==='+'?v+r:v-r;}return v;}
+    function term(){var v=unary();while(peek()==='*'||peek()==='/'||peek()==='%'){var o=next(),r=unary();v=o==='*'?v*r:o==='/'?v/r:v%r;}return v;}
+    function unary(){if(peek()==='-'){next();return -unary();}if(peek()==='+'){next();return unary();}return power();}
+    function power(){var v=postfix();if(peek()==='^'){next();return Math.pow(v,unary());}return v;}
+    function postfix(){var v=primary();while(peek()==='!'){next();v=fact(v);}return v;}
+    function primary(){
+      var t=next();
+      if(t==='('){var v=expr();if(peek()===')')next();return v;}
+      if(FUNC[t]){var a;if(peek()==='('){next();a=expr();if(peek()===')')next();}else{a=unary();}return fn(t,a);}
+      if(CONST[t]!==undefined)return CONST[t];
+      var n=parseFloat(t);if(isNaN(n))throw 'syntaxe';return n;
+    }
+    function fact(n){if(n<0||n%1!==0||n>170)return NaN;var r=1;for(var k=2;k<=n;k++)r*=k;return r;}
+    function fn(f,a){var rad=deg?a*Math.PI/180:a,D=deg?180/Math.PI:1;
+      switch(f){case 'sin':return Math.sin(rad);case 'cos':return Math.cos(rad);case 'tan':return Math.tan(rad);
+        case 'asin':return D*Math.asin(a);case 'acos':return D*Math.acos(a);case 'atan':return D*Math.atan(a);
+        case 'sqrt':return Math.sqrt(a);case 'log':return Math.log(a)/Math.LN10;case 'ln':return Math.log(a);
+        case 'exp':return Math.exp(a);case 'abs':return Math.abs(a);}return NaN;}
+    var v=expr();if(p<tokens.length)throw 'syntaxe';return v;
+  }
+  function evalExpr(s,deg){try{var t=tokenize(s);if(!t.length)return '';var r=parse(t,deg);if(!isFinite(r))return 'Math ERR';return Math.round(r*1e12)/1e12;}catch(e){return 'ERR';}}
+
+  // === Rendu direct dans le body (la page EST le ploxion) ===============
+  function mount(container){
+    var deg=true,expr='',mem=0,hist=[];
+    container.innerHTML='<div class="pcal" tabindex="0"><div class="pcal__disp"><div class="pcal__expr" data-expr></div><div class="pcal__res" data-res>0</div></div>'
+      +'<div class="pcal__bar"><span class="on" data-deg></span><span class="pcal__mem" data-mem></span><span style="flex:1"></span><span class="on" data-ch>↺ hist</span></div>'
+      +'<div class="pcal__grid" data-grid></div><div class="pcal__hist" data-hist></div></div>';
+    var root=container.querySelector('.pcal'),exprEl=root.querySelector('[data-expr]'),resEl=root.querySelector('[data-res]'),memEl=root.querySelector('[data-mem]'),degEl=root.querySelector('[data-deg]'),histEl=root.querySelector('[data-hist]'),grid=root.querySelector('[data-grid]');
+    var keys=[['MC','mem'],['MR','mem'],['M+','mem'],['M-','mem'],['C','fn'],
+      ['sin','fn'],['cos','fn'],['tan','fn'],['√','fn'],['⌫','fn'],
+      ['x²','fn'],['^','op'],['log','fn'],['ln','fn'],['(','fn'],
+      ['7',''],['8',''],['9',''],['÷','op'],[')','fn'],
+      ['4',''],['5',''],['6',''],['×','op'],['%','op'],
+      ['1',''],['2',''],['3',''],['−','op'],['!','fn'],
+      ['0',''],['.',''],['π','fn'],['+','op'],['=','eq']];
+    keys.forEach(function(k){grid.innerHTML+='<button class="pcal__k '+k[1]+'" data-k="'+k[0]+'">'+k[0]+'</button>';});
+    function renderHist(){histEl.innerHTML=hist.slice(-8).reverse().map(function(h){return '<div data-h="'+encodeURIComponent(h.e)+'">'+h.e+' = <b>'+h.r+'</b></div>';}).join('');}
+    function upd(){exprEl.textContent=expr;var r=expr?evalExpr(expr,deg):'';resEl.textContent=(r===''?'0':r);degEl.textContent=deg?'DEG':'RAD';memEl.textContent=mem?('M='+mem):'';}
+    function commit(){var r=evalExpr(expr,deg);if(r!==''&&r!=='ERR'&&r!=='Math ERR'){hist.push({e:expr,r:r});renderHist();expr=''+r;}upd();}
+    function press(k){
+      if(k==='C')expr='';else if(k==='⌫')expr=expr.slice(0,-1);else if(k==='=')return commit();
+      else if(k==='x²')expr+='^2';else if(k==='MC')mem=0;else if(k==='MR')expr+=''+mem;
+      else if(k==='M+'){var a=evalExpr(expr,deg);if(typeof a==='number')mem+=a;}
+      else if(k==='M-'){var b=evalExpr(expr,deg);if(typeof b==='number')mem-=b;}
+      else if(k==='sin'||k==='cos'||k==='tan'||k==='log'||k==='ln')expr+=k+'(';
+      else if(k==='√')expr+='√(';else expr+=k;
+      upd();
+    }
+    root.addEventListener('click',function(e){
+      var b=e.target.closest('[data-k]');if(b){press(b.getAttribute('data-k'));root.focus();return;}
+      if(e.target.closest('[data-deg]')){deg=!deg;upd();return;}
+      if(e.target.closest('[data-ch]')){hist=[];renderHist();return;}
+      var h=e.target.closest('[data-h]');if(h){expr=decodeURIComponent(h.getAttribute('data-h'));upd();}
+    });
+    function onKey(e){var k=e.key;
+      if(/[0-9.+\-*/%^!()]/.test(k)&&k.length===1){press(k==='*'?'×':k==='/'?'÷':k==='-'?'−':k);e.preventDefault();}
+      else if(k==='Enter'||k==='='){press('=');e.preventDefault();}
+      else if(k==='Backspace'){press('⌫');e.preventDefault();}
+      else if(k==='Escape'){press('C');e.preventDefault();}
+    }
+    root.addEventListener('keydown',onKey);
+    var focusT=setTimeout(function(){root.focus();},0);
+    upd();
+    return {unmount:function(){clearTimeout(focusT);root.removeEventListener('keydown',onKey);container.innerHTML='';}};
+  }
+
+  // === Boot : on monte directement dans le body ========================
+  var app=mount(document.body);
+
+  // === DROIT AU SILENCE : nettoyage à la sortie (pas de timer/media qui
+  //     traîne ; on coupe quand même proprement). ======================
+  function silence(){ if(app&&app.unmount){ app.unmount(); app=null; } }
+  window.addEventListener('pagehide',silence);
+  window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

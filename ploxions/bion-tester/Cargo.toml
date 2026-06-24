@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-bion-tester"
+description = "WASM ploxion: unit-teste chaque bion du SDK et grave son EMPREINTE comportementale (tsoin reproductible). Deux bions de meme empreinte = equivalents."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

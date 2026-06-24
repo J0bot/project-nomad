@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-mc-adapter"
+description = "WASM ploxion: le pont Minecraft -> tsoins. Ecoute minecraft.command sur le bus, grave chaque commande en tsoin (record/replay), re-emet mc.event normalise."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

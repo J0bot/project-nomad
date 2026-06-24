@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · convertisseur d'unités</title>
+<style>
+  /* Racine sombre cohérente xerboxion. Le blade attendait des var --xr-* fournies
+     par l'hôte Laravel ; ici la page EST le ploxion, on les pose nous-mêmes. */
+  :root{
+    --xr-bg:#070a0f;
+    --xr-text:#e7f0ff;
+    --xr-muted:#8aa0c0;
+    --xr-accent:#3fe0d0;
+    --xr-surface:#0c1320;
+    --xr-border:#22324f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:var(--xr-bg);color:var(--xr-text);font-family:ui-monospace,'Share Tech Mono',monospace;overflow:hidden;}
+
+  /* La page remplit tout l'écran ; .pconv = la racine du ploxion. */
+  .pconv{display:flex;flex-direction:column;height:100%;max-width:760px;margin:0 auto;background:var(--xr-bg);color:var(--xr-text);font-family:ui-monospace,'Share Tech Mono',monospace;box-sizing:border-box;}
+  .pconv *{box-sizing:border-box;}
+  .pconv__header{flex:0 0 auto;padding:16px 18px 12px;border-bottom:1px solid var(--xr-border);}
+  .pconv__title{font-size:1rem;font-weight:700;letter-spacing:.08em;color:var(--xr-accent);margin:0 0 12px;}
+  .pconv__cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .pconv__cat{background:transparent;color:var(--xr-muted);border:1px solid var(--xr-border);border-radius:5px;padding:5px 9px;font-family:inherit;font-size:.78rem;cursor:pointer;outline:none;transition:.15s;white-space:nowrap;}
+  .pconv__cat:hover{color:var(--xr-text);border-color:var(--xr-accent);}
+  .pconv__cat.active{background:var(--xr-accent);color:var(--xr-bg);border-color:var(--xr-accent);}
+  .pconv__row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .pconv__field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:150px;}
+  .pconv__lbl{font-size:.68rem;color:var(--xr-muted);letter-spacing:.06em;text-transform:uppercase;}
+  .pconv__val{background:var(--xr-surface);color:var(--xr-text);border:1px solid var(--xr-border);border-radius:5px;padding:8px 10px;font-family:inherit;font-size:1.05rem;width:100%;outline:none;}
+  .pconv__val:focus{border-color:var(--xr-accent);}
+  .pconv__val--out{color:var(--xr-accent);font-weight:700;}
+  .pconv__sel{background:var(--xr-surface);color:var(--xr-text);border:1px solid var(--xr-border);border-radius:5px;padding:8px 10px;font-family:inherit;font-size:.85rem;cursor:pointer;outline:none;width:100%;}
+  .pconv__sel:focus{border-color:var(--xr-accent);}
+  .pconv__swap{flex:0 0 auto;align-self:center;background:var(--xr-surface);color:var(--xr-accent);border:1px solid var(--xr-border);border-radius:50%;width:38px;height:38px;font-size:1.1rem;cursor:pointer;outline:none;transition:.15s;margin-bottom:1px;}
+  .pconv__swap:hover{background:var(--xr-accent);color:var(--xr-bg);transform:rotate(180deg);}
+  .pconv__eq{font-size:.82rem;color:var(--xr-muted);margin-top:10px;word-break:break-word;}
+  .pconv__eq b{color:var(--xr-text);}
+  .pconv__body{flex:1;overflow-y:auto;padding:14px 18px 18px;}
+  .pconv__bodytitle{font-size:.7rem;color:var(--xr-muted);letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;}
+  .pconv__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;}
+  .pconv__card{background:var(--xr-surface);border:1px solid var(--xr-border);border-radius:6px;padding:10px 13px;display:flex;flex-direction:column;gap:3px;transition:border-color .15s;cursor:pointer;}
+  .pconv__card.from{border-color:var(--xr-muted);}
+  .pconv__card.to{border-color:var(--xr-accent);box-shadow:0 0 0 1px var(--xr-accent) inset;}
+  .pconv__card-label{font-size:.72rem;color:var(--xr-muted);letter-spacing:.04em;text-transform:uppercase;}
+  .pconv__card-val{font-size:1.05rem;color:var(--xr-text);word-break:break-all;}
+  .pconv__card-sym{font-size:.78rem;color:var(--xr-accent);}
+  .pconv__empty{color:var(--xr-muted);font-size:.9rem;padding:20px 0;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(){
+'use strict';
+
+/* ── UNITÉS & CONVERSIONS ──
+   Chaque catégorie : units[] avec { id, label, sym, toBase, fromBase }.
+   toBase(v) → valeur en unité de base ; fromBase(v) → depuis la base.
+   Linéaire = facteur ; température = formules réelles. */
+
+function lin(f){ return {toBase:function(v){return v*f;},fromBase:function(v){return v/f;}}; }
+function U(id,label,sym,f){ var c=lin(f); return {id:id,label:label,sym:sym,toBase:c.toBase,fromBase:c.fromBase}; }
+
+var CATS={
+  longueur:{label:'Longueur',icon:'📏',units:[
+    U('pm','Picomètre','pm',1e-12),U('nm','Nanomètre','nm',1e-9),U('um','Micromètre','µm',1e-6),
+    U('mm','Millimètre','mm',0.001),U('cm','Centimètre','cm',0.01),U('dm','Décimètre','dm',0.1),
+    U('m','Mètre','m',1),U('km','Kilomètre','km',1000),
+    U('in','Pouce','in',0.0254),U('ft','Pied','ft',0.3048),U('yd','Yard','yd',0.9144),
+    U('mi','Mile','mi',1609.344),U('nmi','Mille marin','nmi',1852),
+    U('au','Unité astro.','UA',1.495978707e11),U('ly','Année-lumière','al',9.4607304725808e15),U('pc','Parsec','pc',3.0856775814914e16)
+  ]},
+  masse:{label:'Masse',icon:'⚖️',units:[
+    U('ug','Microgramme','µg',1e-9),U('mg','Milligramme','mg',1e-6),U('g','Gramme','g',0.001),
+    U('kg','Kilogramme','kg',1),U('t','Tonne','t',1000),
+    U('ct','Carat','ct',0.0002),U('oz','Once','oz',0.028349523125),U('lb','Livre','lb',0.45359237),
+    U('st','Stone','st',6.35029318),U('ton_us','Tonne courte (US)','ton',907.18474),U('ton_uk','Tonne longue (UK)','ton UK',1016.0469088)
+  ]},
+  temperature:{label:'Température',icon:'🌡️',units:[
+    {id:'C',label:'Celsius',sym:'°C',toBase:function(v){return v;},fromBase:function(v){return v;}},
+    {id:'F',label:'Fahrenheit',sym:'°F',toBase:function(v){return (v-32)*5/9;},fromBase:function(v){return v*9/5+32;}},
+    {id:'K',label:'Kelvin',sym:'K',toBase:function(v){return v-273.15;},fromBase:function(v){return v+273.15;}},
+    {id:'R',label:'Rankine',sym:'°R',toBase:function(v){return (v-491.67)*5/9;},fromBase:function(v){return v*9/5+491.67;}},
+    {id:'De',label:'Delisle',sym:'°De',toBase:function(v){return 100-v*2/3;},fromBase:function(v){return (100-v)*3/2;}}
+  ]},
+  volume:{label:'Volume',icon:'🧪',units:[
+    U('ml','Millilitre','mL',0.001),U('cl','Centilitre','cL',0.01),U('dl','Décilitre','dL',0.1),U('l','Litre','L',1),
+    U('cm3','Centimètre cube','cm³',0.001),U('m3','Mètre cube','m³',1000),
+    U('tsp','Cuillère à café (US)','tsp',0.00492892159375),U('tbsp','Cuillère à soupe (US)','tbsp',0.01478676478125),
+    U('fl_oz','Once liquide (US)','fl oz',0.0295735295625),U('cup','Tasse (US)','cup',0.2365882365),
+    U('pt','Pinte (US)','pt',0.473176473),U('qt','Quart (US)','qt',0.946352946),
+    U('gal','Gallon (US)','gal',3.785411784),U('gal_uk','Gallon (UK)','gal UK',4.54609)
+  ]},
+  vitesse:{label:'Vitesse',icon:'💨',units:[
+    U('ms','Mètre/seconde','m/s',1),U('kmh','Km/heure','km/h',1/3.6),U('mph','Mile/heure','mph',0.44704),
+    U('fts','Pied/seconde','ft/s',0.3048),U('kn','Nœud','kn',0.514444),
+    U('mach','Mach (air std)','Ma',340.29),U('c','Vitesse lumière','c',299792458)
+  ]},
+  surface:{label:'Surface',icon:'🗺️',units:[
+    U('mm2','Millimètre²','mm²',1e-6),U('cm2','Centimètre²','cm²',0.0001),U('m2','Mètre²','m²',1),
+    U('a','Are','a',100),U('ha','Hectare','ha',10000),U('km2','Kilomètre²','km²',1e6),
+    U('in2','Pouce²','in²',0.00064516),U('ft2','Pied²','ft²',0.09290304),U('yd2','Yard²','yd²',0.83612736),
+    U('ac','Acre','ac',4046.8564224),U('mi2','Mile²','mi²',2589988.110336)
+  ]},
+  donnees:{label:'Données num.',icon:'💾',units:[
+    U('b','Bit','b',1),U('B','Octet','B',8),
+    U('Kb','Kilobit','Kb',1000),U('KB','Kilooctet','KB',8000),U('KiB','Kibioctet','KiB',8192),
+    U('Mb','Mégabit','Mb',1e6),U('MB','Mégaoctet','MB',8e6),U('MiB','Mébioctet','MiB',8388608),
+    U('Gb','Gigabit','Gb',1e9),U('GB','Gigaoctet','GB',8e9),U('GiB','Gibioctet','GiB',8589934592),
+    U('TB','Téraoctet','TB',8e12),U('TiB','Tébioctet','TiB',8796093022208),U('PB','Pétaoctet','PB',8e15)
+  ]},
+  temps:{label:'Temps',icon:'⏱️',units:[
+    U('ns','Nanoseconde','ns',1e-9),U('us','Microseconde','µs',1e-6),U('ms','Milliseconde','ms',0.001),
+    U('s','Seconde','s',1),U('min','Minute','min',60),U('h','Heure','h',3600),
+    U('d','Jour','j',86400),U('wk','Semaine','sem',604800),U('mo','Mois (30j)','mois',2592000),
+    U('yr','Année (365j)','an',31536000),U('dec','Décennie','déc',315360000),U('cent','Siècle','s.',3153600000)
+  ]},
+  energie:{label:'Énergie',icon:'🔋',units:[
+    U('J','Joule','J',1),U('kJ','Kilojoule','kJ',1000),U('MJ','Mégajoule','MJ',1e6),
+    U('cal','Calorie','cal',4.184),U('kcal','Kilocalorie','kcal',4184),
+    U('Wh','Watt-heure','Wh',3600),U('kWh','Kilowatt-heure','kWh',3.6e6),
+    U('eV','Électronvolt','eV',1.602176634e-19),U('BTU','BTU','BTU',1055.05585262),U('ftlb','Pied-livre','ft·lb',1.3558179483314)
+  ]},
+  pression:{label:'Pression',icon:'🎈',units:[
+    U('Pa','Pascal','Pa',1),U('hPa','Hectopascal','hPa',100),U('kPa','Kilopascal','kPa',1000),
+    U('bar','Bar','bar',1e5),U('mbar','Millibar','mbar',100),U('atm','Atmosphère','atm',101325),
+    U('mmHg','Millimètre Hg','mmHg',133.322387415),U('inHg','Pouce Hg','inHg',3386.389),
+    U('psi','PSI','psi',6894.757293168),U('Torr','Torr','Torr',101325/760)
+  ]},
+  angle:{label:'Angle',icon:'📐',units:[
+    U('deg','Degré','°',Math.PI/180),U('rad','Radian','rad',1),U('grad','Grade','gon',Math.PI/200),
+    U('arcmin','Minute d\'arc','′',Math.PI/10800),U('arcsec','Seconde d\'arc','″',Math.PI/648000),
+    U('turn','Tour','tr',2*Math.PI),U('mrad','Milliradian','mrad',0.001)
+  ]},
+  puissance:{label:'Puissance',icon:'⚡',units:[
+    U('W','Watt','W',1),U('kW','Kilowatt','kW',1000),U('MW','Mégawatt','MW',1e6),
+    U('hp','Cheval (méc.)','hp',745.69987158227),U('cv','Cheval (métr.)','ch',735.49875),
+    U('mW','Milliwatt','mW',0.001),U('BTUh','BTU/heure','BTU/h',0.29307107017),U('ftlbs','Pied-livre/s','ft·lb/s',1.3558179483314)
+  ]},
+  force:{label:'Force',icon:'🪨',units:[
+    U('N','Newton','N',1),U('kN','Kilonewton','kN',1000),U('dyn','Dyne','dyn',1e-5),
+    U('kgf','Kilogramme-force','kgf',9.80665),U('gf','Gramme-force','gf',0.00980665),
+    U('lbf','Livre-force','lbf',4.4482216152605),U('ozf','Once-force','ozf',0.27801385095378)
+  ]},
+  frequence:{label:'Fréquence',icon:'📶',units:[
+    U('Hz','Hertz','Hz',1),U('kHz','Kilohertz','kHz',1000),U('MHz','Mégahertz','MHz',1e6),
+    U('GHz','Gigahertz','GHz',1e9),U('THz','Térahertz','THz',1e12),
+    U('rpm','Tours/minute','rpm',1/60),U('rad_s','Radian/seconde','rad/s',1/(2*Math.PI))
+  ]}
+};
+
+/* ── FORMATAGE ── */
+function fmt(v){
+  if(v===null||v===undefined||!isFinite(v)) return '—';
+  var abs=Math.abs(v);
+  if(abs===0) return '0';
+  if(abs>=1e15||abs<1e-9) return v.toExponential(4);
+  return parseFloat(v.toPrecision(8)).toLocaleString('fr-FR',{maximumFractionDigits:8});
+}
+
+/* ── CONVERSION ── le ploxion CALCULE sur le BION f64 'affine' (migration core,
+   playbook MIGRATION-CORE). Toute conversion ici est affine (v*a+b) : on dérive
+   ses coefficients (b=g(0), a=g(1)-g(0)) et on l'exécute sur le WASM. Garde-fou
+   ne-pas-nuire : si une fonction n'est pas affine (3e point), fallback JS direct.
+   Le fetch /bions-f64.json est SAME-ORIGIN (le core sert cette page) et 100%
+   optionnel : sans le bion, tout marche en JS pur. */
+var _affineWasm=null;   // exports.affine du bion une fois chargé (sinon fallback JS)
+var _bionAbort=(typeof AbortController!=='undefined')?new AbortController():null;
+function loadAffineBion(){
+  var opts={headers:{Accept:'application/json'}};
+  if(_bionAbort) opts.signal=_bionAbort.signal;
+  fetch('/bions-f64.json',opts).then(function(r){return r.json();}).then(function(d){
+    var b=(d.bions||[]).filter(function(x){return x.name==='affine';})[0]; if(!b) return;
+    var bin=atob(b.b64), a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+    WebAssembly.instantiate(a).then(function(res){ _affineWasm=res.instance.exports.affine; },function(){});
+  }).catch(function(){});
+}
+function affineRun(v,a,b){ return _affineWasm ? _affineWasm(v,a,b) : (v*a+b); }
+function applyAffine(g,v){            // exécute la fonction affine g via le bion
+  var b=g(0), a=g(1)-b;
+  if(Math.abs(g(2)-(2*a+b))>1e-9) return g(v);   // pas affine → fonction d'origine
+  return affineRun(v,a,b);
+}
+function findUnit(cat,id){
+  for(var i=0;i<cat.units.length;i++){ if(cat.units[i].id===id) return cat.units[i]; }
+  return null;
+}
+function convert(cat,fromId,toId,raw){
+  if(isNaN(raw)) return null;
+  var f=findUnit(cat,fromId), t=findUnit(cat,toId);
+  if(!f||!t) return null;
+  return applyAffine(t.fromBase, applyAffine(f.toBase, raw));   // base = bion(raw), out = bion(base)
+}
+
+/* ── MOUNT ── la page EST le ploxion : on rend dans #root. */
+function mount(container){
+  loadAffineBion();   // charge le bion f64 'affine' → le ploxion calcule dessus
+  var catKeys=Object.keys(CATS);
+  var curCat=catKeys[0];
+  var curFrom=CATS[curCat].units[0].id;
+  var curTo=CATS[curCat].units[1].id;
+
+  function getCat(){ return CATS[curCat]; }
+
+  function catButtons(){
+    return catKeys.map(function(k){
+      var c=CATS[k];
+      return '<button type="button" class="pconv__cat'+(k===curCat?' active':'')+'" data-cat="'+k+'">'+c.icon+' '+c.label+'</button>';
+    }).join('');
+  }
+  function unitOptions(selId){
+    return getCat().units.map(function(u){
+      return '<option value="'+u.id+'"'+(u.id===selId?' selected':'')+'>'+u.sym+' – '+u.label+'</option>';
+    }).join('');
+  }
+
+  container.innerHTML=
+    '<div class="pconv">'+
+      '<div class="pconv__header">'+
+        '<div class="pconv__title">📐 Convertisseur d\'unités</div>'+
+        '<div class="pconv__cats" id="pconv-cats">'+catButtons()+'</div>'+
+        '<div class="pconv__row">'+
+          '<div class="pconv__field">'+
+            '<label class="pconv__lbl">De</label>'+
+            '<input class="pconv__val" id="pconv-in" type="number" value="1" step="any" placeholder="Valeur…">'+
+            '<select class="pconv__sel" id="pconv-from"></select>'+
+          '</div>'+
+          '<button type="button" class="pconv__swap" id="pconv-swap" title="Inverser">⇄</button>'+
+          '<div class="pconv__field">'+
+            '<label class="pconv__lbl">Vers</label>'+
+            '<input class="pconv__val pconv__val--out" id="pconv-out" type="text" readonly>'+
+            '<select class="pconv__sel" id="pconv-to"></select>'+
+          '</div>'+
+        '</div>'+
+        '<div class="pconv__eq" id="pconv-eq"></div>'+
+      '</div>'+
+      '<div class="pconv__body">'+
+        '<p class="pconv__bodytitle">Toutes les unités</p>'+
+        '<div class="pconv__grid" id="pconv-grid"></div>'+
+      '</div>'+
+    '</div>';
+
+  var catsBox=container.querySelector('#pconv-cats');
+  var inInp=container.querySelector('#pconv-in');
+  var outInp=container.querySelector('#pconv-out');
+  var fromSel=container.querySelector('#pconv-from');
+  var toSel=container.querySelector('#pconv-to');
+  var swapBtn=container.querySelector('#pconv-swap');
+  var eqBox=container.querySelector('#pconv-eq');
+  var grid=container.querySelector('#pconv-grid');
+
+  function fillSelects(){
+    fromSel.innerHTML=unitOptions(curFrom);
+    toSel.innerHTML=unitOptions(curTo);
+  }
+
+  function render(){
+    var raw=parseFloat(inInp.value);
+    var cat=getCat();
+    var fromU=findUnit(cat,curFrom);
+    var res=convert(cat,curFrom,curTo,raw);
+    outInp.value=fmt(res);
+
+    /* équation lisible */
+    if(fromU && res!==null){
+      var toU=findUnit(cat,curTo);
+      eqBox.innerHTML='<b>'+fmt(raw)+'</b> '+fromU.sym+' = <b>'+fmt(res)+'</b> '+toU.sym;
+    } else {
+      eqBox.textContent='Entrez une valeur numérique.';
+    }
+
+    /* tableau complet */
+    var baseVal=(fromU && !isNaN(raw))?fromU.toBase(raw):null;
+    var html='';
+    for(var j=0;j<cat.units.length;j++){
+      var u=cat.units[j];
+      var cls='pconv__card'+(u.id===curFrom?' from':'')+(u.id===curTo?' to':'');
+      var out=(baseVal===null?'—':fmt(u.fromBase(baseVal)));
+      html+='<div class="'+cls+'" data-uid="'+u.id+'">'+
+        '<div class="pconv__card-label">'+u.label+'</div>'+
+        '<div class="pconv__card-val">'+out+'</div>'+
+        '<div class="pconv__card-sym">'+u.sym+'</div>'+
+      '</div>';
+    }
+    grid.innerHTML=html||'<div class="pconv__empty">Aucune unité.</div>';
+  }
+
+  function setCat(k){
+    if(!CATS[k]) return;
+    curCat=k;
+    var us=getCat().units;
+    curFrom=us[0].id;
+    curTo=(us[1]?us[1].id:us[0].id);
+    var btns=catsBox.querySelectorAll('.pconv__cat');
+    for(var i=0;i<btns.length;i++){
+      btns[i].classList.toggle('active',btns[i].getAttribute('data-cat')===k);
+    }
+    fillSelects();
+    render();
+  }
+
+  function onCatsClick(e){
+    var b=e.target.closest('.pconv__cat');
+    if(b) setCat(b.getAttribute('data-cat'));
+  }
+  function onGridClick(e){
+    var c=e.target.closest('.pconv__card');
+    if(!c) return;
+    curTo=c.getAttribute('data-uid');
+    toSel.value=curTo;
+    render();
+  }
+  function onFrom(){ curFrom=fromSel.value; render(); }
+  function onTo(){ curTo=toSel.value; render(); }
+  function onIn(){ render(); }
+  function onSwap(){
+    var tmp=curFrom; curFrom=curTo; curTo=tmp;
+    fromSel.value=curFrom; toSel.value=curTo;
+    /* la valeur saisie devient le résultat courant pour un swap intuitif */
+    var cat=getCat();
+    var res=convert(cat,curTo,curFrom,parseFloat(inInp.value));
+    if(res!==null && isFinite(res)) inInp.value=res;
+    render();
+  }
+
+  catsBox.addEventListener('click',onCatsClick);
+  grid.addEventListener('click',onGridClick);
+  fromSel.addEventListener('change',onFrom);
+  toSel.addEventListener('change',onTo);
+  inInp.addEventListener('input',onIn);
+  swapBtn.addEventListener('click',onSwap);
+
+  fillSelects();
+  render();
+
+  return {
+    unmount:function(){
+      catsBox.removeEventListener('click',onCatsClick);
+      grid.removeEventListener('click',onGridClick);
+      fromSel.removeEventListener('change',onFrom);
+      toSel.removeEventListener('change',onTo);
+      inInp.removeEventListener('input',onIn);
+      swapBtn.removeEventListener('click',onSwap);
+      container.innerHTML='';
+    }
+  };
+}
+
+/* ── BOOT + DROIT AU SILENCE ──
+   Pas de timer/media/EventSource ici : la seule ressource vivante est le fetch
+   optionnel du bion. On l'avorte et on démonte proprement à la fermeture. */
+var app=mount(document.getElementById('root'));
+
+function silence(){
+  if(_bionAbort){ try{_bionAbort.abort();}catch(e){} }
+  if(app && app.unmount){ try{app.unmount();}catch(e){} app=null; }
+}
+window.addEventListener('pagehide',silence);
+window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

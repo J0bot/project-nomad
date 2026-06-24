@@ -1,0 +1,39 @@
+[Unit]
+Description=xi0n-hub — instance xion de Jose (xi0n.j0bot.ch, hub des bions, lien-capability prive)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian
+# PHASE LOCALE (defaut) : bind prive 127.0.0.1. PHASE EXPOSEE : XI0N_ADDR=10.0.0.1
+# (atteignable par Traefik via host.docker.internal), PUIS poser xi0n.yaml.
+Environment=XI0N_ADDR=127.0.0.1
+Environment=XI0N_PORT=8733
+Environment=XI0N_PLOXIONS=/opt/xi0n/ploxions
+Environment=XI0N_TALK=/var/lib/xi0n/talk.jsonl
+Environment=XI0N_TOKEN=__TOKEN_SET_AT_DEPLOY__
+ExecStart=/usr/bin/python3 /opt/xi0n/xi0n-hub.py
+KillSignal=SIGINT
+TimeoutStopSec=5
+# garde-fou RAM (Minecraft tourne)
+MemoryMax=64M
+Restart=always
+RestartSec=3
+StateDirectory=xi0n
+StateDirectoryMode=0700
+# --- durcissement (aucun docker/sudo ici -> tout est compatible) ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/opt/xi0n
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

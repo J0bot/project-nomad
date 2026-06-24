@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05060c">
+<title>SkyView — ploxion xerboxion</title>
+<style>
+  :root{ --ink:#cfe0ff; --dim:#5b6b8c; --acc:#7fd0ff; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:#05060c; color:var(--ink);
+    font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    overscroll-behavior:none; touch-action:none; }
+  #wrap{ position:fixed; inset:0; overflow:hidden; }
+  canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #lbl{ pointer-events:none; }
+  .hud{ position:absolute; z-index:5; pointer-events:none; }
+  #top{ top:max(10px,env(safe-area-inset-top)); left:14px; right:14px;
+    display:flex; justify-content:space-between; align-items:flex-start; }
+  #title{ font-weight:700; letter-spacing:.5px; }
+  #title small{ display:block; color:var(--dim); font-weight:400; letter-spacing:0; }
+  #clock{ text-align:right; color:var(--acc); font-variant-numeric:tabular-nums; }
+  #clock small{ display:block; color:var(--dim); }
+  #bottom{ left:0; right:0; bottom:0; padding:14px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; gap:9px; justify-content:center; flex-wrap:wrap; pointer-events:none; }
+  button{ pointer-events:auto; appearance:none; border:1px solid #21304e;
+    background:rgba(12,18,34,.72); color:var(--ink); padding:11px 15px; border-radius:13px;
+    font:600 13px/1 inherit; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+  button:active{ background:rgba(30,46,82,.9); }
+  button.on{ border-color:var(--acc); color:#eaf6ff; box-shadow:0 0 0 1px rgba(127,208,255,.4) inset; }
+  #msg{ position:absolute; left:50%; bottom:84px; transform:translateX(-50%); z-index:6;
+    background:rgba(8,12,24,.85); border:1px solid #21304e; padding:8px 13px; border-radius:11px;
+    color:var(--ink); opacity:0; transition:opacity .35s; max-width:86%; text-align:center; }
+  #msg.show{ opacity:1; }
+  #fov{ position:absolute; left:14px; bottom:84px; z-index:5; color:var(--dim); pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="gl"></canvas>
+  <canvas id="lbl"></canvas>
+  <div class="hud" id="top">
+    <div id="title">SkyView<small>ploxion · webgl + full wasm</small></div>
+    <div id="clock"><span id="t">—</span><small id="loc">localise…</small></div>
+  </div>
+  <div id="fov" class="hud">fov —°</div>
+  <div id="msg"></div>
+  <div class="hud" id="bottom">
+    <button id="bSky">🧭 Pointer le ciel</button>
+    <button id="bLbl" class="on">Aa noms</button>
+    <button id="bLines" class="on">△ figures</button>
+    <button id="bNow" class="on">⏱ live</button>
+  </div>
+</div>
+<script>
+const WASM_B64 = "__WASM_B64__";
+
+// --- catalogue cote JS : noms + magnitude (MEME ordre que CAT dans le wasm) ---
+const NAMES = ["Sirius","Canopus","Arcturus","Vega","Capella","Rigel","Procyon","Betelgeuse",
+"Achernar","Hadar","Altair","Aldebaran","Antares","Spica","Pollux","Fomalhaut","Deneb","Mimosa",
+"Regulus","Adhara","Castor","Gacrux","Bellatrix","Elnath","Alnilam","Alnitak","Alioth","Mintaka",
+"Dubhe","Merak","Phecda","Megrez","Alkaid","Mizar","Polaris","Schedar","Caph","Gamma Cas","Ruchbah",
+"Segin","Acrux","Imai","Saiph","Menkalinan","Alphard","Hamal","Diphda","Nunki","Mirfak","Algol"];
+const MAG = [-1.46,-0.74,-0.05,0.03,0.08,0.13,0.34,0.50,0.46,0.61,0.77,0.85,1.09,0.98,1.14,1.16,1.25,
+1.25,1.35,1.50,1.58,1.63,1.64,1.65,1.69,1.74,1.76,2.23,1.79,2.37,2.44,3.31,1.85,2.23,1.98,2.24,2.28,
+2.47,2.66,3.38,0.77,2.79,2.06,1.90,1.98,2.00,2.04,2.05,1.79,2.12];
+// segments de constellations (paires d'index dans le catalogue)
+const SEG = [
+  [7,22],[7,25],[22,27],[27,24],[24,25],[5,27],[42,25],[5,42],          // Orion
+  [28,29],[29,30],[30,31],[31,26],[26,33],[33,32],[31,28],              // Grande Ourse (chariot)
+  [36,35],[35,37],[37,38],[38,39],                                     // Cassiopee (W)
+  [40,21],[17,41],                                                     // Croix du Sud
+  [48,49],                                                             // Persee (Mirfak-Algol)
+];
+
+const D2R=Math.PI/180, R2D=180/Math.PI;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+// --- etat de visee ---
+let lat=46.52, lon=6.63;            // defaut : Lausanne (CH) — labo j0bot
+let az0=180, alt0=42, roll=0, fov=66;
+let live=true, showLbl=true, showLines=true, skyMode=false, azOffset=0;
+
+let gl, lbl, lx, W=0, H=0, DPR=1, N=0, wasm=null;
+let progStar, progLine, vboS, vboL;
+
+function msg(t){ const m=$('msg'); m.textContent=t; m.classList.add('show');
+  clearTimeout(msg._t); msg._t=setTimeout(()=>m.classList.remove('show'),2600); }
+
+// ---------- temps sideral local ----------
+function lstHours(){
+  const d=new Date();
+  const JD = d.getTime()/86400000 + 2440587.5;           // ms epoch -> Julian Date (UTC)
+  const T = JD - 2451545.0;
+  let gmst = 280.46061837 + 360.98564736629*T;           // GMST en degres
+  let l = ((gmst + lon) % 360 + 360) % 360;              // + longitude est
+  return l/15;                                           // heures
+}
+
+// ---------- WebGL ----------
+function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s); return s; }
+function prog(vs,fs){ const p=gl.createProgram();
+  gl.attachShader(p,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw gl.getProgramInfoLog(p); return p; }
+
+const VS_STAR=`attribute vec2 a_pos; attribute float a_size; attribute float a_b;
+uniform vec2 u_res; varying float v_b;
+void main(){ vec2 c=(a_pos/u_res)*2.0-1.0; c.y=-c.y; gl_Position=vec4(c,0.0,1.0);
+  gl_PointSize=a_size; v_b=a_b; }`;
+const FS_STAR=`precision mediump float; varying float v_b;
+void main(){ vec2 d=gl_PointCoord-vec2(0.5); float r=length(d); if(r>0.5) discard;
+  float core=smoothstep(0.5,0.0,r); float halo=smoothstep(0.5,0.15,r);
+  vec3 col=mix(vec3(0.62,0.78,1.0),vec3(1.0),v_b);
+  gl_FragColor=vec4(col*v_b,(core*0.55+halo*0.55)*v_b); }`;
+const VS_LINE=`attribute vec2 a_pos; uniform vec2 u_res;
+void main(){ vec2 c=(a_pos/u_res)*2.0-1.0; c.y=-c.y; gl_Position=vec4(c,0.0,1.0); }`;
+const FS_LINE=`precision mediump float; void main(){ gl_FragColor=vec4(0.32,0.52,0.86,0.34); }`;
+
+function initGL(){
+  gl=$('gl').getContext('webgl',{antialias:true,alpha:false,premultipliedAlpha:false});
+  if(!gl){ msg('WebGL indisponible sur ce navigateur'); return false; }
+  progStar=prog(VS_STAR,FS_STAR); progLine=prog(VS_LINE,FS_LINE);
+  vboS=gl.createBuffer(); vboL=gl.createBuffer();
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);   // additif = glow sur noir
+  lbl=$('lbl'); lx=lbl.getContext('2d');
+  return true;
+}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1, 2.5);
+  W=Math.floor(innerWidth*DPR); H=Math.floor(innerHeight*DPR);
+  for(const c of [$('gl'),$('lbl')]){ c.width=W; c.height=H; }
+  gl.viewport(0,0,W,H);
+}
+
+// projection gnomonique JS — pour les decors (horizon, points cardinaux)
+function projAltAz(alt,az){
+  const a=alt*D2R, A=az*D2R, a0=alt0*D2R, A0=((az0+azOffset))*D2R, rr=roll*D2R;
+  const f=(H*0.5)/Math.tan(0.5*fov*D2R), daz=A-A0;
+  const cosc=Math.sin(a0)*Math.sin(a)+Math.cos(a0)*Math.cos(a)*Math.cos(daz);
+  if(cosc<=0.02) return null;
+  const xx=Math.cos(a)*Math.sin(daz)/cosc;
+  const yy=(Math.cos(a0)*Math.sin(a)-Math.sin(a0)*Math.cos(a)*Math.cos(daz))/cosc;
+  return [ (xx*Math.cos(rr)-yy*Math.sin(rr))*f + W*0.5,
+           -(xx*Math.sin(rr)+yy*Math.cos(rr))*f + H*0.5 ];
+}
+
+function frame(){
+  requestAnimationFrame(frame);
+  if(!wasm) return;
+  const lst = lstHours();
+  const az = ((az0 + azOffset) % 360 + 360) % 360;
+  wasm.project(lat, lst, az, alt0, roll, fov, W, H);
+  const ptr=wasm.out_ptr();
+  const out=new Float32Array(wasm.memory.buffer, ptr, N*4);
+
+  const sd=[];
+  for(let i=0;i<N;i++){ if(out[i*4+3]<0.5) continue;
+    const b=clamp(1.30-0.165*MAG[i],0.18,1.0);
+    sd.push(out[i*4], out[i*4+1], out[i*4+2]*DPR, b); }
+  const ld=[];
+  if(showLines) for(const seg of SEG){ const a=seg[0], c=seg[1];
+    if(out[a*4+3]<0.5||out[c*4+3]<0.5) continue;
+    ld.push(out[a*4],out[a*4+1], out[c*4],out[c*4+1]); }
+
+  gl.clearColor(0.018,0.024,0.047,1.0); gl.clear(gl.COLOR_BUFFER_BIT);
+
+  if(ld.length){ gl.useProgram(progLine);
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboL); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(ld),gl.DYNAMIC_DRAW);
+    const lp=gl.getAttribLocation(progLine,'a_pos'); gl.enableVertexAttribArray(lp);
+    gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
+    gl.uniform2f(gl.getUniformLocation(progLine,'u_res'),W,H);
+    gl.lineWidth(1); gl.drawArrays(gl.LINES,0,ld.length/2); }
+
+  if(sd.length){ gl.useProgram(progStar);
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboS); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(sd),gl.DYNAMIC_DRAW);
+    const st=16;
+    const pp=gl.getAttribLocation(progStar,'a_pos'); gl.enableVertexAttribArray(pp);
+    gl.vertexAttribPointer(pp,2,gl.FLOAT,false,st,0);
+    const ps=gl.getAttribLocation(progStar,'a_size'); gl.enableVertexAttribArray(ps);
+    gl.vertexAttribPointer(ps,1,gl.FLOAT,false,st,8);
+    const pb=gl.getAttribLocation(progStar,'a_b'); gl.enableVertexAttribArray(pb);
+    gl.vertexAttribPointer(pb,1,gl.FLOAT,false,st,12);
+    gl.uniform2f(gl.getUniformLocation(progStar,'u_res'),W,H);
+    gl.drawArrays(gl.POINTS,0,sd.length/4); }
+
+  drawLabels(out);
+  drawClock();
+}
+
+function drawLabels(out){
+  lx.clearRect(0,0,W,H);
+  lx.strokeStyle='rgba(90,120,170,.25)'; lx.lineWidth=1*DPR; lx.beginPath();
+  let started=false;
+  for(let a=-90;a<=90;a+=3){ const p=projAltAz(0,((az0+azOffset)+a)); if(!p){started=false;continue;}
+    if(!started){lx.moveTo(p[0],p[1]);started=true;} else lx.lineTo(p[0],p[1]); }
+  lx.stroke();
+  lx.fillStyle='rgba(127,208,255,.55)'; lx.font=`${13*DPR}px -apple-system,sans-serif`; lx.textAlign='center';
+  for(const card of [[0,'N'],[90,'E'],[180,'S'],[270,'O']]){ const p=projAltAz(2,card[0]);
+    if(p) lx.fillText(card[1],p[0],p[1]); }
+  if(showLbl){ lx.fillStyle='rgba(207,224,255,.82)'; lx.font=`${12*DPR}px -apple-system,sans-serif`;
+    lx.textAlign='left';
+    for(let i=0;i<N;i++){ if(out[i*4+3]<0.5||MAG[i]>1.7) continue;
+      const x=out[i*4], y=out[i*4+1]; if(x<0||x>W||y<0||y>H) continue;
+      lx.fillText(NAMES[i], x+8*DPR, y+4*DPR); } }
+}
+
+function drawClock(){
+  const d=new Date();
+  $('t').textContent=d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
+  $('loc').textContent=`${lat.toFixed(2)}°, ${lon.toFixed(2)}° · az ${Math.round(((az0+azOffset)%360+360)%360)}° alt ${Math.round(alt0)}°`;
+  $('fov').textContent=`fov ${Math.round(fov)}°`;
+}
+
+// ---------- gestes tactiles ----------
+function gestures(){
+  const el=$('wrap'); let px=0,py=0,pinch=0,fov0=0,drag=false;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+  el.addEventListener('touchstart',e=>{ if(e.touches.length===1){drag=true;px=e.touches[0].clientX;py=e.touches[0].clientY;}
+    else if(e.touches.length===2){pinch=dist(e.touches);fov0=fov;drag=false;} },{passive:false});
+  el.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(e.touches.length===2&&pinch){ fov=clamp(fov0*pinch/dist(e.touches),22,95); return; }
+    if(drag&&e.touches.length===1){ const t=e.touches[0]; const dx=t.clientX-px, dy=t.clientY-py; px=t.clientX;py=t.clientY;
+      const k=fov/innerHeight;
+      if(skyMode){ azOffset-=dx*k; } else { az0-=dx*k; alt0=clamp(alt0+dy*k,-20,90); } }
+  },{passive:false});
+  el.addEventListener('touchend',e=>{ if(e.touches.length===0){drag=false;pinch=0;} },{passive:false});
+  let md=false;
+  el.addEventListener('mousedown',e=>{md=true;px=e.clientX;py=e.clientY;});
+  window.addEventListener('mousemove',e=>{ if(!md)return; const dx=e.clientX-px,dy=e.clientY-py;px=e.clientX;py=e.clientY;
+    const k=fov/innerHeight; if(skyMode){azOffset-=dx*k;} else {az0-=dx*k; alt0=clamp(alt0+dy*k,-20,90);} });
+  window.addEventListener('mouseup',()=>md=false);
+  window.addEventListener('wheel',e=>{ fov=clamp(fov+e.deltaY*0.05,22,95); },{passive:true});
+}
+
+// ---------- orientation appareil (iOS 13+ : permission au tap) ----------
+function orientLook(alpha,beta,gamma){
+  const z=alpha*D2R, x=beta*D2R, y=gamma*D2R;
+  const cX=Math.cos(x),sX=Math.sin(x),cY=Math.cos(y),sY=Math.sin(y),cZ=Math.cos(z),sZ=Math.sin(z);
+  // R = Rz(alpha)·Rx(beta)·Ry(gamma) ; look = R·(0,0,-1) (la face arriere pointe le ciel)
+  const a02=sY, a12=-sX*cY, a22=cX*cY;
+  const m02=cZ*a02 - sZ*a12, m12=sZ*a02 + cZ*a12, m22=a22;
+  const ex=-m02, ny=-m12, up=clamp(-m22,-1,1);   // monde : x est, y nord, z haut
+  return { az:Math.atan2(ex,ny)*R2D, alt:Math.asin(up)*R2D, roll:-gamma };
+}
+let _haveCompass=false;
+function onOrient(e){
+  if(e.alpha==null) return;
+  const L=orientLook(e.alpha,e.beta||0,e.gamma||0);
+  alt0=clamp(L.alt,-20,90); roll=L.roll;
+  if(e.webkitCompassHeading!=null){ az0=e.webkitCompassHeading; _haveCompass=true; }
+  else az0=((360-L.az)%360); // alpha relatif : approx, l'utilisateur cale au doigt (azOffset)
+}
+async function enableSky(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      const p=await DeviceOrientationEvent.requestPermission();
+      if(p!=='granted'){ msg('orientation refusee — glisse pour viser'); return false; }
+    }
+  }catch(err){ msg('orientation indispo — glisse pour viser'); return false; }
+  window.addEventListener('deviceorientation', onOrient, true);
+  skyMode=true; azOffset=0;
+  msg(_haveCompass?'pointe ton tel vers le ciel ✦':'pointe le ciel — glisse pour caler le Nord');
+  return true;
+}
+
+// ---------- geoloc ----------
+function locate(){
+  if(!navigator.geolocation){ $('loc').textContent='defaut Lausanne'; return; }
+  navigator.geolocation.getCurrentPosition(
+    p=>{ lat=p.coords.latitude; lon=p.coords.longitude; msg(`position : ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`); },
+    ()=>{ msg('position refusee — defaut Lausanne'); }, {timeout:8000});
+}
+
+// ---------- boot ----------
+async function boot(){
+  if(!initGL()) return;
+  resize(); addEventListener('resize',resize); addEventListener('orientationchange',()=>setTimeout(resize,300));
+  gestures();
+  try{
+    const bytes=Uint8Array.from(atob(WASM_B64), c=>c.charCodeAt(0));
+    const r=await WebAssembly.instantiate(bytes,{});
+    wasm=r.instance.exports; N=wasm.n_stars();
+  }catch(err){ msg('echec chargement wasm'); console.error(err); return; }
+  $('bSky').onclick=async ev=>{ if(!skyMode){ if(await enableSky()) ev.currentTarget.classList.add('on'); }
+    else { skyMode=false; window.removeEventListener('deviceorientation',onOrient,true); ev.currentTarget.classList.remove('on'); roll=0; msg('mode glisser'); } };
+  $('bLbl').onclick=ev=>{ showLbl=!showLbl; ev.currentTarget.classList.toggle('on',showLbl); };
+  $('bLines').onclick=ev=>{ showLines=!showLines; ev.currentTarget.classList.toggle('on',showLines); };
+  $('bNow').onclick=ev=>{ live=!live; ev.currentTarget.classList.toggle('on',live); msg(live?'temps reel':'fige'); };
+  locate();
+  frame();
+  msg(`${N} etoiles · glisse pour viser, pince pour zoomer`);
+}
+boot();
+</script>
+</body>
+</html>

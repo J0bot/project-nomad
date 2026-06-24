@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-diff"
+description = "WASM ploxion: diff, le coeur du residu de la machine a tsoins. Calcule le XOR-delta general entre deux etats (a,b), son residu MINIMAL (run-length des zeros) et la SURPRISE (popcount = distance de Hamming en bits, pas Shannon). Expose sur le bus xion via diff.compare -> diff.residu ; si diff.compare porte un 'gen', emet aussi tsoin.put pour fermer la triade gen -> diff -> store vers tsoin-store."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

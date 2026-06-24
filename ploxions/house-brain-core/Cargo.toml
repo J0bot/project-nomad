@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-house-brain-core"
+description = "WASM ploxion: la feature MAISON brain/core (cubion). Hub central VITAL qui agrege energie+securite et arbitre securite>confort>eco. Residu pur (HouseDef) + house_ploxion! du SDK."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
