@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-bion-accelerator"
+description = "WASM ploxion: le xerboxion comme ACCELERATEUR DE PARTICULES DE BIONS. Fusion (a+b -> bion compose, energie de liaison) et fission (bion -> deux bions a sa ligne de faille, energie liberee). Chaque produit = un NOUVEAU bion content-adresse decouvert. 'On trouve plus de bions' (Jose)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

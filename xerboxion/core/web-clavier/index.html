@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Clavier ⌨</title>
+<!--
+  PL0XI0N Clavier — entrée WORMION : visualise les frappes clavier en live
+  (touches enfoncées + flux). 100% client-side. Migré du labo Laravel vers
+  xerboxion-core : la page EST le ploxion (plus de mount/container, l'UI rend
+  directement dans le body).
+  Bus xion same-origin (/emit, /events) servi à /px/clavier/index.html.
+  Droit au silence sur pagehide/beforeunload : retire les écouteurs (plus
+  aucune frappe captée), clear timers, close EventSource.
+-->
+<style>
+  html,body{margin:0;height:100%;background:#04060a;-webkit-text-size-adjust:100%}
+  *{box-sizing:border-box}
+  .pkb{display:flex;flex-direction:column;min-height:100vh;background:#04060a;color:rgba(220,240,235,.92);font-family:ui-sans-serif,system-ui,sans-serif}
+  .pkb__stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;text-align:center}
+  .pkb__keys{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:46px}
+  .pkb__key{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:42px;padding:0 12px;border-radius:9px;background:rgba(0,255,159,.08);border:1px solid rgba(0,255,159,.45);color:#dffbe9;font-family:'Share Tech Mono',ui-monospace,monospace;font-size:.95rem;box-shadow:0 0 14px rgba(0,255,159,.25);animation:pkbpop .12s ease}
+  @keyframes pkbpop{from{transform:scale(.7);opacity:.4}to{transform:scale(1);opacity:1}}
+  .pkb__stream{font-family:'Share Tech Mono',ui-monospace,monospace;font-size:.82rem;color:rgba(190,255,225,.55);max-width:90%;word-break:break-all;line-height:1.6;min-height:1.6em}
+  .pkb__dim{font-size:.78rem;color:rgba(180,210,200,.55)}
+  .pkb__hint{font-size:.8rem;color:rgba(0,255,159,.7)}
+  /* champ de capture : ouvre le clavier mobile au tap, et capte les frappes des
+     claviers logiciels (qui n'émettent pas toujours keydown). Visible = cible tactile. */
+  .pkb__cap{width:min(280px,80%);text-align:center;background:rgba(0,255,159,.06);border:1px dashed rgba(0,255,159,.45);
+      color:#dffbe9;border-radius:10px;padding:11px 12px;font-size:.95rem;outline:none;
+      font-family:'Share Tech Mono',ui-monospace,monospace}
+  .pkb__cap::placeholder{color:rgba(0,255,159,.55)}
+</style>
+</head>
+<body>
+<div class="pkb">
+  <div class="pkb__stage">
+    <div class="pkb__dim">⌨ Clavier — le wormion capte tes frappes (ici, en live).</div>
+    <div class="pkb__keys" data-keys></div>
+    <div class="pkb__stream" data-stream></div>
+    <input class="pkb__cap" data-cap placeholder="tape ici ⌨" aria-label="zone de capture clavier" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="pkb__hint" data-hint>tape ici — rien n'est envoyé ailleurs, tout est local</div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  var keysEl   = document.querySelector('[data-keys]');
+  var streamEl = document.querySelector('[data-stream]');
+  var hint     = document.querySelector('[data-hint]');
+  var cap      = document.querySelector('[data-cap]');
+  var stage    = document.querySelector('.pkb__stage');
+
+  // --- état : flux des frappes restauré du localStorage (préfixe xb:) ---
+  var SK = 'xb:clavier:stream';
+  var down = {};
+  var stream = [];
+  try { var saved = JSON.parse(localStorage.getItem(SK) || '[]'); if (Array.isArray(saved)) stream = saved.slice(-60); } catch (e) { stream = []; }
+  function persist(){ try { localStorage.setItem(SK, JSON.stringify(stream.slice(-60))); } catch (e) {} }
+
+  // --- bus xion same-origin (best-effort, jamais bloquant) ---
+  var es = null;
+  function emit(topic, payload){
+    try {
+      fetch('/emit', { method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ topic: topic, payload: payload }) }).catch(function(){});
+    } catch (e) {}
+  }
+  function connectBus(){
+    try {
+      es = new EventSource('/events');
+      // on n'écoute pour l'instant que pour rester branché ; pas de mutation d'état.
+      es.onerror = function(){};
+    } catch (e) { es = null; }
+  }
+
+  function label(e){
+    var k = e.key;
+    if (k === ' ')          return '␣';
+    if (k === 'Enter')      return '⏎';
+    if (k === 'Backspace')  return '⌫';
+    if (k === 'Escape')     return 'Esc';
+    if (k === 'Tab')        return 'Tab';
+    if (k === 'ArrowUp')    return '↑';
+    if (k === 'ArrowDown')  return '↓';
+    if (k === 'ArrowLeft')  return '←';
+    if (k === 'ArrowRight') return '→';
+    return k;
+  }
+  function render(){
+    keysEl.innerHTML = '';
+    Object.keys(down).forEach(function(code){
+      var s = document.createElement('span'); s.className = 'pkb__key'; s.textContent = down[code]; keysEl.appendChild(s);
+    });
+  }
+  function logStream(txt){
+    stream.push(txt); if (stream.length > 60) stream.shift();
+    streamEl.textContent = stream.join(' ');
+    hint.textContent = '— ⌨ actif —';
+    persist();
+    emit('clavier.key', { key: txt }); // une frappe = un tsoin sur le bus
+  }
+  function push(txt){
+    var s = document.createElement('span'); s.className = 'pkb__key'; s.textContent = txt;
+    keysEl.innerHTML = ''; keysEl.appendChild(s);
+    logStream(txt);
+  }
+  function onDown(e){
+    if (down[e.code]) return;
+    var l = label(e);
+    down[e.code] = l; render();
+    logStream(l);
+  }
+  function onUp(e){ delete down[e.code]; render(); }
+
+  // restaure l'affichage du flux sauvegardé
+  if (stream.length) streamEl.textContent = stream.join(' ');
+
+  // claviers PHYSIQUES (desktop) : keydown/keyup donnent les touches enfoncées.
+  document.addEventListener('keydown', onDown, true);
+  document.addEventListener('keyup',   onUp,   true);
+  // claviers LOGICIELS (mobile) : keydown est souvent muet (keyCode 229) → on lit
+  // l'input. Le champ reste vide (capture pure), chaque caractère tapé s'affiche.
+  function onCapInput(){ var v = cap.value; if (v) { push(v.length === 1 ? v : v.slice(-1)); cap.value = ''; } }
+  function onCapKey(e){
+    if (e.key === 'Enter') { push('⏎'); e.preventDefault(); }
+    else if (e.key === 'Backspace') { push('⌫'); }
+  }
+  cap.addEventListener('input', onCapInput);
+  cap.addEventListener('keydown', onCapKey);
+  // tap n'importe où dans la fenêtre → focus le champ (ouvre le clavier mobile)
+  function onStageClick(){ cap.focus(); }
+  stage.addEventListener('click', onStageClick);
+
+  var focusTimer = setTimeout(function(){ try { cap.focus(); } catch (e) {} }, 120);
+
+  // --- droit au silence : on coupe TOUT quand la page se retire (plus aucune
+  // frappe captée, plus de timer, plus de bus). ---
+  var silenced = false;
+  function silence(){
+    if (silenced) return; silenced = true;
+    if (focusTimer) { clearTimeout(focusTimer); focusTimer = null; }
+    document.removeEventListener('keydown', onDown, true);
+    document.removeEventListener('keyup',   onUp,   true);
+    cap.removeEventListener('input', onCapInput);
+    cap.removeEventListener('keydown', onCapKey);
+    stage.removeEventListener('click', onStageClick);
+    if (es) { try { es.close(); } catch (e) {} es = null; }
+  }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+
+  connectBus();
+})();
+</script>
+</body>
+</html>

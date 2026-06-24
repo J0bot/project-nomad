@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-pkg-coreutils"
+description = "WASM ploxion: le paquet coreutils en ploxion (package-bion). Residu PackageDef + package_ploxion!. Reseau/systeme-en-ploxions (bion-Linux)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

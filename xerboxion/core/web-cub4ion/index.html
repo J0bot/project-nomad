@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1326">
+<title>cub4ion — le OFF</title>
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html,body{ margin:0; height:100%; background:#0a1326; overflow:hidden; touch-action:none;
+    font:13px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; color:#dfe9ff; }
+  #c{ position:fixed; inset:0; display:block; width:100%; height:100%; }
+  #hud{ position:fixed; top:max(10px,env(safe-area-inset-top)); left:0; right:0; text-align:center;
+    pointer-events:none; z-index:3; }
+  #hud b{ font-size:15px; letter-spacing:3px; text-shadow:0 1px 8px #000; }
+  #hud small{ display:block; opacity:.6; letter-spacing:1px; font-size:11px; }
+  #music{ position:fixed; left:0; right:0; bottom:0; z-index:4; transform:translateY(120%);
+    transition:transform .5s cubic-bezier(.2,.8,.2,1); padding:0 8px calc(6px + env(safe-area-inset-bottom)); }
+  #music.on{ transform:translateY(0); }
+  #music iframe{ width:100%; height:80px; border:0; border-radius:14px; box-shadow:0 -6px 24px rgba(0,0,0,.4); }
+  #hint{ position:fixed; left:50%; bottom:96px; transform:translateX(-50%); z-index:3; pointer-events:none;
+    background:rgba(6,10,22,.6); border:1px solid rgba(120,150,210,.25); padding:7px 13px; border-radius:11px;
+    font-size:12px; opacity:.85; transition:opacity .6s; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><b>CUB4ION</b><small id="st">off · un cube posé quelque part</small></div>
+<div id="hint">glisse pour tourner le cube · touche le levier</div>
+<div id="music"><iframe id="sp" allow="autoplay; encrypted-media" loading="lazy"></iframe></div>
+<script>
+const PLAYLIST="5rZDHBR8tLni1xp8FlRMjW";
+const c=document.getElementById('c'), x=c.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(devicePixelRatio||1,2.5); W=innerWidth; H=innerHeight; c.width=W*DPR; c.height=H*DPR; x.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize); addEventListener('orientationchange',()=>setTimeout(resize,300)); resize();
+
+// ---------- etat ----------
+let ON=false, lever=0;                 // lever: 0=off .. 1=on (anime)
+let rXY=0, rZW=0, rXW=0, rYW=0;        // angles 4D
+let vZW=0, vXW=0;                       // inertie du drag
+let t=0;
+const stars=[]; for(let i=0;i<150;i++) stars.push([Math.random(),Math.random(),Math.random()*0.7+0.3]);
+
+// ---------- audio (clunk du levier, apres geste) ----------
+let AC=null;
+function clunk(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(), g=AC.createGain(); o.type='square'; o.frequency.setValueAtTime(160,AC.currentTime);
+  o.frequency.exponentialRampToValueAtTime(70,AC.currentTime+0.08); g.gain.setValueAtTime(0.18,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.12); o.connect(g).connect(AC.destination);
+  o.start(); o.stop(AC.currentTime+0.13); }catch(e){} }
+
+// ---------- scenes : plage / mer / espace (selon la rotation 4D) ----------
+function lerp(a,b,k){ return a+(b-a)*k; }
+function mixCol(a,b,k){ return `rgb(${Math.round(lerp(a[0],b[0],k))},${Math.round(lerp(a[1],b[1],k))},${Math.round(lerp(a[2],b[2],k))})`; }
+function drawBeach(a){ x.globalAlpha=a;
+  let g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#9fd0ff'); g.addColorStop(.5,'#cdeaff'); g.addColorStop(.62,'#3aa6d8'); g.addColorStop(.78,'#2b86b8'); g.addColorStop(.79,'#e9d6a8'); g.addColorStop(1,'#d8be86');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.globalAlpha=a*.9; x.fillStyle='#fff3c4'; x.beginPath(); x.arc(W*0.74,H*0.22,34,0,7); x.fill();
+  x.globalAlpha=a; }
+function drawSea(a){ x.globalAlpha=a;
+  let g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0b4a73'); g.addColorStop(.5,'#0a3a66'); g.addColorStop(1,'#04223f');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.globalAlpha=a*.14; x.fillStyle='#bfe8ff';
+  for(let i=0;i<6;i++){ x.save(); x.translate(W*(0.1+i*0.16), -40); x.rotate(0.3); x.fillRect(0,0,26,H*1.4); x.restore(); }
+  x.globalAlpha=a*.5; x.fillStyle='#aee3ff';
+  for(let i=0;i<14;i++){ const b=(i*97+(t*0.4))%H; x.beginPath(); x.arc((i*83)%W, H-b, 2+(i%3),0,7); x.fill(); }
+  x.globalAlpha=a; }
+function drawSpace(a){ x.globalAlpha=a; x.fillStyle='#05060f'; x.fillRect(0,0,W,H);
+  let g=x.createRadialGradient(W*0.7,H*0.35,10,W*0.7,H*0.35,W*0.6); g.addColorStop(0,'rgba(120,60,180,.5)'); g.addColorStop(.5,'rgba(60,30,110,.22)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  for(const s of stars){ const tw=0.5+0.5*Math.sin(t*0.05+s[0]*30); x.globalAlpha=a*s[2]*tw; x.fillStyle='#fff';
+    x.fillRect(s[0]*W, s[1]*H, 1.6,1.6); } x.globalAlpha=a; }
+function drawScene(){
+  // l'angle 4D (rZW) choisit le mélange de scènes — "ça change quand tu le tournes"
+  const p=((rZW/(Math.PI*2))%1+1)%1*3; const i=Math.floor(p), f=p-i;
+  const drawers=[drawBeach,drawSea,drawSpace];
+  drawers[i%3](1); drawers[(i+1)%3](f);
+  // assombrir quand OFF (cube chill, posé) ; vif quand ON
+  x.globalAlpha=(1-lever)*0.45; x.fillStyle='#04060d'; x.fillRect(0,0,W,H); x.globalAlpha=1;
+  const nm=['une plage','la mer','l’espace'][i%3];
+  document.getElementById('st').textContent=(ON?'on · ':'off · ')+'un cube dans '+nm;
+}
+
+// ---------- le cub4ion : tesseract 4D ----------
+const V4=[]; for(let i=0;i<16;i++) V4.push([(i&1?1:-1),(i&2?1:-1),(i&4?1:-1),(i&8?1:-1)]);
+const E4=[]; for(let i=0;i<16;i++) for(let j=i+1;j<16;j++){ let d=0; for(let k=0;k<4;k++) if(V4[i][k]!==V4[j][k]) d++; if(d===1) E4.push([i,j]); }
+function rot(v,i,j,a){ const ca=Math.cos(a),sa=Math.sin(a); const vi=v[i],vj=v[j]; v[i]=vi*ca-vj*sa; v[j]=vi*sa+vj*ca; }
+function project(v0){ const v=v0.slice();
+  rot(v,0,1,rXY); rot(v,2,3,rZW); rot(v,0,3,rXW); rot(v,1,3,rYW);
+  const w=1/(2.6 - v[3]); let X=v[0]*w, Y=v[1]*w, Z=v[2]*w;
+  const z=1/(3.4 - Z); const s=Math.min(W,H)*0.30;
+  return [W/2 + X*z*s, H/2 - 24 + Y*z*s, Z]; }
+function drawCube(){
+  const pts=V4.map(project);
+  // teinte selon ON (rouge-redstone réchauffe) sinon bleu froid chill
+  const cold=[120,170,255], warm=[255,150,120];
+  for(const [a,b] of E4){ const pa=pts[a], pb=pts[b]; const dep=(pa[2]+pb[2])/2;
+    const al=0.30+0.5*(dep+0.6); const col=mixCol(cold,warm,lever*0.7);
+    x.strokeStyle=col.replace('rgb','rgba').replace(')',','+al.toFixed(2)+')');
+    x.lineWidth=1.1+1.6*(dep+0.6)+lever*0.6; x.shadowColor=col; x.shadowBlur=8+lever*14;
+    x.beginPath(); x.moveTo(pa[0],pa[1]); x.lineTo(pb[0],pb[1]); x.stroke(); }
+  x.shadowBlur=0;
+  for(const p of pts){ x.fillStyle=mixCol(cold,warm,lever*0.7); x.globalAlpha=0.5+0.5*(p[2]+0.6);
+    x.beginPath(); x.arc(p[0],p[1],2+lever,0,7); x.fill(); } x.globalAlpha=1;
+}
+
+// ---------- redstone : connecte les trucs quand ON ----------
+const NODES=[[0.16,0.30],[0.84,0.30],[0.16,0.74],[0.84,0.74]];
+function drawRedstone(){ if(lever<0.02) return; const cx=W/2, cy=H*0.5;
+  for(const n of NODES){ const nx=n[0]*W, ny=n[1]*H;
+    const pulse=0.5+0.5*Math.sin(t*0.12 - (n[0]+n[1])*4);
+    x.strokeStyle=`rgba(255,40,40,${(0.25+0.5*pulse)*lever})`; x.lineWidth=3*lever; x.shadowColor='#ff2a2a'; x.shadowBlur=12*lever*pulse;
+    x.beginPath(); x.moveTo(cx,cy); x.lineTo(nx,ny); x.stroke();
+    // poussiere de redstone (points)
+    for(let s=0.12;s<1;s+=0.12){ const px=lerp(cx,nx,s), py=lerp(cy,ny,s);
+      x.fillStyle=`rgba(255,${40+120*pulse|0},${40},${lever})`; x.beginPath(); x.arc(px,py,2.2*lever,0,7); x.fill(); }
+    x.fillStyle=`rgba(255,60,40,${(0.4+0.5*pulse)*lever})`; x.beginPath(); x.arc(nx,ny,7*lever,0,7); x.fill();
+  } x.shadowBlur=0; }
+
+// ---------- le levier minecraft (au centre) ----------
+let leverBox={x:0,y:0,r:0};
+function drawLever(){
+  const bx=W/2, by=H*0.5+Math.min(W,H)*0.30+40; const base=Math.min(W,H)*0.085;
+  leverBox={x:bx,y:by,r:base*1.7};
+  // socle cobblestone
+  x.save(); x.translate(bx,by);
+  roundRect(-base, -base*0.55, base*2, base*1.1, 7); x.fillStyle='#6f6f78'; x.fill();
+  x.fillStyle='#5a5a63'; for(let i=0;i<10;i++){ const a=(i*53%100)/100, b=(i*31%100)/100; x.fillRect(-base+a*base*2, -base*0.5+b*base, 5,5); }
+  x.strokeStyle='#3c3c44'; x.lineWidth=2; roundRect(-base,-base*0.55,base*2,base*1.1,7); x.stroke();
+  // le bras du levier (bois) qui bascule -38deg (off) -> +38deg (on)
+  const ang=lerp(-0.66,0.66,lever); x.rotate(ang);
+  const len=base*1.6;
+  x.strokeStyle='#7a4a22'; x.lineWidth=base*0.34; x.lineCap='round'; x.shadowColor='#000'; x.shadowBlur=6;
+  x.beginPath(); x.moveTo(0,0); x.lineTo(0,-len); x.stroke();
+  // pommeau (cobble)
+  x.shadowBlur=0; x.fillStyle=ON?'#d8d8e0':'#9a9aa6'; x.beginPath(); x.arc(0,-len,base*0.46,0,7); x.fill();
+  x.strokeStyle='#54545e'; x.lineWidth=2; x.stroke();
+  x.restore();
+  // etiquettes
+  x.globalAlpha=0.8; x.font='700 13px -apple-system,sans-serif'; x.textAlign='center';
+  x.fillStyle=ON?'#9fb6ff':'#ff6a6a'; x.fillText(ON?'ON':'OFF', bx, by+base+22); x.globalAlpha=1; x.textAlign='left';
+}
+function roundRect(rx,ry,rw,rh,r){ x.beginPath(); x.moveTo(rx+r,ry); x.arcTo(rx+rw,ry,rx+rw,ry+rh,r); x.arcTo(rx+rw,ry+rh,rx,ry+rh,r); x.arcTo(rx,ry+rh,rx,ry,r); x.arcTo(rx,ry,rx+rw,ry,r); x.closePath(); }
+
+// ---------- toggle ON/OFF ----------
+function toggle(){ ON=!ON; clunk();
+  const sp=document.getElementById('sp');
+  if(ON){ sp.src=`https://open.spotify.com/embed/playlist/${PLAYLIST}?utm_source=generator&theme=0`; document.getElementById('music').classList.add('on'); }
+  else { document.getElementById('music').classList.remove('on'); setTimeout(()=>{ if(!ON) sp.src='about:blank'; },520); }
+  const h=document.getElementById('hint'); h.style.opacity=0;
+}
+
+// ---------- entrees ----------
+let drag=false, px=0, py=0, moved=0;
+function down(cx,cy){ drag=true; px=cx; py=cy; moved=0; }
+function move(cx,cy){ if(!drag) return; const dx=cx-px, dy=cy-py; px=cx; py=cy; moved+=Math.abs(dx)+Math.abs(dy);
+  vZW=dx*0.006; vXW=dy*0.006; rZW+=vZW; rXW+=vXW; rYW+=dx*0.002; }
+function up(cx,cy){ if(!drag) return; drag=false;
+  if(moved<8){ const d=Math.hypot(cx-leverBox.x, cy-leverBox.y); if(d<leverBox.r) toggle(); } }
+c.addEventListener('touchstart',e=>{ const t0=e.touches[0]; down(t0.clientX,t0.clientY); },{passive:true});
+c.addEventListener('touchmove',e=>{ e.preventDefault(); const t0=e.touches[0]; move(t0.clientX,t0.clientY); },{passive:false});
+c.addEventListener('touchend',e=>{ const t0=e.changedTouches[0]; up(t0.clientX,t0.clientY); });
+c.addEventListener('mousedown',e=>down(e.clientX,e.clientY));
+addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+addEventListener('mouseup',e=>up(e.clientX,e.clientY));
+
+// ---------- boucle ----------
+function loop(){ t++;
+  lever += ((ON?1:0)-lever)*0.12;                 // anime le levier
+  if(!drag){ vZW*=0.94; vXW*=0.94; rZW+=vZW; rXW+=vXW; }
+  rXY+=0.0035 + lever*0.004; rZW+=0.0016;          // derive lente (le cube respire)
+  x.clearRect(0,0,W,H);
+  drawScene(); drawRedstone(); drawCube(); drawLever();
+  requestAnimationFrame(loop);
+}
+loop();
+setTimeout(()=>{ const h=document.getElementById('hint'); if(h) h.style.opacity=0; },6000);
+</script>
+</body>
+</html>

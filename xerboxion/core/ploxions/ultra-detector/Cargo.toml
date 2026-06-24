@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-ultra-detector"
+description = "WASM ploxion: le systeme s observe lui-meme. A chaque tsoin cree, score son exceptionnalite ; flague les ULTRA tsoins en direct."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

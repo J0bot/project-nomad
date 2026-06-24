@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>xerboxion-core · live map</title>
+<!--
+  xerboxion-map — a STANDALONE, self-contained live map of the xerboxion-core.
+
+  No CDN, no external fonts, no network: everything is inline and the page runs
+  straight from file://. A REAL snapshot (produced by the host's map subcommand)
+  is BAKED into the JSON block near the bottom of this file by
+  scripts/build-map.sh — exactly like the tsoin-web page bakes its wasm — so
+  double-clicking this file shows the core ALIVE with zero setup.
+
+  You can also load a fresh snapshot via the file input in the header; the baked
+  one is the default and always works alone.
+-->
+<style>
+:root{
+  --bg:#0b0f14; --bg2:#0e141b; --panel:#121a23; --panel2:#0f161d;
+  --line:#1e2a36; --ink:#cfe3f2; --dim:#7d93a6; --acc:#4fd6c9; --acc2:#7c9cff;
+  --warn:#ffcf6b; --xstar:#ff7eb6; --ok:#5fe39a; --bad:#ff6b7a;
+  --wasm:#4fd6c9; --native:#7c9cff; --recipe:#ffcf6b;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #11202b 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #131b2b 0%, transparent 60%),
+    var(--bg);
+  color:var(--ink); font-family:var(--mono); font-size:13px; line-height:1.5;
+}
+a{color:var(--acc2)}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+
+/* header */
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+header h1{font-size:19px;margin:0;letter-spacing:.5px}
+header h1 .glow{color:var(--acc);text-shadow:0 0 18px rgba(79,214,201,.45)}
+header .tag{color:var(--dim);font-size:12px}
+.commit{margin-left:auto;color:var(--dim);font-size:11px;border:1px solid var(--line);
+  padding:3px 9px;border-radius:999px;background:var(--panel2)}
+.commit b{color:var(--ok)}
+.intro{color:var(--dim);font-size:12px;margin:4px 0 6px;max-width:980px}
+.scenario{color:var(--dim);font-size:11.5px;border-left:2px solid var(--line);
+  padding:5px 0 5px 10px;margin:6px 0 2px}
+.scenario b{color:var(--ink)}
+
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 4px}
+.toolbar label.file{font-size:11px;cursor:pointer;border:1px solid var(--line);
+  background:#16212c;color:var(--ink);padding:6px 11px;border-radius:8px;transition:.12s}
+.toolbar label.file:hover{border-color:var(--acc);color:var(--acc)}
+.toolbar input[type=file]{display:none}
+.toolbar .src{color:var(--dim);font-size:11px}
+.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-left:auto;font-size:11px}
+.legend .chip{display:inline-flex;gap:6px;align-items:center;color:var(--dim)}
+.legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* layout: graph full width, then trace + services side-by-side, all responsive */
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px;margin-top:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line);border-radius:12px;padding:13px;min-width:0}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);
+  margin:0 0 10px;font-weight:600;display:flex;gap:8px;align-items:baseline}
+.panel h2 .count{color:var(--acc);font-weight:600}
+
+/* node graph */
+#graphPanel{margin-top:12px}
+.graphbox{width:100%;overflow-x:auto;border-radius:10px;background:
+  radial-gradient(700px 300px at 50% -20%, #0f1a22 0%, transparent 70%), #0a0f15;
+  border:1px solid var(--line)}
+svg{display:block;width:100%;height:auto}
+.edge{stroke:#2a3a49;stroke-width:1.3;fill:none;opacity:.85}
+.edge.recipe{stroke:#6a5a2e}
+.edge.svc{stroke:#2f5a55}
+.edgelabel{fill:var(--dim);font-size:9.5px;font-family:var(--mono)}
+.node rect{rx:8;ry:8;stroke-width:1.4}
+.node.wasm rect{fill:#0d2a28;stroke:var(--wasm)}
+.node.native rect{fill:#161e35;stroke:var(--native)}
+.node.recipe rect{fill:#2a2410;stroke:var(--recipe)}
+.node .nid{fill:var(--ink);font-size:11.5px;font-weight:600;font-family:var(--mono)}
+.node .nmeta{fill:var(--dim);font-size:9px;font-family:var(--mono)}
+.node .cap{fill:var(--warn);font-size:8.5px;font-family:var(--mono)}
+.node.degraded rect{stroke:var(--bad)}
+.node .hdot{fill:var(--ok)}
+.node.degraded .hdot{fill:var(--bad)}
+
+/* trace log */
+#trace{display:flex;flex-direction:column;gap:0;max-height:560px;overflow:auto}
+.trow{display:flex;gap:9px;padding:5px 3px;border-bottom:1px solid #131d27;align-items:flex-start}
+.trow:last-child{border-bottom:none}
+.tseq{color:var(--dim);font-size:10px;min-width:26px;text-align:right;padding-top:1px}
+.tkind{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;border:1px solid var(--line);
+  border-radius:5px;padding:1px 5px;min-width:52px;text-align:center;flex:0 0 auto}
+.tkind.emit{color:var(--acc);border-color:#1f5e57}
+.tkind.route{color:var(--acc2);border-color:#2c3a6a}
+.tkind.log{color:var(--dim)}
+.tkind.life{color:var(--xstar);border-color:#5a2c44}
+.tkind.fetch{color:var(--warn);border-color:#5a4a22}
+.tkind.recipe{color:var(--warn);border-color:#5a4a22;background:#1a160a}
+.tbody{flex:1;min-width:0;word-break:break-word}
+.tbody .from{color:var(--ink);font-weight:600}
+.tbody .topic{color:var(--acc)}
+.tbody .arrow{color:var(--dim)}
+.tbody .pl{color:var(--dim)}
+.tbody .note{color:var(--acc2)}
+.tbody .fire{color:var(--warn)}
+.filterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.filterbar button{font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:6px;
+  border:1px solid var(--line);background:#0e1620;color:var(--dim);padding:3px 8px;transition:.1s}
+.filterbar button:hover{border-color:var(--acc);color:var(--acc)}
+.filterbar button.on{background:#15403c;border-color:#1f6f64;color:var(--acc)}
+
+/* services */
+#services{display:flex;flex-direction:column;gap:7px}
+.svc{display:flex;gap:10px;align-items:center;padding:8px 9px;border:1px solid var(--line);
+  border-radius:9px;background:#0c1218}
+.svc .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.svc.up .sdot{background:var(--ok);box-shadow:0 0 0 3px rgba(95,227,154,.13)}
+.svc.down .sdot{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,122,.13)}
+.svc .sid{color:var(--ink);font-weight:600;min-width:0}
+.svc .surl{color:var(--dim);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;flex:1;min-width:0}
+.svc .scode{margin-left:auto;font-size:11px;font-weight:600;flex:0 0 auto}
+.svc.up .scode{color:var(--ok)}
+.svc.down .scode{color:var(--bad)}
+
+.empty{color:var(--dim);font-style:italic;padding:14px 4px;text-align:center}
+footer{color:var(--dim);font-size:11px;margin-top:26px;text-align:center}
+footer code{color:var(--acc2)}
+.err{color:var(--bad);padding:10px;border:1px solid #5a2c30;border-radius:8px;background:#1a0d10;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="glow">⟁ xerboxion-core</span> · live map</h1>
+    <span class="tag">wasmtime host · PLC bus · ploxions wired by manifest</span>
+    <span class="commit">core <b id="commit">—</b></span>
+  </header>
+
+  <p class="intro">
+    A snapshot of the operational xerboxion-core: a wasmtime host that loads
+    isolated WASM <b>ploxions</b>, wires them on the <b>PLC bus</b> from their
+    manifests (provides&nbsp;→&nbsp;requires), and routes + traces every event.
+    Below is one real run — the <b>node graph</b> (who is wired to whom), the
+    <b>event trace</b> (what actually flowed), and the bridged <b>services</b>.
+    This page is fully self-contained: the snapshot is baked in, nothing is
+    fetched. Drop a fresh map snapshot file to replace it.
+  </p>
+  <div class="scenario">scenario: <b><span id="scenario">—</span></b></div>
+
+  <div class="toolbar">
+    <label class="file">load snapshot…
+      <input type="file" id="fileInput" accept="application/json,.json" />
+    </label>
+    <span class="src" id="srcLabel">source: baked snapshot</span>
+    <div class="legend">
+      <span class="chip"><span class="sw" style="background:var(--wasm)"></span>wasm ploxion</span>
+      <span class="chip"><span class="sw" style="background:var(--native)"></span>native</span>
+      <span class="chip"><span class="sw" style="background:var(--recipe)"></span>recipe</span>
+    </div>
+  </div>
+
+  <div id="errbox"></div>
+
+  <!-- NODE GRAPH -->
+  <div class="panel" id="graphPanel">
+    <h2>node graph <span class="count" id="nodeCount"></span></h2>
+    <div class="graphbox"><svg id="graph" role="img" aria-label="ploxion node graph"></svg></div>
+  </div>
+
+  <div class="grid">
+    <!-- EVENT TRACE -->
+    <div class="panel">
+      <h2>event trace <span class="count" id="traceCount"></span></h2>
+      <div class="filterbar" id="filterbar"></div>
+      <div id="trace"><div class="empty">no trace</div></div>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="panel">
+      <h2>services <span class="count" id="svcCount"></span></h2>
+      <div id="services"><div class="empty">no services</div></div>
+    </div>
+  </div>
+
+  <footer>
+    rendered from a real host map snapshot ·
+    generated by <span id="genby">xerboxion-rt map</span> · self-contained, file://-safe
+  </footer>
+</div>
+
+<!-- XERB-MAP-SNAPSHOT-BEGIN : scripts/build-map.sh rewrites the block below -->
+<script type="application/json" id="baked-snapshot">
+{
+  "generated_by": "xerboxion-rt map",
+  "core_commit": "76712cc",
+  "scenario": "load ping/pong/tracer/watcher/health-adapter/state-client/tsoin + register an alerter recipe; init all (ping->pong, tsoin record/replay, adapter fetch->emit), sweep 3 deployed services through the native connector (1 down), recipe fires on the down one",
+  "ploxions": [
+    {
+      "id": "ping",
+      "version": "1.0.0",
+      "provides": [
+        "ping"
+      ],
+      "requires": [
+        "tick"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "pong",
+      "version": "1.0.0",
+      "provides": [
+        "pong"
+      ],
+      "requires": [
+        "ping"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "tracer",
+      "version": "1.0.0",
+      "provides": [],
+      "requires": [
+        "tick",
+        "ping",
+        "pong"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "watcher",
+      "version": "1.0.0",
+      "provides": [
+        "alert"
+      ],
+      "requires": [
+        "service.health"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 2
+    },
+    {
+      "id": "health-adapter",
+      "version": "1.0.0",
+      "provides": [
+        "service.health"
+      ],
+      "requires": [
+        "health.check"
+      ],
+      "capabilities": [
+        "net.fetch"
+      ],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "state-client",
+      "version": "1.0.0",
+      "provides": [
+        "tsoin.record",
+        "tsoin.replay"
+      ],
+      "requires": [
+        "tsoin.recorded",
+        "tsoin.replayed"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "tsoin",
+      "version": "1.0.0",
+      "provides": [
+        "tsoin.recorded",
+        "tsoin.replayed"
+      ],
+      "requires": [
+        "tsoin.record",
+        "tsoin.replay"
+      ],
+      "capabilities": [],
+      "kind": "wasm",
+      "health": 0
+    },
+    {
+      "id": "recipe:alerter",
+      "version": "",
+      "provides": [
+        "alert.notify"
+      ],
+      "requires": [
+        "service.health"
+      ],
+      "capabilities": [],
+      "kind": "recipe",
+      "health": 0
+    },
+    {
+      "id": "service-connector",
+      "version": "",
+      "provides": [
+        "service.health"
+      ],
+      "requires": [],
+      "capabilities": [],
+      "kind": "native",
+      "health": 0
+    }
+  ],
+  "bus": [
+    {
+      "topic": "alert.notify",
+      "from": "recipe:alerter",
+      "to": [
+        "tracer"
+      ]
+    },
+    {
+      "topic": "health.check",
+      "from": "",
+      "to": [
+        "health-adapter"
+      ]
+    },
+    {
+      "topic": "ping",
+      "from": "ping",
+      "to": [
+        "pong",
+        "tracer"
+      ]
+    },
+    {
+      "topic": "pong",
+      "from": "pong",
+      "to": [
+        "tracer"
+      ]
+    },
+    {
+      "topic": "service.health",
+      "from": "health-adapter",
+      "to": [
+        "recipe:alerter",
+        "watcher"
+      ]
+    },
+    {
+      "topic": "tick",
+      "from": "",
+      "to": [
+        "ping",
+        "tracer"
+      ]
+    },
+    {
+      "topic": "tsoin.record",
+      "from": "state-client",
+      "to": [
+        "tsoin"
+      ]
+    },
+    {
+      "topic": "tsoin.recorded",
+      "from": "tsoin",
+      "to": [
+        "state-client"
+      ]
+    },
+    {
+      "topic": "tsoin.replay",
+      "from": "state-client",
+      "to": [
+        "tsoin"
+      ]
+    },
+    {
+      "topic": "tsoin.replayed",
+      "from": "tsoin",
+      "to": [
+        "state-client"
+      ]
+    },
+    {
+      "topic": "alert",
+      "from": "watcher",
+      "to": []
+    }
+  ],
+  "trace": [
+    {
+      "seq": 0,
+      "kind": "life",
+      "from": "ping",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 1,
+      "kind": "log",
+      "from": "ping",
+      "topic": "",
+      "payload": "ping: init",
+      "note": ""
+    },
+    {
+      "seq": 2,
+      "kind": "log",
+      "from": "ping",
+      "topic": "",
+      "payload": "ping: emitting ping#1",
+      "note": ""
+    },
+    {
+      "seq": 3,
+      "kind": "emit",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "ping#1",
+      "note": ""
+    },
+    {
+      "seq": 4,
+      "kind": "route",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "",
+      "note": "=> pong"
+    },
+    {
+      "seq": 5,
+      "kind": "log",
+      "from": "pong",
+      "topic": "",
+      "payload": "pong: got 'ping#1' -> count=1",
+      "note": ""
+    },
+    {
+      "seq": 6,
+      "kind": "route",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 7,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [ping] ping#1",
+      "note": ""
+    },
+    {
+      "seq": 8,
+      "kind": "emit",
+      "from": "pong",
+      "topic": "pong",
+      "payload": "pong#1",
+      "note": ""
+    },
+    {
+      "seq": 9,
+      "kind": "route",
+      "from": "pong",
+      "topic": "pong",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 10,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [pong] pong#1",
+      "note": ""
+    },
+    {
+      "seq": 11,
+      "kind": "life",
+      "from": "pong",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 12,
+      "kind": "log",
+      "from": "pong",
+      "topic": "",
+      "payload": "pong: init (waiting for pings)",
+      "note": ""
+    },
+    {
+      "seq": 13,
+      "kind": "life",
+      "from": "tracer",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 14,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: init (observing tick/ping/pong)",
+      "note": ""
+    },
+    {
+      "seq": 15,
+      "kind": "life",
+      "from": "watcher",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 16,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: init (watching service.health from the live deployed services)",
+      "note": ""
+    },
+    {
+      "seq": 17,
+      "kind": "life",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 18,
+      "kind": "fetch",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "GET http://127.0.0.1:3010/health",
+      "note": "status 200"
+    },
+    {
+      "seq": 19,
+      "kind": "fetch",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "GET http://127.0.0.1:3011/health",
+      "note": "status 200"
+    },
+    {
+      "seq": 20,
+      "kind": "log",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health-adapter: init (pure-WASM service adapter, capability net.fetch)",
+      "note": ""
+    },
+    {
+      "seq": 21,
+      "kind": "log",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health-adapter: GET http://127.0.0.1:3010/health (via plc_fetch, capability net.fetch)",
+      "note": ""
+    },
+    {
+      "seq": 22,
+      "kind": "log",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health-adapter: filesystem UP (200)",
+      "note": ""
+    },
+    {
+      "seq": 23,
+      "kind": "log",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health-adapter: GET http://127.0.0.1:3011/health (via plc_fetch, capability net.fetch)",
+      "note": ""
+    },
+    {
+      "seq": 24,
+      "kind": "log",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health-adapter: tsoin-svc UP (200)",
+      "note": ""
+    },
+    {
+      "seq": 25,
+      "kind": "emit",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "{\"id\":\"filesystem\",\"url\":\"http://127.0.0.1:3010/health\",\"code\":200,\"up\":true}",
+      "note": ""
+    },
+    {
+      "seq": 26,
+      "kind": "route",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> watcher"
+    },
+    {
+      "seq": 27,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: service filesystem is UP (200) [up=1 down=0]",
+      "note": ""
+    },
+    {
+      "seq": 28,
+      "kind": "route",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> recipe:alerter"
+    },
+    {
+      "seq": 29,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "triggered on [service.health]",
+      "note": ""
+    },
+    {
+      "seq": 30,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "condition 'up == false' => false",
+      "note": ""
+    },
+    {
+      "seq": 31,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "silent (condition 'up == false' is false)",
+      "note": ""
+    },
+    {
+      "seq": 32,
+      "kind": "emit",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "{\"id\":\"tsoin-svc\",\"url\":\"http://127.0.0.1:3011/health\",\"code\":200,\"up\":true}",
+      "note": ""
+    },
+    {
+      "seq": 33,
+      "kind": "route",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> watcher"
+    },
+    {
+      "seq": 34,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: service tsoin-svc is UP (200) [up=2 down=0]",
+      "note": ""
+    },
+    {
+      "seq": 35,
+      "kind": "route",
+      "from": "health-adapter",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> recipe:alerter"
+    },
+    {
+      "seq": 36,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "triggered on [service.health]",
+      "note": ""
+    },
+    {
+      "seq": 37,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "condition 'up == false' => false",
+      "note": ""
+    },
+    {
+      "seq": 38,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "silent (condition 'up == false' is false)",
+      "note": ""
+    },
+    {
+      "seq": 39,
+      "kind": "life",
+      "from": "state-client",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 40,
+      "kind": "log",
+      "from": "state-client",
+      "topic": "",
+      "payload": "state-client: init — recording 3 evolving states via the bus",
+      "note": ""
+    },
+    {
+      "seq": 41,
+      "kind": "log",
+      "from": "state-client",
+      "topic": "",
+      "payload": "state-client: emit tsoin.record name=frame0 (16 bytes)",
+      "note": ""
+    },
+    {
+      "seq": 42,
+      "kind": "log",
+      "from": "state-client",
+      "topic": "",
+      "payload": "state-client: emit tsoin.record name=frame1 (16 bytes)",
+      "note": ""
+    },
+    {
+      "seq": 43,
+      "kind": "log",
+      "from": "state-client",
+      "topic": "",
+      "payload": "state-client: emit tsoin.record name=frame2 (16 bytes)",
+      "note": ""
+    },
+    {
+      "seq": 44,
+      "kind": "emit",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "{\"name\":\"frame0\",\"bytes\":\"01424242424242424242424242424242\"}",
+      "note": ""
+    },
+    {
+      "seq": 45,
+      "kind": "route",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "",
+      "note": "=> tsoin"
+    },
+    {
+      "seq": 46,
+      "kind": "emit",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "{\"name\":\"frame1\",\"bytes\":\"424242aabb4242424242424242424242\"}",
+      "note": ""
+    },
+    {
+      "seq": 47,
+      "kind": "route",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "",
+      "note": "=> tsoin"
+    },
+    {
+      "seq": 48,
+      "kind": "emit",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "{\"name\":\"frame2\",\"bytes\":\"424242aabb42424242424242424242ff\"}",
+      "note": ""
+    },
+    {
+      "seq": 49,
+      "kind": "route",
+      "from": "state-client",
+      "topic": "tsoin.record",
+      "payload": "",
+      "note": "=> tsoin"
+    },
+    {
+      "seq": 50,
+      "kind": "life",
+      "from": "tsoin",
+      "topic": "",
+      "payload": "init",
+      "note": ""
+    },
+    {
+      "seq": 51,
+      "kind": "log",
+      "from": "tsoin",
+      "topic": "",
+      "payload": "tsoin: init (real engine: Recorder + Timeline, XOR-delta + BLAKE3 store)",
+      "note": ""
+    },
+    {
+      "seq": 52,
+      "kind": "emit",
+      "from": "host",
+      "topic": "tick",
+      "payload": "tick#1",
+      "note": ""
+    },
+    {
+      "seq": 53,
+      "kind": "route",
+      "from": "host",
+      "topic": "tick",
+      "payload": "",
+      "note": "=> ping"
+    },
+    {
+      "seq": 54,
+      "kind": "log",
+      "from": "ping",
+      "topic": "",
+      "payload": "ping: emitting ping#2",
+      "note": ""
+    },
+    {
+      "seq": 55,
+      "kind": "route",
+      "from": "host",
+      "topic": "tick",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 56,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [tick] tick#1",
+      "note": ""
+    },
+    {
+      "seq": 57,
+      "kind": "emit",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "ping#2",
+      "note": ""
+    },
+    {
+      "seq": 58,
+      "kind": "route",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "",
+      "note": "=> pong"
+    },
+    {
+      "seq": 59,
+      "kind": "log",
+      "from": "pong",
+      "topic": "",
+      "payload": "pong: got 'ping#2' -> count=2",
+      "note": ""
+    },
+    {
+      "seq": 60,
+      "kind": "route",
+      "from": "ping",
+      "topic": "ping",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 61,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [ping] ping#2",
+      "note": ""
+    },
+    {
+      "seq": 62,
+      "kind": "emit",
+      "from": "pong",
+      "topic": "pong",
+      "payload": "pong#2",
+      "note": ""
+    },
+    {
+      "seq": 63,
+      "kind": "route",
+      "from": "pong",
+      "topic": "pong",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 64,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [pong] pong#2",
+      "note": ""
+    },
+    {
+      "seq": 65,
+      "kind": "emit",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "{\"id\":\"repoverse\",\"url\":\"https://repoverse.j0bot.ch\",\"code\":200,\"up\":true}",
+      "note": ""
+    },
+    {
+      "seq": 66,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> watcher"
+    },
+    {
+      "seq": 67,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: service repoverse is UP (200) [up=3 down=0]",
+      "note": ""
+    },
+    {
+      "seq": 68,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> recipe:alerter"
+    },
+    {
+      "seq": 69,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "triggered on [service.health]",
+      "note": ""
+    },
+    {
+      "seq": 70,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "condition 'up == false' => false",
+      "note": ""
+    },
+    {
+      "seq": 71,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "silent (condition 'up == false' is false)",
+      "note": ""
+    },
+    {
+      "seq": 72,
+      "kind": "emit",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "{\"id\":\"filesystem\",\"url\":\"https://fs.j0bot.ch\",\"code\":200,\"up\":true}",
+      "note": ""
+    },
+    {
+      "seq": 73,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> watcher"
+    },
+    {
+      "seq": 74,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: service filesystem is UP (200) [up=4 down=0]",
+      "note": ""
+    },
+    {
+      "seq": 75,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> recipe:alerter"
+    },
+    {
+      "seq": 76,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "triggered on [service.health]",
+      "note": ""
+    },
+    {
+      "seq": 77,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "condition 'up == false' => false",
+      "note": ""
+    },
+    {
+      "seq": 78,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "silent (condition 'up == false' is false)",
+      "note": ""
+    },
+    {
+      "seq": 79,
+      "kind": "emit",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "{\"id\":\"ideas-map\",\"url\":\"https://ideas.j0bot.ch\",\"code\":503,\"up\":false}",
+      "note": ""
+    },
+    {
+      "seq": 80,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> watcher"
+    },
+    {
+      "seq": 81,
+      "kind": "log",
+      "from": "watcher",
+      "topic": "",
+      "payload": "watcher: service ideas-map is DOWN (503) [up=4 down=1]",
+      "note": ""
+    },
+    {
+      "seq": 82,
+      "kind": "route",
+      "from": "service-connector",
+      "topic": "service.health",
+      "payload": "",
+      "note": "=> recipe:alerter"
+    },
+    {
+      "seq": 83,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "triggered on [service.health]",
+      "note": ""
+    },
+    {
+      "seq": 84,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "condition 'up == false' => true",
+      "note": ""
+    },
+    {
+      "seq": 85,
+      "kind": "recipe",
+      "from": "recipe:alerter",
+      "topic": "",
+      "payload": "FIRE -> emit [alert.notify] ideas-map is DOWN (code 503)",
+      "note": ""
+    },
+    {
+      "seq": 86,
+      "kind": "emit",
+      "from": "watcher",
+      "topic": "alert",
+      "payload": "{\"service\":\"ideas-map\",\"code\":503,\"down\":true}",
+      "note": ""
+    },
+    {
+      "seq": 87,
+      "kind": "emit",
+      "from": "recipe:alerter",
+      "topic": "alert.notify",
+      "payload": "ideas-map is DOWN (code 503)",
+      "note": ""
+    },
+    {
+      "seq": 88,
+      "kind": "route",
+      "from": "recipe:alerter",
+      "topic": "alert.notify",
+      "payload": "",
+      "note": "=> tracer"
+    },
+    {
+      "seq": 89,
+      "kind": "log",
+      "from": "tracer",
+      "topic": "",
+      "payload": "tracer: observed [alert.notify] ideas-map is DOWN (code 503)",
+      "note": ""
+    },
+    {
+      "seq": 90,
+      "kind": "life",
+      "from": "ping",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    },
+    {
+      "seq": 91,
+      "kind": "life",
+      "from": "pong",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    },
+    {
+      "seq": 92,
+      "kind": "life",
+      "from": "tracer",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    },
+    {
+      "seq": 93,
+      "kind": "life",
+      "from": "watcher",
+      "topic": "",
+      "payload": "health=2",
+      "note": ""
+    },
+    {
+      "seq": 94,
+      "kind": "life",
+      "from": "health-adapter",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    },
+    {
+      "seq": 95,
+      "kind": "life",
+      "from": "state-client",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    },
+    {
+      "seq": 96,
+      "kind": "life",
+      "from": "tsoin",
+      "topic": "",
+      "payload": "health=0",
+      "note": ""
+    }
+  ],
+  "services": [
+    {
+      "id": "repoverse",
+      "url": "https://repoverse.j0bot.ch",
+      "code": 200,
+      "up": true
+    },
+    {
+      "id": "filesystem",
+      "url": "https://fs.j0bot.ch",
+      "code": 200,
+      "up": true
+    },
+    {
+      "id": "ideas-map",
+      "url": "https://ideas.j0bot.ch",
+      "code": 503,
+      "up": false
+    }
+  ]
+}
+</script>
+<!-- XERB-MAP-SNAPSHOT-END -->
+
+<script>
+"use strict";
+(function () {
+  // ---- tiny DOM + escape helpers (no libraries) --------------------------
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs) => {
+    const e = document.createElementNS(SVGNS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+
+  // ---- snapshot loading: baked by default, file input to replace --------
+  function readBaked() {
+    try {
+      return JSON.parse($("baked-snapshot").textContent);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  let activeKinds = null; // null => all; otherwise a Set of trace kinds to show
+  let current = null;
+
+  function setError(msg) {
+    $("errbox").innerHTML = msg ? '<div class="err">' + esc(msg) + "</div>" : "";
+  }
+
+  function render(snap, srcName) {
+    current = snap;
+    setError("");
+    $("commit").textContent = snap.core_commit || "—";
+    $("scenario").textContent = snap.scenario || "—";
+    $("genby").textContent = snap.generated_by || "xerboxion-rt map";
+    $("srcLabel").textContent = "source: " + srcName;
+
+    renderGraph(snap);
+    renderFilters(snap);
+    renderTrace(snap);
+    renderServices(snap);
+  }
+
+  // ---- NODE GRAPH --------------------------------------------------------
+  // Deterministic layered layout (no force sim): nodes are placed in columns
+  // by their role in the dataflow so edges mostly flow left->right.
+  function nodeColumn(p) {
+    const hasReq = (p.requires || []).length > 0;
+    const hasProv = (p.provides || []).length > 0;
+    if (p.kind === "native") return 0;           // connectors feed the bus
+    if (p.kind === "recipe") return 2;           // rules sit mid/right
+    if (hasProv && !hasReq) return 0;            // pure producers
+    if (hasReq && !hasProv) return 3;            // pure consumers (e.g. tracer)
+    return 1;                                    // transformers in the middle
+  }
+
+  function renderGraph(snap) {
+    const svg = $("graph");
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const ploxions = snap.ploxions || [];
+    $("nodeCount").textContent = ploxions.length ? "(" + ploxions.length + ")" : "";
+    if (!ploxions.length) {
+      svg.setAttribute("viewBox", "0 0 600 80");
+      const t = svgEl("text", { x: 300, y: 44, "text-anchor": "middle", fill: "#7d93a6" });
+      t.textContent = "no ploxions in this snapshot";
+      svg.appendChild(t);
+      return;
+    }
+
+    const cols = [[], [], [], []];
+    ploxions.forEach((p) => cols[nodeColumn(p)].push(p));
+
+    const NW = 178, NH = 60, COLGAP = 86, ROWGAP = 26;
+    const PADX = 26, PADY = 26;
+    const maxRows = Math.max(1, ...cols.map((c) => c.length));
+    const W = PADX * 2 + cols.length * NW + (cols.length - 1) * COLGAP;
+    const H = PADY * 2 + maxRows * NH + (maxRows - 1) * ROWGAP;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.style.minWidth = Math.max(720, W) + "px";
+
+    const pos = {};
+    cols.forEach((col, ci) => {
+      const colH = col.length * NH + (col.length - 1) * ROWGAP;
+      const y0 = PADY + (H - PADY * 2 - colH) / 2;
+      col.forEach((p, ri) => {
+        pos[p.id] = { x: PADX + ci * (NW + COLGAP), y: y0 + ri * (NH + ROWGAP), p: p };
+      });
+    });
+
+    // Edges first (under the nodes).
+    const edgeLayer = svgEl("g", {});
+    const labelLayer = svgEl("g", {});
+    (snap.bus || []).forEach((edge) => {
+      const from = edge.from;
+      (edge.to || []).forEach((to) => {
+        const a = pos[from], b = pos[to];
+        if (!a || !b) return; // external source / unknown — no line to draw
+        const x1 = a.x + NW, y1 = a.y + NH / 2;
+        const x2 = b.x, y2 = b.y + NH / 2;
+        let d, cls = "edge";
+        if (edge.topic === "alert.notify") cls += " recipe";
+        else if (edge.topic === "service.health") cls += " svc";
+        if (x2 >= x1) {
+          const mx = (x1 + x2) / 2;
+          d = "M" + x1 + "," + y1 + " C" + mx + "," + y1 + " " + mx + "," + y2 + " " + x2 + "," + y2;
+        } else {
+          const sx = a.x, sy = a.y + NH / 2, tx = b.x + NW, ty = b.y + NH / 2;
+          const dip = Math.max(y1, y2) + NH;
+          d = "M" + sx + "," + sy + " C" + (sx - 40) + "," + dip + " " + (tx + 40) + "," + dip + " " + tx + "," + ty;
+        }
+        edgeLayer.appendChild(svgEl("path", { d: d, class: cls }));
+        const lbl = svgEl("text", {
+          x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 4,
+          "text-anchor": "middle", class: "edgelabel",
+        });
+        lbl.textContent = edge.topic;
+        labelLayer.appendChild(lbl);
+      });
+    });
+    svg.appendChild(edgeLayer);
+    svg.appendChild(labelLayer);
+
+    // Nodes on top.
+    ploxions.forEach((p) => {
+      const pp = pos[p.id];
+      if (!pp) return;
+      const degraded = (p.health || 0) !== 0;
+      const g = svgEl("g", { class: "node " + p.kind + (degraded ? " degraded" : "") });
+      g.appendChild(svgEl("rect", { x: pp.x, y: pp.y, width: NW, height: NH, rx: 8, ry: 8 }));
+      g.appendChild(svgEl("circle", { cx: pp.x + NW - 12, cy: pp.y + 13, r: 4, class: "hdot" }));
+      const id = svgEl("text", { x: pp.x + 12, y: pp.y + 18, class: "nid" });
+      id.textContent = p.id;
+      g.appendChild(id);
+      const meta = svgEl("text", { x: pp.x + 12, y: pp.y + 32, class: "nmeta" });
+      meta.textContent = p.kind + (p.version ? "  v" + p.version : "");
+      g.appendChild(meta);
+      const prov = (p.provides || []).join(", ");
+      const req = (p.requires || []).join(", ");
+      const pr = svgEl("text", { x: pp.x + 12, y: pp.y + 45, class: "nmeta" });
+      pr.textContent = trunc("→ " + (prov || "·"), 30);
+      g.appendChild(pr);
+      const rq = svgEl("text", { x: pp.x + 12, y: pp.y + 55, class: "nmeta" });
+      rq.textContent = trunc("← " + (req || "·"), 30);
+      g.appendChild(rq);
+      if ((p.capabilities || []).length) {
+        const cap = svgEl("text", { x: pp.x + NW - 12, y: pp.y + 55, class: "cap", "text-anchor": "end" });
+        cap.textContent = "⚿ " + p.capabilities.join(",");
+        g.appendChild(cap);
+      }
+      svg.appendChild(g);
+    });
+  }
+  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+  // ---- TRACE -------------------------------------------------------------
+  const KINDS = ["emit", "route", "recipe", "fetch", "log", "life"];
+  function renderFilters(snap) {
+    const bar = $("filterbar");
+    bar.innerHTML = "";
+    const present = new Set((snap.trace || []).map((r) => r.kind));
+    const mkBtn = (label, kind) => {
+      const b = el("button");
+      b.textContent = label;
+      const isAll = kind === null;
+      const on = isAll ? activeKinds === null : (activeKinds && activeKinds.has(kind));
+      if (on) b.classList.add("on");
+      b.onclick = () => {
+        if (isAll) { activeKinds = null; }
+        else {
+          if (activeKinds === null) activeKinds = new Set(KINDS.filter((k) => present.has(k)));
+          if (activeKinds.has(kind)) activeKinds.delete(kind); else activeKinds.add(kind);
+          if (activeKinds.size === 0) activeKinds = null;
+        }
+        renderFilters(current); renderTrace(current);
+      };
+      return b;
+    };
+    bar.appendChild(mkBtn("all", null));
+    KINDS.filter((k) => present.has(k)).forEach((k) => bar.appendChild(mkBtn(k, k)));
+  }
+
+  function renderTrace(snap) {
+    const box = $("trace");
+    box.innerHTML = "";
+    let rows = snap.trace || [];
+    $("traceCount").textContent = rows.length ? "(" + rows.length + ")" : "";
+    if (activeKinds) rows = rows.filter((r) => activeKinds.has(r.kind));
+    if (!rows.length) { box.innerHTML = '<div class="empty">no matching trace hops</div>'; return; }
+    rows.forEach((r) => {
+      const row = el("div", "trow");
+      const seq = el("div", "tseq"); seq.textContent = r.seq; row.appendChild(seq);
+      const kind = el("div", "tkind " + r.kind); kind.textContent = r.kind; row.appendChild(kind);
+      const body = el("div", "tbody");
+      body.innerHTML = traceBody(r);
+      row.appendChild(body);
+      box.appendChild(row);
+    });
+  }
+
+  function traceBody(r) {
+    const from = '<span class="from">' + esc(r.from) + "</span>";
+    switch (r.kind) {
+      case "emit":
+        return from + ' <span class="arrow">→</span> <span class="topic">[' + esc(r.topic) +
+          ']</span> <span class="pl">' + esc(trunc(r.payload, 110)) + "</span>";
+      case "route":
+        return '<span class="topic">[' + esc(r.topic) + ']</span> ' + from +
+          ' <span class="note">' + esc(r.note) + "</span>";
+      case "fetch":
+        return from + ' <span class="arrow">⇢</span> <span class="pl">' + esc(r.payload) +
+          '</span> <span class="note">' + esc(r.note) + "</span>";
+      case "recipe": {
+        const fire = /FIRE/.test(r.payload) ? "fire" : "pl";
+        return from + ': <span class="' + fire + '">' + esc(r.payload) + "</span>";
+      }
+      case "life":
+        return from + ': <span class="pl">' + esc(r.payload) + "</span>";
+      default: // log
+        return from + ': <span class="pl">' + esc(trunc(r.payload, 130)) + "</span>";
+    }
+  }
+
+  // ---- SERVICES ----------------------------------------------------------
+  function renderServices(snap) {
+    const box = $("services");
+    box.innerHTML = "";
+    const svcs = snap.services || [];
+    $("svcCount").textContent = svcs.length ? "(" + svcs.length + ")" : "";
+    if (!svcs.length) { box.innerHTML = '<div class="empty">no services</div>'; return; }
+    svcs.forEach((s) => {
+      const row = el("div", "svc " + (s.up ? "up" : "down"));
+      row.appendChild(el("div", "sdot"));
+      const id = el("div", "sid"); id.textContent = s.id; row.appendChild(id);
+      const url = el("div", "surl"); url.textContent = s.url; url.title = s.url; row.appendChild(url);
+      const code = el("div", "scode");
+      code.textContent = (s.up ? "UP " : "DOWN ") + String(s.code).padStart(3, "0");
+      row.appendChild(code);
+      box.appendChild(row);
+    });
+  }
+
+  // ---- file input: replace the baked snapshot with a fresh one ----------
+  $("fileInput").addEventListener("change", (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const snap = JSON.parse(reader.result);
+        activeKinds = null;
+        render(snap, f.name);
+      } catch (e) {
+        setError("could not parse " + f.name + " as a map snapshot: " + e.message);
+      }
+    };
+    reader.readAsText(f);
+  });
+
+  // ---- boot: render the baked snapshot -----------------------------------
+  const baked = readBaked();
+  if (baked) render(baked, "baked snapshot");
+  else setError("the baked snapshot could not be parsed — run scripts/build-map.sh to bake a real one.");
+})();
+</script>
+</body>
+</html>

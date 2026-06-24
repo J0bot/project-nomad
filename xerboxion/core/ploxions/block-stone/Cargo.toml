@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-block-stone"
+description = "WASM ploxion: le bloc Minecraft STONE (cubion solide). Residu pur (BlockDef) + block_ploxion! du SDK ; dureté 1.5, drop cobblestone."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

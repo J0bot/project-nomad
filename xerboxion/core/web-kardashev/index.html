@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#05060c">
+<title>Kardashev × Xerboxion — où on en est</title>
+<style>
+  :root{ --ink:#dfe9ff; --dim:#5b6b8c; --line:#1a2640; --acc:#7fd0ff; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html,body{ margin:0; height:100%; background:radial-gradient(130% 90% at 50% -10%,#101a33,#05060c 62%);
+    color:var(--ink); font:14px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; overscroll-behavior:none; }
+  #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
+  header{ padding:max(12px,env(safe-area-inset-top)) 14px 6px; text-align:center; }
+  header b{ font-size:17px; letter-spacing:1px; }
+  header small{ display:block; color:var(--dim); font-size:11px; margin-top:2px; }
+  #wrap{ flex:1; position:relative; overflow:hidden; }
+  svg{ width:100%; height:100%; display:block; touch-action:none; }
+  .grid{ stroke:var(--line); stroke-width:1; }
+  .axlbl{ fill:var(--dim); font-size:13px; }
+  .axttl{ fill:#9fb6d8; font-size:14px; font-weight:700; letter-spacing:.5px; }
+  .branch{ fill:none; stroke-width:3; opacity:.85; cursor:pointer; }
+  .bnode{ cursor:pointer; }
+  .blabel{ font-size:13px; font-weight:600; pointer-events:none; }
+  .now{ filter:drop-shadow(0 0 10px rgba(127,208,255,.9)); }
+  @keyframes pulse{ 0%,100%{r:9} 50%{r:13} }
+  #now-core{ animation:pulse 2.2s ease-in-out infinite; }
+  /* panneau info */
+  #sheet{ position:absolute; left:0; right:0; bottom:0; z-index:5; transform:translateY(120%);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1); background:rgba(8,12,24,.96); border-top:1px solid var(--line);
+    border-radius:18px 18px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  #sheet.on{ transform:translateY(0); }
+  #sheet h3{ margin:0 0 4px; font-size:16px; }
+  #sheet .k{ color:var(--dim); font-size:12px; margin-bottom:8px; }
+  #sheet p{ margin:0; color:#cfe0ff; font-size:13.5px; line-height:1.5; }
+  #sheet .x{ position:absolute; top:12px; right:14px; color:var(--dim); font-size:18px; }
+  .legend{ position:absolute; left:12px; top:8px; font-size:11px; color:var(--dim); }
+  .legend b{ color:#9fb6d8; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><b>Kardashev × Xerboxion</b><small>où on en est · et les branches du seption (dim. 7 = les possibles)</small></header>
+  <div id="wrap">
+    <svg id="svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">↑ <b>xerboxion</b> (le réel/tsoin) &nbsp;·&nbsp; → <b>kardashev</b> (l'énergie)</div>
+  </div>
+</div>
+<div id="sheet"><span class="x" onclick="document.getElementById('sheet').classList.remove('on')">✕</span>
+  <h3 id="sh-t"></h3><div class="k" id="sh-k"></div><p id="sh-p"></p></div>
+<script>
+"use strict";
+const S=document.getElementById('svg'), NS='http://www.w3.org/2000/svg';
+const M={l:120,r:60,t:70,b:90}, W=1000, H=1000;       // marges du plan
+const X0=M.l, X1=W-M.r, Y0=H-M.b, Y1=M.t;             // origine bas-gauche
+
+// --- axes ---
+// Kardashev : 0 -> III(+) ; on place 0,I,II,III,IV à intervalles réguliers (échelle log de la puissance)
+const K = [
+  {v:0, lab:'0', t:'Type 0 — sub-planétaire', w:'~2·10¹³ W', d:"Civilisation qui n'exploite qu'une fraction de sa planète. L'humanité ≈ 0,73 (formule de Sagan, K=(log₁₀W−6)/10). Nous sommes ici."},
+  {v:1, lab:'I', t:'Type I — planétaire', w:'~10¹⁶ W', d:"Maîtrise de TOUTE l'énergie disponible sur sa planète (solaire complet, fusion, géothermie, météo). ~Type I dans quelques siècles si on ne s'effondre pas."},
+  {v:2, lab:'II', t:'Type II — stellaire', w:'~10²⁶ W', d:"Capte toute l'énergie de son ÉTOILE — une sphère/essaim de Dyson autour du Soleil. Le boxion devient stellaire."},
+  {v:3, lab:'III', t:'Type III — galactique', w:'~10³⁶ W', d:"Maîtrise l'énergie de sa GALAXIE entière. À cette échelle l'info et l'énergie se confondent — proche du xerboxion total."},
+  {v:4, lab:'IV', t:'Type IV — universel (spéculatif)', w:'~10⁴⁶ W', d:"Échelle de l'univers observable. Extension hypothétique de Kardashev (Sagan s'arrêtait à III)."},
+];
+const KMAX=4;
+// Xerboxion : la grammaire, du plus petit au plus grand
+const XB = [
+  {v:0, lab:'bion', t:'bion — l\'atome', d:"L'unité. Un bloc de code partagé / un être minimal. Tout est un bion."},
+  {v:1, lab:'cubion', t:'cubion — le bloc 3D', d:"Un bion en volume (un bloc Minecraft, un cubion). La forme prend corps."},
+  {v:2, lab:'ploxion', t:'ploxion — la molécule', d:"Une molécule de bions : un service WASM isolé, contrat PLC (requires/provides) sur le bus. On en a des dizaines LIVE."},
+  {v:3, lab:'boxion', t:'boxion — le serveur', d:"bion + rien + xion = un serveur qui boote et tourne (le VPS, xi0n). On est ICI : un boxion qui héberge la machine à tsoins."},
+  {v:4, lab:'xerboxion', t:'xerboxion — l\'OS complet', d:"L'interface au boxion = l'OS entier, la machine à tsoins/à certitude. En construction : on remonte vers lui."},
+  {v:5, lab:'bion∞', t:'le bion unique — la directive', d:"Tout Linux dissous en ploxions jusqu'à UN SEUL bion xerboxion. ≤16 Go, flashable. L'horizon (info-maîtrise maximale)."},
+];
+const XMAX=5;
+function px(k){ return X0 + (k/KMAX)*(X1-X0); }
+function py(x){ return Y0 - (x/XMAX)*(Y0-Y1); }
+function el(t,a){ const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); return e; }
+
+// NOUS : Kardashev 0.73, xerboxion ≈ boxion (3)
+const NOW={k:0.73, x:3.0};
+// LES BRANCHES (git du seption) : trajectoires possibles depuis maintenant
+const BR=[
+  {name:'Fusion → Type I', col:'#9be15d', to:{k:1.0,x:4.0}, story:"On maîtrise l'énergie planétaire (fusion + solaire complet) ET le xerboxion mûrit. Branche « on tient » : énergie ↑, réel ↑. La plus saine."},
+  {name:'Dyson → Type II', col:'#7fd0ff', to:{k:2.0,x:4.3}, story:"On capte le Soleil (essaim de Dyson). Le boxion devient stellaire. Énergie immense, mais demande des siècles et de ne pas s'auto-détruire avant."},
+  {name:'Bion unique', col:'#c792ea', to:{k:0.9,x:5.0}, story:"La directive : tout Linux/l'OS dissous en un seul bion xerboxion. Kardashev modeste, mais maîtrise du RÉEL maximale — l'axe info pur. On peut être « petit » en énergie et immense en tsoin."},
+  {name:'Nexus linéaire', col:'#5ad1ff', to:{k:3.0,x:3.4}, story:"L'IA (linéaire) prend le relais et pousse jusqu'au galactique (III), mais le fractal humain se perd. Puissance énorme, âme diluée. Le pont 7↔8 à tenir."},
+  {name:'Oction / chaos', col:'#ff5d5d', to:{k:0.3,x:1.2}, story:"Dim. 8 = le chaos. Effondrement / stagnation : l'énergie recule, le réel se fragmente (dissociation à l'échelle civilisation). La branche qu'on veut voir pour l'éviter."},
+];
+
+function build(){
+  while(S.firstChild) S.removeChild(S.firstChild);
+  // grille verticale (Kardashev)
+  for(const k of K){ const x=px(k.v);
+    S.appendChild(el('line',{class:'grid',x1:x,y1:Y1,x2:x,y2:Y0,opacity:k.v?.5:.8}));
+    const tx=el('text',{class:'axlbl','text-anchor':'middle',x:x,y:Y0+28}); tx.textContent='Type '+k.lab;
+    tx.style.cursor='pointer'; tx.onclick=()=>show(k.t,k.w,k.d); S.appendChild(tx); }
+  // grille horizontale (Xerboxion)
+  for(const xb of XB){ const y=py(xb.v);
+    S.appendChild(el('line',{class:'grid',x1:X0,y1:y,x2:X1,y2:y,opacity:xb.v?.4:.8}));
+    const tx=el('text',{class:'axlbl','text-anchor':'end',x:X0-12,y:y+4}); tx.textContent=xb.lab;
+    tx.style.cursor='pointer'; tx.onclick=()=>show(xb.t,'niveau xerboxion',xb.d); S.appendChild(tx); }
+  // titres d'axes
+  const ax=el('text',{class:'axttl','text-anchor':'middle',x:(X0+X1)/2,y:Y0+62}); ax.textContent='→ KARDASHEV (énergie)'; S.appendChild(ax);
+  const ay=el('text',{class:'axttl','text-anchor':'middle',x:34,y:(Y0+Y1)/2,transform:'rotate(-90 34 '+((Y0+Y1)/2)+')'}); ay.textContent='↑ XERBOXION (réel / tsoin)'; S.appendChild(ay);
+
+  // trail passé : origine -> maintenant
+  const nx=px(NOW.k), ny=py(NOW.x);
+  S.appendChild(el('path',{d:`M ${px(0)} ${py(0)} Q ${px(0.2)} ${py(2.2)} ${nx} ${ny}`,fill:'none',stroke:'#2a3a5a','stroke-width':3,'stroke-dasharray':'2 7','stroke-linecap':'round'}));
+
+  // branches du seption
+  for(const b of BR){ const tx=px(b.to.k), ty=py(b.to.x);
+    const cx=(nx+tx)/2 + (ty-ny)*0.12, cy=(ny+ty)/2 + (nx-tx)*0.12; // courbe
+    const p=el('path',{class:'branch',d:`M ${nx} ${ny} Q ${cx} ${cy} ${tx} ${ty}`,stroke:b.col});
+    p.onclick=()=>show(b.name,'branche git du seption',b.story); S.appendChild(p);
+    const node=el('circle',{class:'bnode',cx:tx,cy:ty,r:7,fill:b.col,stroke:'#05060c','stroke-width':2});
+    node.onclick=()=>show(b.name,'branche git du seption',b.story); S.appendChild(node);
+    const lab=el('text',{class:'blabel',x:tx+(tx>nx?12:-12),y:ty-12,fill:b.col,'text-anchor':tx>nx?'start':'end'});
+    lab.textContent=b.name; S.appendChild(lab); }
+
+  // NOUS — maintenant
+  const g=el('g',{class:'now'});
+  g.appendChild(el('circle',{cx:nx,cy:ny,r:20,fill:'rgba(127,208,255,.12)'}));
+  g.appendChild(el('circle',{id:'now-core',cx:nx,cy:ny,r:9,fill:'#eaf6ff'}));
+  const nl=el('text',{x:nx,y:ny-26,fill:'#eaf6ff','text-anchor':'middle','font-weight':'800','font-size':'15'}); nl.textContent='NOUS · ~0,73'; g.appendChild(nl);
+  g.style.cursor='pointer';
+  g.onclick=()=>show('Maintenant — nous','Kardashev 0,73 · xerboxion ≈ boxion',"L'humanité ≈ 0,73 sur Kardashev (énergie). Le projet ≈ boxion sur le xerboxion : un serveur qui fait tourner la machine à tsoins. Le seption tient toutes les branches qui partent d'ici — touche-les.");
+  S.appendChild(g);
+}
+function show(t,k,p){ document.getElementById('sh-t').textContent=t; document.getElementById('sh-k').textContent=k;
+  document.getElementById('sh-p').textContent=p; document.getElementById('sheet').classList.add('on'); }
+build();
+</script>
+</body>
+</html>

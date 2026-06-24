@@ -1,0 +1,14 @@
+[package]
+name = "ploxion-health-adapter"
+description = "Pure-WASM service adapter: with the net.fetch capability it does a real plc_fetch of health URLs and emits service.health onto the bus (no native host code)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Opt into the gated `plc_fetch` import. The manifest below ALSO declares the
+# matching `"net.fetch"` capability — both are required or the host rejects us.
+ploxion-sdk = { path = "../sdk", features = ["net-fetch"] }

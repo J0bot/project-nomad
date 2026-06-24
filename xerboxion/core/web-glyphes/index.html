@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070a0f">
+<title>⟁ Glyphes — l'atelier du langage de José</title>
+<!--
+  PL0XI0N glyphes — MIGRÉ du labo Laravel vers le xerboxion-core (standalone, zéro Laravel).
+  La page EST le ploxion (plus de mount(container) : on rend directement dans le body).
+  Grammaire (carnet + corrections José 2026-06-20) :
+    koin = tétraèdre/PYRAMIDE (3D)   kion = forme faite de PLUSIEURS koins (le X)
+    cubion / spherion = CUBE 3D       ploxion = LOSANGE
+    wormion = ○ ronds-dans-ronds      tsoin = ⧗ sablier (l'instant, ça boucle)
+    portion = ▢ dans ▢ (cube/hypercube)
+  EMBOÎTEMENT = DIMENSION (2d→ND). PHYSIQUE : carré=gravité↓, rond=anti-gravité↑,
+  koin/kion=apesanteur. + mode MACHINE À TSOINS (image 1 du carnet, vivante).
+  100% client-side, SVG line-art, animations CSS pures (s'arrêtent toutes seules en pagehide).
+  État UI persisté dans localStorage sous la clé xb:glyphes.
+-->
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; }
+  html,body{ height:100%; }
+  body{ background:#070a0f; }
+  .gx { display:flex; flex-direction:column; min-height:100%; background:#070a0f; color:#e8e8ee;
+      font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif; }
+  .gx__bar { flex:0 0 auto; display:flex; align-items:center; gap:11px; flex-wrap:wrap; padding:9px 13px;
+      border-bottom:1px solid rgba(255,255,255,.12); position:sticky; top:0; z-index:5; background:#070a0f; }
+  .gx__t { font-weight:700; letter-spacing:.05em; }
+  .gx__dim { font-family:ui-monospace,monospace; font-size:.72rem; color:#bfe; padding:2px 10px;
+      border:1px solid rgba(160,255,230,.4); border-radius:20px; }
+  .gx__ctl { display:flex; align-items:center; gap:7px; font-size:.74rem; color:rgba(230,230,238,.75); }
+  .gx__ctl input[type=range] { width:120px; accent-color:#7fe; }
+  .gx__btn { cursor:pointer; font-size:.72rem; padding:3px 11px; border-radius:18px; border:1px solid rgba(255,255,255,.25);
+      background:none; color:rgba(230,230,238,.85); font-family:inherit; }
+  .gx__btn.on { background:rgba(160,255,230,.16); border-color:rgba(160,255,230,.6); color:#fff; }
+  .gx__grid { flex:1; min-height:0; overflow-y:auto; padding:14px; display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+  .gx__cell { border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:12px 10px 10px;
+      display:flex; flex-direction:column; align-items:center; gap:7px; background:rgba(255,255,255,.02); }
+  .gx__svg { width:100%; aspect-ratio:1; }
+  .gx__svg svg { width:100%; height:100%; display:block; }
+  .gx__nm { font-weight:700; letter-spacing:.03em; }
+  .gx__sym { color:rgba(190,255,235,.85); font-family:ui-monospace,monospace; }
+  .gx__role { font-size:.66rem; color:rgba(210,210,225,.6); text-align:center; line-height:1.25; }
+  .gx__grav { font-size:.58rem; padding:1px 7px; border-radius:10px; border:1px solid; }
+  .gx__grav.down { color:#ffcaa8; border-color:rgba(255,170,120,.4); }
+  .gx__grav.up { color:#a8d8ff; border-color:rgba(120,200,255,.45); }
+  .gx__grav.free { color:#caffd8; border-color:rgba(140,255,180,.4); }
+  .gx.phys .ph-up .gx__svg { animation:gxup 3.2s ease-in-out infinite; }
+  .gx.phys .ph-down .gx__svg { animation:gxdown 3.2s ease-in-out infinite; }
+  .gx.phys .ph-free .gx__svg { animation:gxfloat 4.5s ease-in-out infinite; }
+  @keyframes gxup { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  @keyframes gxdown { 0%,100%{transform:translateY(0)} 50%{transform:translateY(10px)} }
+  @keyframes gxfloat { 0%,100%{transform:translate(0,0) rotate(0)} 33%{transform:translate(5px,-5px) rotate(2deg)} 66%{transform:translate(-5px,4px) rotate(-2deg)} }
+  .gx__svg.loop svg { animation:gxloop 2.6s ease-in-out infinite; transform-origin:50% 50%; }
+  @keyframes gxloop { 0%,100%{opacity:.55} 50%{opacity:1} }
+  /* mode machine à tsoins */
+  .gx__machine { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:14px; }
+  .gx__machine svg { width:min(100%,560px); height:auto; }
+  .gx__mflux { stroke-dasharray:5 9; animation:gxflow 1.1s linear infinite; }
+  @keyframes gxflow { to { stroke-dashoffset:-14; } }
+  .gx__mtsoin { animation:gxpulse 2.2s ease-in-out infinite; transform-origin:center; }
+  @keyframes gxpulse { 0%,100%{ opacity:.6 } 50%{ opacity:1 } }
+  .gx__mcap { text-align:center; font-size:.72rem; color:rgba(210,210,225,.6); margin-top:8px; }
+  @media (prefers-reduced-motion: reduce){
+    .gx.phys .ph-up .gx__svg,.gx.phys .ph-down .gx__svg,.gx.phys .ph-free .gx__svg,
+    .gx__svg.loop svg,.gx__mflux,.gx__mtsoin{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="gx" data-root>
+  <div class="gx__bar"><span class="gx__t">⟁ Glyphes</span>
+    <button class="gx__btn on" data-mode="atomes">atomes</button>
+    <button class="gx__btn" data-mode="machine">machine à tsoins</button>
+    <span class="gx__sp" style="flex:1"></span>
+    <span class="gx__dim" data-dim></span>
+    <span class="gx__ctl" data-depthwrap>profondeur <input type="range" min="1" max="8" value="4" data-depth><b data-dnum>4</b></span>
+    <button class="gx__btn" data-phys>physique</button>
+  </div>
+  <div class="gx__view" data-view style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- état persisté (localStorage, préfixe xb: comme les autres ploxions migrés) ----
+  var STORE = 'xb:glyphes';
+  function loadState() {
+    var st = { depth: 4, phys: false, mode: 'atomes' };
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (raw) { var o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+          if (o.depth >= 1 && o.depth <= 8) st.depth = o.depth | 0;
+          st.phys = !!o.phys;
+          if (o.mode === 'atomes' || o.mode === 'machine') st.mode = o.mode;
+        } }
+    } catch (e) {}
+    return st;
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE, JSON.stringify({ depth: depth, phys: phys, mode: mode })); } catch (e) {}
+  }
+
+  var DIMS = ['2d · existence', '3d · être', '4d · observation', '5d', '6d', '7d', '8d · oction', 'ND · xerboxion'];
+  function dimLabel(d) { return DIMS[Math.min(d - 1, DIMS.length - 1)]; }
+
+  function S(inner, w) { return '<svg viewBox="0 0 100 100" fill="none" stroke="#eee" stroke-width="' + (w || 1.7) + '" stroke-linejoin="round" stroke-linecap="round">' + inner + '</svg>'; }
+  function scale(p, f) { return [50 + (p[0] - 50) * f, 50 + (p[1] - 50) * f]; }
+  function line(a, b) { return '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"/>'; }
+  function poly(pts) { return '<polygon points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>'; }
+  // fil de fer 3D : sommets V + arêtes E, emboîté d fois (= dimension)
+  function wire(V, E, d) {
+    var s = '';
+    for (var i = 0; i < d; i++) { var f = 1 - i * (0.62 / d); var v = V.map(function (p) { return scale(p, f); });
+      s += E.map(function (e) { return line(v[e[0]], v[e[1]]); }).join(''); }
+    return S(s);
+  }
+
+  // ---- atomes (formes corrigées par José) ----
+  // koin = PYRAMIDE 3D (tétraèdre/pyramide), instable
+  function koin(d) {
+    var V = [[20, 80], [80, 80], [66, 60], [34, 60], [50, 18]]; // FL FR BR BL apex
+    var E = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 0], [4, 1], [4, 2], [4, 3]];
+    return wire(V, E, d);
+  }
+  // kion = plusieurs koins → le X (4 triangles depuis les bords vers le centre)
+  function kion(d) {
+    var C = [50, 50], s = '';
+    var tris = [[[14, 12], [86, 12]], [[86, 88], [14, 88]], [[12, 14], [12, 86]], [[88, 86], [88, 14]]];
+    for (var i = 0; i < d; i++) { var f = 1 - i * (0.6 / d);
+      tris.forEach(function (t) { s += poly([scale(t[0], f), scale(t[1], f), C]); }); }
+    return S(s);
+  }
+  // cubion / spherion = CUBE 3D (simple sur le site)
+  function cube(d) {
+    var V = [[24, 42], [66, 42], [66, 84], [24, 84], [40, 24], [82, 24], [82, 66], [40, 66]];
+    var E = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
+    return wire(V, E, d);
+  }
+  // ploxion = LOSANGE
+  function ploxion(d) {
+    var V = [[50, 12], [88, 50], [50, 88], [12, 50]], E = [[0, 1], [1, 2], [2, 3], [3, 0]];
+    return wire(V, E, d);
+  }
+  // portion = carré dans carré (cube/hypercube)
+  function portion(d) {
+    var s = ''; d = Math.max(d, 2);
+    for (var i = 0; i < d; i++) { var m = 12 + i * (32 / d); s += '<rect x="' + m + '" y="' + m + '" width="' + (100 - 2 * m) + '" height="' + (100 - 2 * m) + '" rx="2"/>'; }
+    return S(s);
+  }
+  // wormion = ronds-dans-ronds (input creux / output rempli)
+  function wormion(d, out) {
+    var s = '', last = 0;
+    for (var i = 0; i < d; i++) { var r = 42 - i * (36 / d); last = r; s += '<circle cx="50" cy="50" r="' + r.toFixed(1) + '"/>'; }
+    if (out) s += '<path d="M50 ' + (50 - last).toFixed(1) + ' A ' + last.toFixed(1) + ' ' + last.toFixed(1) + ' 0 0 1 50 ' + (50 + last).toFixed(1) + ' Z" fill="#eee" stroke="none"/>';
+    return S(s);
+  }
+  // tsoin = sablier (deux koins pointe-à-pointe) dans un carré → l'instant, ça boucle
+  function tsoin(d) {
+    var s = '<rect x="9" y="9" width="82" height="82" rx="3" stroke-opacity=".5"/>', C = [50, 50];
+    for (var i = 0; i < d; i++) { var f = 1 - i * (0.66 / d);
+      s += poly([scale([22, 18], f), scale([78, 18], f), C]) + poly([scale([22, 82], f), scale([78, 82], f), C]); }
+    return S(s);
+  }
+
+  var ATOMS = [
+    { sym: '△', nm: 'koin', role: 'pyramide/tétraèdre — l\'unité, instable', grav: 'free', g: koin },
+    { sym: '✕', nm: 'kion', role: 'plusieurs koins assemblés → un xer', grav: 'free', g: kion },
+    { sym: '◇', nm: 'ploxion', role: 'le losange', grav: 'free', g: ploxion },
+    { sym: '⬛', nm: 'cubion', role: 'le cube 3d', grav: 'down', g: cube },
+    { sym: '●', nm: 'spherion', role: 'cube 3d (simplifié)', grav: 'up', g: cube },
+    { sym: '▢▢', nm: 'portion', role: 'profondeur : cube, hypercube', grav: 'down', g: portion },
+    { sym: '○', nm: 'wormion', role: 'observation · input cerveau', grav: 'up', g: function (d) { return wormion(d, false); } },
+    { sym: '◑', nm: 'wormion · output', role: 'le cerveau qui émet', grav: 'up', g: function (d) { return wormion(d, true); } },
+    { sym: '⧗', nm: 'tsoin', role: 'l\'instant capturé — ça boucle', grav: 'free', g: tsoin, loop: true },
+  ];
+  var GRAVTXT = { down: '▼ gravité', up: '▲ anti-grav', free: '◇ apesanteur' };
+
+  // ---- la MACHINE À TSOINS (image 1 du carnet, vivante) ----
+  // deux portions-cônes versent un signal RGB multimodal → un tsoin central qui pulse.
+  function machineSVG() {
+    var cols = ['#ff4d4d', '#4dff7a', '#4d9dff', '#ff4df0', '#4dffe0'];
+    var s = '<svg viewBox="0 0 200 150" fill="none" stroke="#eee" stroke-width="1.4" stroke-linecap="round">';
+    // cône gauche (portion-entonnoir) : bouche ellipse à gauche, pointe vers le centre
+    s += '<ellipse cx="34" cy="48" rx="16" ry="34"/><ellipse cx="34" cy="48" rx="9" ry="20" stroke-opacity=".6"/>';
+    s += '<line x1="48" y1="22" x2="92" y2="68"/><line x1="48" y1="74" x2="92" y2="80"/>';
+    // cône droit (miroir)
+    s += '<ellipse cx="166" cy="48" rx="16" ry="34"/><ellipse cx="166" cy="48" rx="9" ry="20" stroke-opacity=".6"/>';
+    s += '<line x1="152" y1="22" x2="108" y2="68"/><line x1="152" y1="74" x2="108" y2="80"/>';
+    // fils RGB qui coulent des cônes vers le tsoin central (animés)
+    for (var i = 0; i < 5; i++) {
+      var y = 28 + i * 9, c = cols[i % cols.length];
+      s += '<path class="gx__mflux" stroke="' + c + '" stroke-width="1.2" d="M34 ' + y + ' Q 70 ' + (y + 4) + ' 100 74"/>';
+      s += '<path class="gx__mflux" stroke="' + c + '" stroke-width="1.2" d="M166 ' + y + ' Q 130 ' + (y + 4) + ' 100 74"/>';
+    }
+    // tsoin central (sablier dans un carré) qui pulse = l'instant gravé
+    s += '<g class="gx__mtsoin">';
+    s += '<rect x="86" y="60" width="28" height="28" rx="2"/>';
+    s += '<polygon points="91,64 109,64 100,74"/><polygon points="91,84 109,84 100,74"/>';
+    s += '</g>';
+    // socle / fronton (architecture du carnet)
+    s += '<polygon points="40,108 160,108 100,128" stroke-opacity=".5"/>';
+    s += '<rect x="30" y="132" width="140" height="12" rx="2" stroke-opacity=".4"/>';
+    s += '</svg>';
+    return s;
+  }
+
+  // ---- bus xerboxion-core (same-origin, la page est servie à /px/glyphes/index.html) ----
+  // émet un évènement (best-effort, jamais bloquant). Le ploxion d'origine ne parlait pas au bus ;
+  // on signale juste les changements d'atelier pour que la flotte voie le glyphe sélectionné.
+  function emit(topic, payload) {
+    try {
+      fetch('/emit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topic, payload: payload }),
+        keepalive: true
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  // ---- rendu : la page EST le ploxion, on rend dans le body (plus de container) ----
+  var depth, phys, mode;
+  var st = loadState(); depth = st.depth; phys = st.phys; mode = st.mode;
+
+  var root = document.querySelector('[data-root]'), view = document.querySelector('[data-view]');
+  var dimEl = document.querySelector('[data-dim]'), dnum = document.querySelector('[data-dnum]');
+  var slider = document.querySelector('[data-depth]'), physBtn = document.querySelector('[data-phys]');
+  var depthWrap = document.querySelector('[data-depthwrap]');
+
+  function renderAtomes() {
+    dimEl.textContent = dimLabel(depth); dnum.textContent = depth;
+    view.innerHTML = '<div class="gx__grid">' + ATOMS.map(function (a) {
+      return '<div class="gx__cell ph-' + a.grav + '">'
+           + '<div class="gx__svg' + (a.loop ? ' loop' : '') + '">' + a.g(depth) + '</div>'
+           + '<div class="gx__nm"><span class="gx__sym">' + a.sym + '</span> ' + a.nm + '</div>'
+           + '<div class="gx__role">' + a.role + '</div>'
+           + '<div class="gx__grav ' + a.grav + '">' + GRAVTXT[a.grav] + '</div>'
+           + '</div>';
+    }).join('') + '</div>';
+  }
+  function renderMachine() {
+    view.innerHTML = '<div class="gx__machine"><div><div>' + machineSVG() + '</div>'
+      + '<div class="gx__mcap">deux portions-cônes aspirent un signal multimodal (RGB) → gravé dans le tsoin central.<br>la machine à tsoins. (à brancher sur /record : caméra · micro · écran)</div></div></div>';
+  }
+  function render() { mode === 'machine' ? renderMachine() : renderAtomes(); depthWrap.style.display = mode === 'machine' ? 'none' : ''; }
+
+  // état initial reflété dans la barre
+  slider.value = depth; dnum.textContent = depth;
+  document.querySelectorAll('[data-mode]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-mode') === mode); });
+  physBtn.classList.toggle('on', phys); root.classList.toggle('phys', phys);
+
+  document.querySelectorAll('[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      mode = b.getAttribute('data-mode');
+      document.querySelectorAll('[data-mode]').forEach(function (x) { x.classList.toggle('on', x === b); });
+      render(); saveState();
+      emit('glyphes.mode', { mode: mode });
+    });
+  });
+  slider.addEventListener('input', function () { depth = +slider.value; if (mode === 'atomes') renderAtomes(); saveState(); });
+  slider.addEventListener('change', function () { emit('glyphes.depth', { depth: depth, dim: dimLabel(depth) }); });
+  physBtn.addEventListener('click', function () {
+    phys = !phys; physBtn.classList.toggle('on', phys); root.classList.toggle('phys', phys);
+    saveState(); emit('glyphes.physique', { on: phys });
+  });
+
+  render();
+
+  // ---- présence sur le bus (SSE same-origin) : content-blind, juste pour exister dans la flotte ----
+  var es = null;
+  function connectBus() {
+    try { es = new EventSource('/events'); } catch (e) { es = null; }
+  }
+  connectBus();
+
+  // ---- droit au silence : à la fermeture/masquage, on coupe tout (SSE) sans laisser de trace ----
+  function silence() {
+    if (es) { try { es.close(); } catch (e) {} es = null; }
+  }
+  addEventListener('pagehide', silence);
+  addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

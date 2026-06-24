@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-object"
+description = "WASM ploxion: la pipeline de CREATION D'OBJET. Assemble des cubions (blocs) en un OBJET = un tsoin content-adresse, et DECLENCHE les bions blocs en live (emit block.place). 'Refaire la redstone mais avec des bions' (Jose)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-kion"
+description = "WASM ploxion: le kion = la transformation wormion -> portion (du reel au kion). Collapse un wormion rond/continu sur une grille carree ; residu = erreur de quantification, certitude = 1 - residu."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

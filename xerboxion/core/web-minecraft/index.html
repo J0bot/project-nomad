@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!--
+  web-minecraft/index.html — le ploxion SERVEUR MINECRAFT, servi par le core à /px/minecraft/.
+  José : « un ploxion serveur Minecraft pour start/stop le serveur, les logs, et envoyer des
+  commandes. » Backend = mc-control/bridge.py (conteneur `mc`, itzg/minecraft-server) qui parle au
+  bus : il émet `mc.console` (les logs) + `mc.status`, et écoute `mc.command` (rcon) + `mc.server`
+  ({action:start|stop|restart|status}). Le ploxion ne fait que parler au bus same-origin (/events,
+  /emit). Pseudo Minecraft `j0b0t` lié au compte xerboxion (SSO api.j0bot.ch). Mobile-first.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>minecraft · serveur</title>
+<style>
+  :root{--bg:#0a0d07;--ink:#dfe8d6;--dim:#93a884;--line:rgba(150,200,120,.18);--ok:#7bd16a;--warn:#e7c66a;--ko:#e87a6a;--acc:#9ad36a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(700px 400px at 80% -8%,rgba(80,120,40,.16),transparent 60%),var(--bg);
+    color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif;font-size:.85rem;display:flex;flex-direction:column;height:100dvh}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line)}
+  header b{color:#fff;letter-spacing:.04em}
+  .badge{margin-left:auto;font-size:.66rem;padding:3px 10px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .badge.on{color:var(--ok);border-color:rgba(123,209,106,.5)} .badge.off{color:var(--ko);border-color:rgba(232,122,106,.5)}
+  .ctrl{flex:0 0 auto;display:flex;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .b{flex:1;min-width:84px;padding:11px 8px;border-radius:11px;border:1px solid var(--line);background:rgba(30,40,20,.5);
+    color:var(--ink);font-size:.86rem;font-family:inherit;cursor:pointer;font-weight:600}
+  .b:active{transform:scale(.97)} .b.start{border-color:rgba(123,209,106,.5);color:var(--ok)}
+  .b.stop{border-color:rgba(232,122,106,.5);color:var(--ko)} .b.restart{border-color:rgba(231,198,106,.5);color:var(--warn)}
+  .link{flex:0 0 auto;padding:7px 13px;font-size:.7rem;color:var(--dim);border-bottom:1px solid var(--line)}
+  .link b{color:var(--acc)}
+  .console{flex:1;min-height:0;overflow-y:auto;padding:9px 12px;font-family:ui-monospace,monospace;font-size:.7rem;line-height:1.45;-webkit-overflow-scrolling:touch}
+  .ln{white-space:pre-wrap;word-break:break-word;padding:1px 0}
+  .ln.sys{color:var(--warn)} .ln.cmd{color:var(--acc)} .ln.rcon{color:rgba(150,200,255,.85)}
+  .cmd{flex:0 0 auto;display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);align-items:center}
+  .cmd input{flex:1;background:rgba(8,12,6,.7);border:1px solid var(--line);border-radius:12px;color:var(--ink);
+    padding:10px 13px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace}
+  .cmd input:focus{border-color:var(--acc)}
+  .send{width:42px;height:42px;border-radius:50%;border:1px solid rgba(154,211,106,.5);background:rgba(50,90,30,.5);color:#fff;font-size:1.05rem;cursor:pointer}
+  .live{font-size:.58rem;color:var(--dim)}
+</style>
+</head>
+<body>
+  <header><span style="font-size:1.1rem">🎮</span><b>Minecraft</b><span class="live" id="live">·</span>
+    <span class="badge" id="badge">état ?</span></header>
+  <div class="ctrl">
+    <button class="b start" data-a="start">▶ Démarrer</button>
+    <button class="b stop" data-a="stop">⏹ Arrêter</button>
+    <button class="b restart" data-a="restart">⟳ Redémarrer</button>
+  </div>
+  <div class="link">Pseudo Minecraft <b id="mcpseudo">j0b0t</b> — lié à ton compte xerboxion (SSO api.j0bot.ch).</div>
+  <div class="console" id="console"><div class="ln sys">— console du serveur —</div></div>
+  <div class="cmd">
+    <input id="ci" placeholder="commande (ex: list, time set day, weather clear)…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="send" id="send" title="envoyer">➤</button>
+  </div>
+
+<script>
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var es=null, con=$('#console');
+function emit(topic,payload){ return fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({topic:topic,payload:payload||''})}).catch(function(){}); }
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+function line(txt,kind){
+  var atBottom = con.scrollTop+con.clientHeight >= con.scrollHeight-30;
+  var d=document.createElement('div'); d.className='ln'+(kind?' '+kind:''); d.textContent=txt; con.appendChild(d);
+  while(con.children.length>400) con.removeChild(con.firstChild);
+  if(atBottom) con.scrollTop=con.scrollHeight;
+}
+function setStatus(run){
+  var b=$('#badge');
+  if(run===true){ b.textContent='● en marche'; b.className='badge on'; }
+  else if(run===false){ b.textContent='○ arrêté'; b.className='badge off'; }
+  else { b.textContent='état ?'; b.className='badge'; }
+}
+
+// contrôle serveur : emit mc.server {action}
+document.querySelector('.ctrl').addEventListener('click',function(e){
+  var btn=e.target.closest('[data-a]'); if(!btn)return;
+  var a=btn.dataset.a;
+  line('[toi] serveur: '+a+'…','cmd');
+  emit('mc.server', JSON.stringify({action:a}));
+});
+// commande rcon : emit mc.command {cmd}
+function sendCmd(){ var v=$('#ci').value.trim(); if(!v)return; $('#ci').value=''; emit('mc.command', JSON.stringify({cmd:v})); }
+$('#send').onclick=sendCmd;
+$('#ci').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); sendCmd(); } });
+
+// flux live : mc.console (logs) + mc.status (état)
+function connect(){
+  es=new EventSource('/events');
+  es.onopen=function(){ $('#live').textContent='live'; };
+  es.onerror=function(){ $('#live').textContent='…'; };
+  var on=function(e){ try{ handle(JSON.parse(e.data)); }catch(_){} };
+  ['emit','route','log','life'].forEach(function(k){ es.addEventListener(k,on); });
+}
+function handle(ev){
+  if(ev.kind!=='emit')return;
+  if(ev.topic==='mc.console'){
+    var p=ev.payload; try{ var o=JSON.parse(p); line(o.line!=null?o.line:p, o.kind||''); return; }catch(_){}
+    line(p,'');
+  } else if(ev.topic==='mc.status'){
+    try{ var s=JSON.parse(ev.payload); setStatus(!!s.running); }catch(_){}
+  }
+}
+addEventListener('pagehide',function(){ if(es)es.close(); });
+connect();
+emit('mc.server', JSON.stringify({action:'status'})); // demande l'état au chargement
+setInterval(function(){ emit('mc.server', JSON.stringify({action:'status'})); }, 20000);
+</script>
+</body>
+</html>

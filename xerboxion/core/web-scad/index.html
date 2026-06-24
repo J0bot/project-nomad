@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#05060c">
+<title>xerCAD — designer en code, en tsoins</title>
+<style>
+  :root{ --ink:#dfe9ff; --dim:#5b6b8c; --acc:#7fd0ff; --line:#1a2640; --pan:#0c1426; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:#05060c; color:var(--ink);
+    font:13px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; overscroll-behavior:none; }
+  #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
+  header{ padding:max(10px,env(safe-area-inset-top)) 12px 6px; display:flex; align-items:baseline; gap:8px; }
+  header b{ font-size:15px; letter-spacing:1px; } header small{ color:var(--dim); font-size:11px; }
+  #wrap{ flex:1; position:relative; }
+  canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  #hud{ position:absolute; left:10px; top:8px; color:var(--dim); font-size:11px; pointer-events:none; }
+  #hud b{ color:var(--acc); }
+  #ed{ border-top:1px solid var(--line); background:var(--pan); display:flex; flex-direction:column; }
+  #code{ width:100%; height:128px; background:#070d18; color:#cfe0ff; border:none; resize:none;
+    font:12px/1.5 ui-monospace,Menlo,monospace; padding:10px 12px; outline:none; }
+  #bar{ display:flex; gap:8px; align-items:center; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  button{ appearance:none; border:1px solid var(--line); background:#101830; color:var(--ink);
+    border-radius:11px; padding:9px 14px; font:600 13px/1 inherit; }
+  button.go{ background:linear-gradient(180deg,#7fd0ff,#2f8fd8); color:#06223a; border:none; }
+  button:active{ transform:translateY(1px); }
+  #addr{ margin-left:auto; color:var(--dim); font:11px ui-monospace,monospace; }
+  #err{ color:#ff7a7a; font-size:11px; padding:0 12px 6px; min-height:14px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><b>xerCAD</b><small>designer en code → 3D/4D · le design est un tsoin</small></header>
+  <div id="wrap"><canvas id="c"></canvas>
+    <div id="hud"><b id="np">0</b> arêtes · glisse pour tourner</div></div>
+  <div id="ed">
+    <textarea id="code" spellcheck="false"></textarea>
+    <div id="err"></div>
+    <div id="bar">
+      <button class="go" id="run">▶ rendre</button>
+      <button id="ex">exemple ↻</button>
+      <span id="addr">tsoin —</span>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+const C=document.getElementById('c'), X=C.getContext('2d');
+let W=0,H=0,DPR=1, edges=[], vrx=-0.5, vry=0.7, t=0;
+function resize(){ DPR=Math.min(devicePixelRatio||1,2.5); const w=C.parentNode;
+  W=w.clientWidth; H=w.clientHeight; C.width=W*DPR; C.height=H*DPR; X.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize);
+
+// ---------- géométrie : chaque primitive = des sommets 3D + des arêtes (indices) ----------
+function cube(s){ const a=s/2, V=[],E=[]; for(let i=0;i<8;i++) V.push([(i&1?a:-a),(i&2?a:-a),(i&4?a:-a)]);
+  for(let i=0;i<8;i++)for(let j=i+1;j<8;j++){let d=0;for(let k=0;k<3;k++)if(((i>>k)&1)!==((j>>k)&1))d++;if(d===1)E.push([i,j]);} return {V,E}; }
+function tetra(s){ const a=s/2, V=[[a,a,a],[a,-a,-a],[-a,a,-a],[-a,-a,a]], E=[];
+  for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)E.push([i,j]); return {V,E}; }
+function portion(n,s){ const V=[],E=[]; n=Math.max(1,Math.min(n|0,8));            // n cubes emboîtés (carrés/gravité)
+  for(let k=0;k<n;k++){ const c=cube(s*Math.pow(0.66,k)); const off=V.length; c.V.forEach(v=>V.push(v)); c.E.forEach(e=>E.push([e[0]+off,e[1]+off])); } return {V,E}; }
+function wormion(n,s){ const V=[],E=[]; n=Math.max(1,Math.min(n|0,8)); const seg=24;  // n anneaux emboîtés (ronds/anti-grav)
+  for(let k=0;k<n;k++){ const r=s/2*Math.pow(0.7,k), off=V.length;
+    for(let i=0;i<seg;i++){ const a=i/seg*Math.PI*2; V.push([Math.cos(a)*r,Math.sin(a)*r,0]); E.push([off+i,off+(i+1)%seg]); } } return {V,E}; }
+function koin(s){ return tetra(s); }                                              // koin = triangle/tétraèdre
+function tesseract(s){ // 4D -> 3D (auto-spin en w), puis traité comme du 3D
+  const a=s/2, V4=[]; for(let i=0;i<16;i++) V4.push([(i&1?a:-a),(i&2?a:-a),(i&4?a:-a),(i&8?a:-a)]);
+  const E=[]; for(let i=0;i<16;i++)for(let j=i+1;j<16;j++){let d=0;for(let k=0;k<4;k++)if(((i>>k)&1)!==((j>>k)&1))d++;if(d===1)E.push([i,j]);}
+  const rw=t*0.012, rxw=t*0.008, c=Math.cos(rw),sn=Math.sin(rw),c2=Math.cos(rxw),s2=Math.sin(rxw);
+  const V=V4.map(p=>{ let[x,y,z,w]=p; let nz=z*c-w*sn, nw=z*sn+w*c; let nx=x*c2-nw*s2; nw=x*s2+nw*c2; x=nx;z=nz;w=nw;
+    const k=1/(2.6-w); return [x*k,y*k,z*k]; }); return {V,E}; }
+
+const PRIMS={ kion:(a)=>cube(a[0]||2), cube:(a)=>cube(a[0]||2), koin:(a)=>koin(a[0]||2),
+  portion:(a)=>portion(a[0]||3,a[1]||2.2), wormion:(a)=>wormion(a[0]||4,a[1]||2.4),
+  tesseract:(a)=>tesseract(a[0]||2), kion4:(a)=>tesseract(a[0]||2) };
+
+// ---------- parse du code : 1 primitive par ligne + modifs at/rot/scale ----------
+function rot3(p,rx,ry,rz){ let[x,y,z]=p;
+  let cz=Math.cos(rz),sz=Math.sin(rz); [x,y]=[x*cz-y*sz,x*sz+y*cz];
+  let cy=Math.cos(ry),sy=Math.sin(ry); [x,z]=[x*cy+z*sy,-x*sy+z*cy];
+  let cx=Math.cos(rx),sx=Math.sin(rx); [y,z]=[y*cx-z*sx,y*sx+z*cx]; return [x,y,z]; }
+function build(src){
+  const out=[]; let err='';
+  src.split('\n').forEach((ln,li)=>{
+    ln=ln.replace(/\/\/.*/,'').trim(); if(!ln) return;
+    const toks=ln.split(/\s+/); const name=toks[0].toLowerCase();
+    if(!PRIMS[name]){ err=err||('ligne '+(li+1)+': primitive inconnue « '+toks[0]+' »'); return; }
+    const nums=[]; let at=[0,0,0],rot=[0,0,0],sc=1,i=1;
+    while(i<toks.length){ const w=toks[i].toLowerCase();
+      if(w==='at'){ at=[+toks[i+1]||0,+toks[i+2]||0,+toks[i+3]||0]; i+=4; }
+      else if(w==='rot'){ rot=[(+toks[i+1]||0)*Math.PI/180,(+toks[i+2]||0)*Math.PI/180,(+toks[i+3]||0)*Math.PI/180]; i+=4; }
+      else if(w==='scale'){ sc=+toks[i+1]||1; i+=2; }
+      else { nums.push(+w); i++; } }
+    const g=PRIMS[name](nums);
+    g.E.forEach(e=>{ const p1=g.V[e[0]], p2=g.V[e[1]];
+      const f=v=>{ let q=rot3([v[0]*sc,v[1]*sc,v[2]*sc],rot[0],rot[1],rot[2]); return [q[0]+at[0],q[1]+at[1],q[2]+at[2]]; };
+      out.push([f(p1),f(p2)]); });
+  });
+  document.getElementById('err').textContent=err;
+  return out;
+}
+function fnv(s){ let h=0xcbf29ce484222325n,M=0x100000001b3n,K=(1n<<64n)-1n; for(let i=0;i<s.length;i++)h=((h^BigInt(s.charCodeAt(i)))*M)&K; return h.toString(16).padStart(16,'0'); }
+
+function render(src){
+  edges=build(src);
+  document.getElementById('np').textContent=edges.length;
+  document.getElementById('addr').textContent='tsoin '+fnv(src.trim()).slice(0,12);  // design = tsoin content-adressé
+}
+function frame(){ requestAnimationFrame(frame); t++;
+  // re-render le tesseract (4D anime) à chaque frame si présent
+  if(/tesseract|kion4/i.test(curSrc)) edges=build(curSrc);
+  X.clearRect(0,0,W,H); const cx=W/2, cy=H/2, sc=Math.min(W,H)*0.16;
+  X.lineWidth=1.2;
+  for(const[a,b]of edges){ const p=proj(a),q=proj(b); if(!p||!q)continue;
+    const dep=(p[2]+q[2])/2; X.strokeStyle='rgba(127,208,255,'+(0.35+0.5*(dep+1)/2).toFixed(2)+')';
+    X.beginPath(); X.moveTo(cx+p[0]*sc,cy-p[1]*sc); X.lineTo(cx+q[0]*sc,cy-q[1]*sc); X.stroke(); }
+}
+function proj(v){ let q=rot3(v,vrx,vry,0); const z=1/(6-q[2]); return [q[0]*z*4,q[1]*z*4,q[2]]; }
+
+let curSrc='';
+function run(){ curSrc=document.getElementById('code').value; render(curSrc); }
+
+// ---------- gestes : glisse = tourne la vue ----------
+let px=0,py=0,drag=false;
+function down(x,y){drag=true;px=x;py=y;} function move(x,y){if(!drag)return;vry+=(x-px)*0.01;vrx+=(y-py)*0.01;px=x;py=y;}
+C.addEventListener('touchstart',e=>{const t=e.touches[0];down(t.clientX,t.clientY);},{passive:true});
+C.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];move(t.clientX,t.clientY);},{passive:false});
+C.addEventListener('touchend',()=>drag=false);
+C.addEventListener('mousedown',e=>down(e.clientX,e.clientY)); addEventListener('mousemove',e=>move(e.clientX,e.clientY)); addEventListener('mouseup',()=>drag=false);
+
+// ---------- exemples (chacun = un tsoin) ----------
+const EX=[
+"// le boxion : un kion qui contient ses portions\nkion 3\nportion 4 scale 0.9\nkoin 1 at 0 2.4 0",
+"// le tesseract = le kion 4D (il tourne tout seul)\ntesseract 2.2",
+"// une rangée de primitives\nkion 1.4 at -3 0 0\nwormion 4 at 0 0 0\nportion 3 at 3 0 0 rot 20 20 0\nkoin 1.4 at 0 -2.6 0",
+"// wormion (ronds emboîtés) au-dessus de portion (carrés)\nwormion 5 at 0 1.6 0\nportion 4 at 0 -1.6 0",
+"// objet : une tour de kions\nkion 1.5 at 0 2.1 0\nkion 1.5 at 0 0.3 0\nkion 1.5 at 0 -1.5 0",
+"// objet : un satellite (kion + wormions + koin)\nkion 2\nwormion 3 at 3.2 0 0\nwormion 3 at -3.2 0 0\nkoin 0.9 at 0 2.6 0",
+];
+let exi=0;
+document.getElementById('run').onclick=run;
+document.getElementById('ex').onclick=()=>{ document.getElementById('code').value=EX[exi%EX.length]; exi++; run(); };
+resize(); document.getElementById('code').value=EX[0]; run(); frame();
+</script>
+</body>
+</html>

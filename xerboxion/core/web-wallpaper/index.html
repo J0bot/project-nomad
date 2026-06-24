@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+  wallpaper · le moteur de fonds d'écran du xer. Choisis un fond animé + vitesse/teinte → « appliquer
+  au bureau » écrit localStorage['xer.wallpaper'] ; le bureau xer (même origine) le lit via l'événement
+  storage et l'applique en direct. Les presets vivent dans xwall.js, partagé avec le bureau (un seul
+  rendu = la preview ici == le vrai fond). Pur client.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>wallpaper</title>
+<style>
+  :root{--bg:#070a0f;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif;height:100vh;
+    display:flex;flex-direction:column;overflow:hidden}
+  .hd{flex:0 0 auto;padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .hd b{font-size:.95rem} .hd .s{font-size:.64rem;color:var(--dim)}
+  .grid{flex:0 0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:13px 14px}
+  .pre{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;height:78px;background:#05080d;transition:.12s}
+  .pre.on{border-color:var(--acc2);box-shadow:0 0 0 1px rgba(184,141,255,.4),0 0 18px rgba(184,141,255,.18)}
+  .pre:hover{border-color:var(--acc)}
+  .pre canvas{position:absolute;inset:0;width:100%;height:100%}
+  .pre .lb{position:absolute;left:7px;bottom:6px;font-size:.66rem;font-weight:700;text-shadow:0 1px 4px #000}
+  .ctl{flex:0 0 auto;padding:6px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);font-size:.68rem;color:var(--dim)}
+  .ctl label{display:flex;align-items:center;gap:7px}
+  .ctl input[type=range]{accent-color:var(--acc2);width:120px}
+  .big{flex:1;min-height:0;position:relative;margin:12px 14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#05080d}
+  .big canvas{position:absolute;inset:0;width:100%;height:100%}
+  .foot{flex:0 0 auto;padding:11px 14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+  .btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:.84rem;cursor:pointer}
+  .btn.sec{background:rgba(30,42,66,.6);color:var(--ink);border:1px solid var(--line);font-weight:600}
+  .note{font-size:.66rem;color:var(--ok)}
+</style></head>
+<body>
+  <div class="hd"><b>🖼️ Wallpaper</b><span class="s">le fond animé de ton bureau xer</span></div>
+  <div class="grid" id="grid"></div>
+  <div class="ctl">
+    <label>vitesse <input type="range" id="spd" min="0" max="2.5" step="0.1" value="1"></label>
+    <label>teinte <input type="range" id="hue" min="0" max="360" step="5" value="265"></label>
+  </div>
+  <div class="big"><canvas id="bigc"></canvas></div>
+  <div class="foot"><button class="btn" id="apply">✓ appliquer au bureau</button>
+    <button class="btn sec" id="rand">🎲 surprends-moi</button>
+    <span class="note" id="note"></span></div>
+<script src="/px/wallpaper/xwall.js"></script>
+<script>
+"use strict";
+var KEY='xer.wallpaper';
+var cfg = (function(){ try{ return JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){ return {}; } })();
+cfg.id = cfg.id || 'cellulaire'; cfg.speed = cfg.speed==null?1:cfg.speed; cfg.hue = cfg.hue==null?265:cfg.hue;
+var stops=[], bigStop=null;
+
+function buildGrid(){
+  var g=document.getElementById('grid'); g.innerHTML=''; stops.forEach(function(s){try{s();}catch(e){}}); stops=[];
+  XWALL.PRESETS.forEach(function(p){
+    var d=document.createElement('div'); d.className='pre'+(p.id===cfg.id?' on':''); d.dataset.id=p.id;
+    d.innerHTML='<canvas></canvas><span class="lb">'+p.emoji+' '+p.name+'</span>';
+    g.appendChild(d);
+    var cv=d.querySelector('canvas'); cv.width=240; cv.height=156;
+    stops.push(XWALL.apply(cv,{id:p.id,speed:1,hue:cfg.hue}));
+    d.onclick=function(){ cfg.id=p.id; document.querySelectorAll('.pre').forEach(function(e){e.classList.toggle('on',e.dataset.id===p.id);}); renderBig(); };
+  });
+}
+function renderBig(){ if(bigStop)bigStop(); var cv=document.getElementById('bigc'); cv.width=cv.clientWidth*2|0||800; cv.height=cv.clientHeight*2|0||400;
+  bigStop=XWALL.apply(cv,cfg); }
+function applyToDesk(){
+  try{ localStorage.setItem(KEY, JSON.stringify(cfg)); }catch(e){}
+  // si on tourne dans le bureau (iframe même origine), pousse direct + l'event storage suit
+  try{ if(window.parent && window.parent!==window && window.parent.xerSetWallpaper) window.parent.xerSetWallpaper(cfg); }catch(e){}
+  var n=document.getElementById('note'); n.textContent='appliqué au bureau ✓'; setTimeout(function(){n.textContent='';},2500);
+}
+document.getElementById('spd').value=cfg.speed; document.getElementById('hue').value=cfg.hue;
+document.getElementById('spd').oninput=function(e){ cfg.speed=+e.target.value; renderBig(); };
+document.getElementById('hue').oninput=function(e){ cfg.hue=+e.target.value; renderBig(); buildGrid(); };
+document.getElementById('apply').onclick=applyToDesk;
+document.getElementById('rand').onclick=function(){ var ps=XWALL.PRESETS.filter(function(p){return p.id!=='off';});
+  cfg.id=ps[Math.floor(Math.random()*ps.length)].id; cfg.hue=Math.floor(Math.random()*360);
+  document.getElementById('hue').value=cfg.hue;
+  document.querySelectorAll('.pre').forEach(function(e){e.classList.toggle('on',e.dataset.id===cfg.id);});
+  buildGrid(); renderBig(); };
+
+if(window.XWALL){ buildGrid(); renderBig(); }
+else { document.getElementById('grid').innerHTML='<div style="color:var(--dim);padding:20px">moteur xwall indisponible</div>'; }
+</script>
+</body></html>

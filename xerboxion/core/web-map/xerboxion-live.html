@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>xerboxion-core · LIVE map</title>
+<!--
+  xerboxion-LIVE — the live map served by the PERSISTENT daemon (`xerboxion-rt
+  serve`) at GET /. Unlike the static web-map/xerboxion-map.html (which bakes in a
+  snapshot to run from file://), this page is SERVED by the daemon and talks to
+  the live core:
+
+    1. on load it GETs /snapshot to draw the bus graph + initial trace + services;
+    2. it opens a WebSocket to /ws and appends EVERY incoming bus hop to the trace
+       panel AS IT HAPPENS, updating node states live;
+    3. an "emit" box POSTs to /emit (or pushes {emit:{…}} over the WS) so you can
+       inject onto the REAL bus from the browser and watch it flow.
+
+  Self-contained: no CDN, no external fonts. It talks ONLY to its own origin (the
+  daemon), so no CORS is needed for Phase A. (Cross-origin browser ploxions are
+  Phase B and will need CORS on the daemon.)
+-->
+<style>
+:root{
+  --bg:#0b0f14; --bg2:#0e141b; --panel:#121a23; --panel2:#0f161d;
+  --line:#1e2a36; --ink:#cfe3f2; --dim:#7d93a6; --acc:#4fd6c9; --acc2:#7c9cff;
+  --warn:#ffcf6b; --xstar:#ff7eb6; --ok:#5fe39a; --bad:#ff6b7a;
+  --wasm:#4fd6c9; --native:#7c9cff; --recipe:#ffcf6b;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #11202b 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #131b2b 0%, transparent 60%),
+    var(--bg);
+  color:var(--ink); font-family:var(--mono); font-size:13px; line-height:1.5;
+}
+a{color:var(--acc2)}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+header h1{font-size:19px;margin:0;letter-spacing:.5px}
+header h1 .glow{color:var(--acc);text-shadow:0 0 18px rgba(79,214,201,.45)}
+header .tag{color:var(--dim);font-size:12px}
+.commit{margin-left:auto;color:var(--dim);font-size:11px;border:1px solid var(--line);
+  padding:3px 9px;border-radius:999px;background:var(--panel2)}
+.commit b{color:var(--ok)}
+.intro{color:var(--dim);font-size:12px;margin:4px 0 6px;max-width:980px}
+.scenario{color:var(--dim);font-size:11.5px;border-left:2px solid var(--line);
+  padding:5px 0 5px 10px;margin:6px 0 2px}
+.scenario b{color:var(--ink)}
+
+/* live status pill */
+.live{display:inline-flex;gap:7px;align-items:center;font-size:11px;border:1px solid var(--line);
+  border-radius:999px;padding:3px 10px;background:var(--panel2)}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.live.on .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(95,227,154,.16);animation:pulse 1.6s infinite}
+.live.off .dot{background:var(--bad)}
+@keyframes pulse{0%{opacity:1}50%{opacity:.45}100%{opacity:1}}
+
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 4px}
+.toolbar input[type=text]{font-family:var(--mono);font-size:11px;background:#0e1620;color:var(--ink);
+  border:1px solid var(--line);border-radius:7px;padding:6px 9px}
+.toolbar input.topic{width:160px}
+.toolbar input.payload{flex:1;min-width:140px}
+.toolbar button{font-family:var(--mono);font-size:11px;cursor:pointer;border:1px solid var(--line);
+  background:#16212c;color:var(--ink);padding:6px 12px;border-radius:8px;transition:.12s}
+.toolbar button:hover{border-color:var(--acc);color:var(--acc)}
+.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-left:auto;font-size:11px}
+.legend .chip{display:inline-flex;gap:6px;align-items:center;color:var(--dim)}
+.legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px;margin-top:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line);border-radius:12px;padding:13px;min-width:0}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);
+  margin:0 0 10px;font-weight:600;display:flex;gap:8px;align-items:baseline}
+.panel h2 .count{color:var(--acc);font-weight:600}
+#graphPanel{margin-top:12px}
+.graphbox{width:100%;overflow-x:auto;border-radius:10px;background:
+  radial-gradient(700px 300px at 50% -20%, #0f1a22 0%, transparent 70%), #0a0f15;
+  border:1px solid var(--line)}
+svg{display:block;width:100%;height:auto}
+.edge{stroke:#2a3a49;stroke-width:1.3;fill:none;opacity:.85}
+.edge.recipe{stroke:#6a5a2e}
+.edge.svc{stroke:#2f5a55}
+.edgelabel{fill:var(--dim);font-size:9.5px;font-family:var(--mono)}
+.node rect{rx:8;ry:8;stroke-width:1.4}
+.node.wasm rect{fill:#0d2a28;stroke:var(--wasm)}
+.node.native rect{fill:#161e35;stroke:var(--native)}
+.node.recipe rect{fill:#2a2410;stroke:var(--recipe)}
+.node .nid{fill:var(--ink);font-size:11.5px;font-weight:600;font-family:var(--mono)}
+.node .nmeta{fill:var(--dim);font-size:9px;font-family:var(--mono)}
+.node .cap{fill:var(--warn);font-size:8.5px;font-family:var(--mono)}
+.node.degraded rect{stroke:var(--bad)}
+.node .hdot{fill:var(--ok)}
+.node.degraded .hdot{fill:var(--bad)}
+.node.flash rect{stroke:var(--warn);filter:drop-shadow(0 0 6px rgba(255,207,107,.6))}
+#trace{display:flex;flex-direction:column;gap:0;max-height:560px;overflow:auto}
+.trow{display:flex;gap:9px;padding:5px 3px;border-bottom:1px solid #131d27;align-items:flex-start}
+.trow.fresh{animation:fadein .6s}
+@keyframes fadein{from{background:#15403c}to{background:transparent}}
+.trow:last-child{border-bottom:none}
+.tseq{color:var(--dim);font-size:10px;min-width:26px;text-align:right;padding-top:1px}
+.tkind{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;border:1px solid var(--line);
+  border-radius:5px;padding:1px 5px;min-width:52px;text-align:center;flex:0 0 auto}
+.tkind.emit{color:var(--acc);border-color:#1f5e57}
+.tkind.route{color:var(--acc2);border-color:#2c3a6a}
+.tkind.log{color:var(--dim)}
+.tkind.life{color:var(--xstar);border-color:#5a2c44}
+.tkind.fetch{color:var(--warn);border-color:#5a4a22}
+.tkind.recipe{color:var(--warn);border-color:#5a4a22;background:#1a160a}
+.tkind.lagged{color:var(--bad);border-color:#5a2c30}
+.tbody{flex:1;min-width:0;word-break:break-word}
+.tbody .from{color:var(--ink);font-weight:600}
+.tbody .topic{color:var(--acc)}
+.tbody .arrow{color:var(--dim)}
+.tbody .pl{color:var(--dim)}
+.tbody .note{color:var(--acc2)}
+.tbody .fire{color:var(--warn)}
+.filterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.filterbar button{font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:6px;
+  border:1px solid var(--line);background:#0e1620;color:var(--dim);padding:3px 8px;transition:.1s}
+.filterbar button:hover{border-color:var(--acc);color:var(--acc)}
+.filterbar button.on{background:#15403c;border-color:#1f6f64;color:var(--acc)}
+.filterbar .pause{margin-left:auto}
+#services{display:flex;flex-direction:column;gap:7px}
+.svc{display:flex;gap:10px;align-items:center;padding:8px 9px;border:1px solid var(--line);
+  border-radius:9px;background:#0c1218}
+.svc .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.svc.up .sdot{background:var(--ok);box-shadow:0 0 0 3px rgba(95,227,154,.13)}
+.svc.down .sdot{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,122,.13)}
+.svc .sid{color:var(--ink);font-weight:600;min-width:0}
+.svc .surl{color:var(--dim);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;flex:1;min-width:0}
+.svc .scode{margin-left:auto;font-size:11px;font-weight:600;flex:0 0 auto}
+.svc.up .scode{color:var(--ok)}
+.svc.down .scode{color:var(--bad)}
+.empty{color:var(--dim);font-style:italic;padding:14px 4px;text-align:center}
+footer{color:var(--dim);font-size:11px;margin-top:26px;text-align:center}
+footer code{color:var(--acc2)}
+.err{color:var(--bad);padding:10px;border:1px solid #5a2c30;border-radius:8px;background:#1a0d10;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="glow">⟁ xerboxion-core</span> · LIVE map</h1>
+    <span class="tag">persistent daemon · live bus stream over WebSocket</span>
+    <span class="commit">core <b id="commit">—</b></span>
+  </header>
+
+  <p class="intro">
+    Served by the running daemon (<code>xerboxion-rt serve</code>). On load it
+    fetches <code>/snapshot</code> to draw the wired bus graph, then opens a
+    WebSocket to <code>/ws</code> and appends EVERY bus hop as it happens — the
+    feed is the real bus. Use the box below to <b>emit</b> onto the live bus and
+    watch it flow.
+  </p>
+  <div class="scenario">scenario: <b><span id="scenario">—</span></b></div>
+
+  <div class="toolbar">
+    <span class="live off" id="livePill"><span class="dot"></span><span id="liveText">connecting…</span></span>
+    <input type="text" class="topic" id="emitTopic" placeholder="topic (e.g. ping)" />
+    <input type="text" class="payload" id="emitPayload" placeholder="payload" />
+    <button id="emitBtn">emit →</button>
+    <div class="legend">
+      <span class="chip"><span class="sw" style="background:var(--wasm)"></span>wasm ploxion</span>
+      <span class="chip"><span class="sw" style="background:var(--native)"></span>native</span>
+      <span class="chip"><span class="sw" style="background:var(--recipe)"></span>recipe</span>
+    </div>
+  </div>
+
+  <div id="errbox"></div>
+
+  <div class="panel" id="graphPanel">
+    <h2>node graph <span class="count" id="nodeCount"></span></h2>
+    <div class="graphbox"><svg id="graph" role="img" aria-label="ploxion node graph"></svg></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>event trace <span class="count" id="traceCount"></span> <span style="color:var(--dim);font-weight:400;font-size:10px">live</span></h2>
+      <div class="filterbar" id="filterbar"></div>
+      <div id="trace"><div class="empty">waiting for the live feed…</div></div>
+    </div>
+    <div class="panel">
+      <h2>services <span class="count" id="svcCount"></span></h2>
+      <div id="services"><div class="empty">no services</div></div>
+    </div>
+  </div>
+
+  <footer>
+    live from the running xerboxion-core daemon · <code>GET /snapshot</code> +
+    <code>WS /ws</code> · same-origin, self-contained
+  </footer>
+</div>
+
+<script>
+"use strict";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs) => {
+    const e = document.createElementNS(SVGNS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+  let snap = null;          // last /snapshot
+  let liveTrace = [];       // accumulated live hops (capped)
+  let activeKinds = null;   // null => all
+  let paused = false;
+  const MAX_TRACE = 4000;   // keep the DOM bounded
+
+  function setError(msg) {
+    $("errbox").innerHTML = msg ? '<div class="err">' + esc(msg) + "</div>" : "";
+  }
+  function setLive(state, text) {
+    const pill = $("livePill");
+    pill.className = "live " + state;
+    $("liveText").textContent = text;
+  }
+
+  // ---- initial snapshot --------------------------------------------------
+  async function loadSnapshot() {
+    try {
+      const r = await fetch("/snapshot", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      snap = await r.json();
+      setError("");
+      $("commit").textContent = snap.core_commit || "—";
+      $("scenario").textContent = snap.scenario || "(live daemon)";
+      liveTrace = (snap.trace || []).slice();
+      renderGraph();
+      renderFilters();
+      renderTrace();
+      renderServices();
+    } catch (e) {
+      setError("could not load /snapshot: " + e.message);
+    }
+  }
+
+  // ---- WebSocket live feed ----------------------------------------------
+  let ws = null;
+  let reconnectTimer = null;
+  function connectWS() {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const url = proto + "//" + location.host + "/ws";
+    try { ws = new WebSocket(url); } catch (e) { scheduleReconnect(); return; }
+    setLive("off", "connecting…");
+    ws.onopen = () => setLive("on", "live");
+    ws.onclose = () => { setLive("off", "disconnected"); scheduleReconnect(); };
+    ws.onerror = () => setLive("off", "error");
+    ws.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.kind === "lagged") { onLagged(m.dropped); return; }
+      onLiveEvent(m);
+    };
+  }
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      // refresh the snapshot (state may have advanced while we were gone) then reconnect.
+      loadSnapshot().finally(connectWS);
+    }, 1500);
+  }
+
+  function onLagged(n) {
+    appendRow({ seq: "—", kind: "lagged", from: "feed", topic: "", payload: "dropped " + n + " event(s) (client lagging)", note: "" }, true);
+  }
+
+  function onLiveEvent(ev) {
+    liveTrace.push(ev);
+    if (liveTrace.length > MAX_TRACE) liveTrace.splice(0, liveTrace.length - MAX_TRACE);
+    flashNode(ev);
+    if (!paused && (!activeKinds || activeKinds.has(ev.kind))) appendRow(ev, true);
+    $("traceCount").textContent = "(" + liveTrace.length + ")";
+  }
+
+  // ---- NODE GRAPH --------------------------------------------------------
+  function nodeColumn(p) {
+    const hasReq = (p.requires || []).length > 0;
+    const hasProv = (p.provides || []).length > 0;
+    if (p.kind === "native") return 0;
+    if (p.kind === "recipe") return 2;
+    if (hasProv && !hasReq) return 0;
+    if (hasReq && !hasProv) return 3;
+    return 1;
+  }
+  const nodePos = {};
+  function renderGraph() {
+    const svg = $("graph");
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const ploxions = (snap && snap.ploxions) || [];
+    $("nodeCount").textContent = ploxions.length ? "(" + ploxions.length + ")" : "";
+    if (!ploxions.length) {
+      svg.setAttribute("viewBox", "0 0 600 80");
+      const t = svgEl("text", { x: 300, y: 44, "text-anchor": "middle", fill: "#7d93a6" });
+      t.textContent = "no ploxions in this snapshot";
+      svg.appendChild(t);
+      return;
+    }
+    const cols = [[], [], [], []];
+    ploxions.forEach((p) => cols[nodeColumn(p)].push(p));
+    const NW = 178, NH = 60, COLGAP = 86, ROWGAP = 26, PADX = 26, PADY = 26;
+    const maxRows = Math.max(1, ...cols.map((c) => c.length));
+    const W = PADX * 2 + cols.length * NW + (cols.length - 1) * COLGAP;
+    const H = PADY * 2 + maxRows * NH + (maxRows - 1) * ROWGAP;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.style.minWidth = Math.max(720, W) + "px";
+    for (const k in nodePos) delete nodePos[k];
+    cols.forEach((col, ci) => {
+      const colH = col.length * NH + (col.length - 1) * ROWGAP;
+      const y0 = PADY + (H - PADY * 2 - colH) / 2;
+      col.forEach((p, ri) => {
+        nodePos[p.id] = { x: PADX + ci * (NW + COLGAP), y: y0 + ri * (NH + ROWGAP), p: p };
+      });
+    });
+    const edgeLayer = svgEl("g", {}), labelLayer = svgEl("g", {});
+    (snap.bus || []).forEach((edge) => {
+      (edge.to || []).forEach((to) => {
+        const a = nodePos[edge.from], b = nodePos[to];
+        if (!a || !b) return;
+        const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2;
+        let d, cls = "edge";
+        if (edge.topic === "alert.notify") cls += " recipe";
+        else if (edge.topic === "service.health") cls += " svc";
+        if (x2 >= x1) {
+          const mx = (x1 + x2) / 2;
+          d = "M" + x1 + "," + y1 + " C" + mx + "," + y1 + " " + mx + "," + y2 + " " + x2 + "," + y2;
+        } else {
+          const sx = a.x, sy = a.y + NH / 2, tx = b.x + NW, ty = b.y + NH / 2;
+          const dip = Math.max(y1, y2) + NH;
+          d = "M" + sx + "," + sy + " C" + (sx - 40) + "," + dip + " " + (tx + 40) + "," + dip + " " + tx + "," + ty;
+        }
+        edgeLayer.appendChild(svgEl("path", { d: d, class: cls }));
+        const lbl = svgEl("text", { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 4, "text-anchor": "middle", class: "edgelabel" });
+        lbl.textContent = edge.topic;
+        labelLayer.appendChild(lbl);
+      });
+    });
+    svg.appendChild(edgeLayer); svg.appendChild(labelLayer);
+    ploxions.forEach((p) => {
+      const pp = nodePos[p.id]; if (!pp) return;
+      const degraded = (p.health || 0) !== 0;
+      const g = svgEl("g", { class: "node " + p.kind + (degraded ? " degraded" : ""), "data-id": p.id });
+      g.appendChild(svgEl("rect", { x: pp.x, y: pp.y, width: NW, height: NH, rx: 8, ry: 8 }));
+      g.appendChild(svgEl("circle", { cx: pp.x + NW - 12, cy: pp.y + 13, r: 4, class: "hdot" }));
+      const id = svgEl("text", { x: pp.x + 12, y: pp.y + 18, class: "nid" }); id.textContent = p.id; g.appendChild(id);
+      const meta = svgEl("text", { x: pp.x + 12, y: pp.y + 32, class: "nmeta" });
+      meta.textContent = p.kind + (p.version ? "  v" + p.version : ""); g.appendChild(meta);
+      const prov = (p.provides || []).join(", "), req = (p.requires || []).join(", ");
+      const pr = svgEl("text", { x: pp.x + 12, y: pp.y + 45, class: "nmeta" }); pr.textContent = trunc("→ " + (prov || "·"), 30); g.appendChild(pr);
+      const rq = svgEl("text", { x: pp.x + 12, y: pp.y + 55, class: "nmeta" }); rq.textContent = trunc("← " + (req || "·"), 30); g.appendChild(rq);
+      if ((p.capabilities || []).length) {
+        const cap = svgEl("text", { x: pp.x + NW - 12, y: pp.y + 55, class: "cap", "text-anchor": "end" });
+        cap.textContent = "⚿ " + p.capabilities.join(","); g.appendChild(cap);
+      }
+      svg.appendChild(g);
+    });
+  }
+  // Briefly highlight the node a live event acted on.
+  function flashNode(ev) {
+    const id = ev.kind === "route" ? routeTarget(ev.note) : ev.from;
+    if (!id) return;
+    const g = $("graph").querySelector('g.node[data-id="' + cssEscape(id) + '"]');
+    if (!g) return;
+    g.classList.add("flash");
+    setTimeout(() => g.classList.remove("flash"), 500);
+  }
+  function routeTarget(note) { const m = /=>\s*(\S+)/.exec(note || ""); return m ? m[1] : null; }
+  function cssEscape(s) { return String(s).replace(/(["\\\]])/g, "\\$1"); }
+
+  // ---- TRACE -------------------------------------------------------------
+  const KINDS = ["emit", "route", "recipe", "fetch", "log", "life"];
+  function renderFilters() {
+    const bar = $("filterbar"); bar.innerHTML = "";
+    const present = new Set(liveTrace.map((r) => r.kind)); KINDS.forEach((k) => present.add(k));
+    const mkBtn = (label, kind) => {
+      const b = el("button"); b.textContent = label;
+      const isAll = kind === null;
+      const on = isAll ? activeKinds === null : (activeKinds && activeKinds.has(kind));
+      if (on) b.classList.add("on");
+      b.onclick = () => {
+        if (isAll) activeKinds = null;
+        else {
+          if (activeKinds === null) activeKinds = new Set(KINDS);
+          if (activeKinds.has(kind)) activeKinds.delete(kind); else activeKinds.add(kind);
+          if (activeKinds.size === 0) activeKinds = null;
+        }
+        renderFilters(); renderTrace();
+      };
+      return b;
+    };
+    bar.appendChild(mkBtn("all", null));
+    KINDS.forEach((k) => bar.appendChild(mkBtn(k, k)));
+    const pause = el("button", "pause"); pause.textContent = paused ? "▶ resume" : "⏸ pause";
+    pause.onclick = () => { paused = !paused; renderFilters(); if (!paused) renderTrace(); };
+    bar.appendChild(pause);
+  }
+  function renderTrace() {
+    const box = $("trace"); box.innerHTML = "";
+    let rows = liveTrace;
+    $("traceCount").textContent = rows.length ? "(" + rows.length + ")" : "";
+    if (activeKinds) rows = rows.filter((r) => activeKinds.has(r.kind));
+    if (!rows.length) { box.innerHTML = '<div class="empty">no matching trace hops</div>'; return; }
+    rows.slice(-MAX_TRACE).forEach((r) => box.appendChild(traceRow(r, false)));
+    box.scrollTop = box.scrollHeight;
+  }
+  function appendRow(r, fresh) {
+    const box = $("trace");
+    const emptyEl = box.querySelector(".empty"); if (emptyEl) box.innerHTML = "";
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.appendChild(traceRow(r, fresh));
+    while (box.children.length > MAX_TRACE) box.removeChild(box.firstChild);
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  }
+  function traceRow(r, fresh) {
+    const row = el("div", "trow" + (fresh ? " fresh" : ""));
+    const seq = el("div", "tseq"); seq.textContent = r.seq; row.appendChild(seq);
+    const kind = el("div", "tkind " + r.kind); kind.textContent = r.kind; row.appendChild(kind);
+    const body = el("div", "tbody"); body.innerHTML = traceBody(r); row.appendChild(body);
+    return row;
+  }
+  function traceBody(r) {
+    const from = '<span class="from">' + esc(r.from) + "</span>";
+    switch (r.kind) {
+      case "emit":
+        return from + ' <span class="arrow">→</span> <span class="topic">[' + esc(r.topic) +
+          ']</span> <span class="pl">' + esc(trunc(r.payload || "", 110)) + "</span>";
+      case "route":
+        return '<span class="topic">[' + esc(r.topic) + ']</span> ' + from +
+          ' <span class="note">' + esc(r.note) + "</span>";
+      case "fetch":
+        return from + ' <span class="arrow">⇢</span> <span class="pl">' + esc(r.payload) +
+          '</span> <span class="note">' + esc(r.note) + "</span>";
+      case "recipe": {
+        const fire = /FIRE/.test(r.payload || "") ? "fire" : "pl";
+        return from + ': <span class="' + fire + '">' + esc(r.payload) + "</span>";
+      }
+      case "life":
+        return from + ': <span class="pl">' + esc(r.payload) + "</span>";
+      case "lagged":
+        return from + ': <span class="pl">' + esc(r.payload) + "</span>";
+      default:
+        return from + ': <span class="pl">' + esc(trunc(r.payload || "", 130)) + "</span>";
+    }
+  }
+
+  // ---- SERVICES ----------------------------------------------------------
+  function renderServices() {
+    const box = $("services"); box.innerHTML = "";
+    const svcs = (snap && snap.services) || [];
+    $("svcCount").textContent = svcs.length ? "(" + svcs.length + ")" : "";
+    if (!svcs.length) { box.innerHTML = '<div class="empty">no services</div>'; return; }
+    svcs.forEach((s) => {
+      const row = el("div", "svc " + (s.up ? "up" : "down"));
+      row.appendChild(el("div", "sdot"));
+      const id = el("div", "sid"); id.textContent = s.id; row.appendChild(id);
+      const url = el("div", "surl"); url.textContent = s.url; url.title = s.url; row.appendChild(url);
+      const code = el("div", "scode"); code.textContent = (s.up ? "UP " : "DOWN ") + String(s.code).padStart(3, "0");
+      row.appendChild(code); box.appendChild(row);
+    });
+  }
+
+  // ---- emit box: POST onto the REAL bus ----------------------------------
+  async function doEmit() {
+    const topic = $("emitTopic").value.trim();
+    const payload = $("emitPayload").value;
+    if (!topic) return;
+    // Prefer the open WS (it is the same bus); fall back to POST /emit.
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ emit: { topic, payload } }));
+    } else {
+      try {
+        await fetch("/emit", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, payload }) });
+      } catch (e) { setError("emit failed: " + e.message); }
+    }
+    $("emitPayload").value = "";
+  }
+  $("emitBtn").addEventListener("click", doEmit);
+  $("emitPayload").addEventListener("keydown", (e) => { if (e.key === "Enter") doEmit(); });
+  $("emitTopic").addEventListener("keydown", (e) => { if (e.key === "Enter") doEmit(); });
+
+  // ---- boot --------------------------------------------------------------
+  loadSnapshot().finally(connectWS);
+})();
+</script>
+</body>
+</html>

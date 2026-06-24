@@ -1,0 +1,20 @@
+{
+  "_": "File autonome du forge, sortie du chaos-tap-1 (graine ca3d5962, 2026-06-20). 31 idees -> 14 uniques. Les 4 vecteurs ont CONVERGE sur les 5 organes qui ferment la machine a tsoins = signature du plateau (track CLIMB). Le forge 2/h pioche du haut. Le track JUMP (hors-span) est separe.",
+  "track": "CLIMB (fermer la machine a tsoins, dans le bassin)",
+  "ranked": [
+    {"name": "tsoin-store", "score": 97, "what": "tsoin.put/get/query -> store content-adresse addr=fnv1a64(gen)^fnv1a64(residu), dedup+requete. Remplace l id sequentiel in-memory.", "closes_machine": true, "new_bions": ["addr64", "dedup_table"], "deps": []},
+    {"name": "diff", "score": 90, "what": "diff.compare -> XOR-delta general + residu minimal (run-length) + surprise en bits.", "closes_machine": true, "new_bions": ["xor_delta", "residu_minimal", "from_hex(extraire)"], "deps": []},
+    {"name": "generator", "score": 89, "what": "gen.expand {gen,residu} -> reel : l inverse universel (xerbion a l envers). Rend la machine reversible.", "closes_machine": true, "new_bions": ["gen::apply", "lcg(factorise)"], "deps": ["tsoin-store", "diff"]},
+    {"name": "clock-coherence", "score": 86, "what": "clock.now {t,coherence} : t = co-occurrence des topics (pas wall-clock). Loi cahier p.42.", "closes_machine": true, "new_bions": ["coherence_window", "gated_tick"], "deps": []},
+    {"name": "player", "score": 85, "what": "player.play -> DEROULE une sequence de tsoins dans le temps (scrub/pause/boucle).", "closes_machine": true, "new_bions": ["seq_cursor"], "deps": ["tsoin-store", "clock-coherence"]},
+    {"name": "block-fold", "score": 78, "what": "replie un amas de blocs MC en cubions (extrait fold::grid3d de carte vers un bion general).", "closes_machine": true, "new_bions": ["fold::grid3d"], "deps": []},
+    {"name": "tsoin-kind", "score": 74, "what": "classe chaque tsoin REEL vs MACHINE (garde-fou anti-derive). Signal Jose #596.", "closes_machine": true, "new_bions": ["provenance_tag", "realness_score"], "deps": ["tsoin-store"]},
+    {"name": "purge", "score": 72, "what": "tsoin de purge: grave l etat encombre AVANT reset (reversible). Signal Jose #597/#606.", "closes_machine": true, "new_bions": ["snapshot_then_clear", "keep_mask"], "deps": ["tsoin-store"]},
+    {"name": "resynth", "score": 71, "what": "recompose un son depuis son spectre (inverse de spectre, erreur via diff).", "closes_machine": true, "new_bions": ["dsp::isum_sines"], "deps": ["diff"]},
+    {"name": "io-port", "score": 69, "what": "patch-bay n8n: topics<->ports nommes re-cablables a chaud (ma lane, pont browser<->core).", "closes_machine": false, "new_bions": ["port_table", "port_route"], "deps": []},
+    {"name": "qubion", "score": 64, "what": "bion en superposition -> collapse deterministe par seed (le choix = un tsoin rejouable).", "closes_machine": false, "new_bions": ["prob::normalize", "prob::pick"], "deps": []},
+    {"name": "gossip-mesh", "score": 58, "what": "anti-entropy entre N tsoin-stores (machine a tsoins DISTRIBUEE, flotte).", "closes_machine": false, "new_bions": ["merkle_summary", "set_reconcile"], "deps": ["tsoin-store"]},
+    {"name": "spectre-carte", "score": 52, "what": "pont demo: son -> frequences -> 4D -> cubions (compose 2 ploxions sans glue).", "closes_machine": false, "new_bions": [], "deps": ["spectre", "carte"]},
+    {"name": "phon-tokenizer", "score": 48, "what": "MODAL texte: segmente en phonemes, prouve qu un mot est un tsoin (peu de regles -> surface).", "closes_machine": false, "new_bions": ["syllabify"], "deps": ["diff", "tsoin-store"]}
+  ]
+}

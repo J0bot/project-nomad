@@ -1,0 +1,37 @@
+# warp.j0bot.ch — relais aveugle E2E du /warp du coeur (web-heart).
+# Demon: systemd warp-relay.service, lie 10.0.0.1:8732 (prive, hors interface publique).
+# PAS de forward-auth / SSO : Lorion est EXTERNE au labo ; la protection = le
+# chiffrement asymetrique (ECDH P-256 -> AES-GCM cote navigateur), pas l'auth.
+# Le relais est content-blind : il ne voit que du ciphertext + un roomId opaque.
+# Calque EXACT de xion.yaml / boxion.yaml (host.docker.internal, certResolver letsencrypt).
+#
+# A NE POSER QU'APRES FEU VERT JOSE (Phase exposee). En Phase locale, ce fichier
+# n'est pas dans /data/coolify/proxy/dynamic/ et rien n'est expose.
+#
+# NOTE origine unique : si on veut donner UN seul lien a Lorion (page coeur + API
+# relais sur le meme host), servir le coeur sur heart.j0bot.ch et router /warp/*
+# vers ce service ; ici on garde un sous-domaine dedie warp.j0bot.ch pour le
+# relais (le coeur peut pointer RELAY=https://warp.j0bot.ch). Choix reversible.
+http:
+  routers:
+    warp-http:
+      rule: "Host(`warp.j0bot.ch`)"
+      entryPoints: [http]
+      service: warp
+      middlewares: [warp-redirect-https]
+    warp-https:
+      rule: "Host(`warp.j0bot.ch`)"
+      entryPoints: [https]
+      service: warp
+      tls:
+        certResolver: letsencrypt
+  services:
+    warp:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8732"
+  middlewares:
+    warp-redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true

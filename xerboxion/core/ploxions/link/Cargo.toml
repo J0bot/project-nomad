@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-link"
+description = "WASM ploxion: le linkifier universel. Scanne le texte, active URLs et kions en liens (->/wiki/term/<slug>)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

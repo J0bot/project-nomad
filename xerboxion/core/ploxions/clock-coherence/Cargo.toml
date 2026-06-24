@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-clock-coherence"
+description = "WASM ploxion: l'HORLOGE DU XION ou le temps EST la coherence (cahier p.42 / Jose #596 : le temps n'existe pas, il faut le recreer ; temps=coherence=synchronisation). requires clock.observe {topic} (un topic vu passer sur le bus) -> provides clock.now {t,coherence_milli,sync}. MECANIQUE: une FENETRE glissante bornee (ring-buffer) des derniers topics observes (strings brutes, comme carte bucketise sur la string cat) ; coherence_milli = la PART du topic DOMINANT dans la fenetre = le streaming-twin EXACT de la coherence batch de carte (c*1000/max_cat) ; INDEPENDANT du niveau de remplissage (pas de warm-up wall-clock) ; gated_tick = le compteur logique t (monotone) n'avance QUE si coherence >= seuil (l'orchestre est d'accord sur une adresse), sinon le temps ne passe pas ; sync = coherence au-dessus du seuil. Donne au futur player + a carte une horloge conforme. Nouveaux bions SDK: CoherenceWindow + GatedTick."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

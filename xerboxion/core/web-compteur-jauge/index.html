@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--
+  compteur · UI B (jauge) — une AUTRE vue du MÊME core `compteur`. Aucun code partagé avec l'UI A :
+  juste le même protocole de bus (compteur.inc/reset). La valeur est dérivée du ruban d'événements
+  /events. Ouvre l'UI A (boutons) ou le binder en parallèle → tout reste synchronisé. « Un core, N UI ».
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>compteur · jauge</title>
+<style>
+  :root{--bg:#070a0f;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(700px 500px at 50% 30%,rgba(80,60,150,.18),transparent 60%),var(--bg);
+    color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;overflow:hidden;text-align:center}
+  .meta{font-size:.7rem;color:var(--dim);line-height:1.6;max-width:340px} .meta b{color:var(--acc2)}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:5px;vertical-align:middle}
+  .live.on{background:var(--ok);box-shadow:0 0 7px var(--ok)}
+  .gwrap{position:relative;width:230px;height:230px}
+  svg{transform:rotate(-90deg)}
+  .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .num b{font-size:3.4rem;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 30px rgba(92,224,140,.35)}
+  .num span{font-size:.6rem;color:var(--dim);margin-top:5px;letter-spacing:.08em;text-transform:uppercase}
+  .row{display:flex;gap:10px}
+  .b{font-size:1rem;font-weight:700;padding:11px 22px;border-radius:14px;border:none;cursor:pointer;transition:.12s}
+  .b.inc{background:linear-gradient(135deg,var(--ok),#3fae6b);color:#04120a}
+  .b.rst{background:rgba(30,42,66,.6);border:1px solid rgba(231,198,106,.4);color:var(--warn)}
+  .b:hover{transform:translateY(-1px)}
+  .note{font-size:.66rem;color:var(--warn);min-height:1em}
+</style></head>
+<body>
+  <div class="meta">core <b>compteur</b> · UI jauge<br><span class="live" id="live"></span><span id="conn">bus…</span></div>
+  <div class="gwrap">
+    <svg width="230" height="230" viewBox="0 0 230 230">
+      <circle cx="115" cy="115" r="100" fill="none" stroke="rgba(120,160,230,.14)" stroke-width="16"/>
+      <circle id="arc" cx="115" cy="115" r="100" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round"
+        stroke-dasharray="628" stroke-dashoffset="628"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ce08c"/><stop offset="1" stop-color="#6ad0ff"/></linearGradient></defs>
+    </svg>
+    <div class="num"><b id="val">0</b><span id="cyc">cycle 0</span></div>
+  </div>
+  <div class="row">
+    <button class="b inc" id="inc">+1</button>
+    <button class="b rst" id="rst">reset</button>
+  </div>
+  <div class="note" id="note"></div>
+  <div class="meta">Même valeur que l'UI <b>boutons</b> et le <b>binder</b> — synchronisée par le bus.</div>
+<script>
+"use strict";
+var value = 0, C = 628; // circonférence (2πr, r=100)
+function render(){
+  document.getElementById('val').textContent = value;
+  var m = ((value % 100) + 100) % 100;           // position sur l'arc 0..100
+  document.getElementById('arc').setAttribute('stroke-dashoffset', C - (m/100)*C);
+  document.getElementById('cyc').textContent = 'cycle ' + Math.floor(value/100);
+}
+function applyEv(ev){
+  if(!ev || ev.kind!=='emit') return;
+  if(ev.topic==='compteur.inc'){ var by=1; try{ var p=JSON.parse(ev.payload||'{}'); by=(+p.by)||1; }catch(e){ by=(+ev.payload)||1; } value+=by; render(); }
+  else if(ev.topic==='compteur.reset'){ value=0; render(); }
+}
+function connectBus(){
+  try{ var es=new EventSource('/events');
+    var live=document.getElementById('live'), conn=document.getElementById('conn');
+    es.onopen=function(){ live.classList.add('on'); conn.textContent='bus live'; };
+    es.onerror=function(){ live.classList.remove('on'); conn.textContent='reconnexion…'; };
+    es.addEventListener('emit',function(e){ try{ applyEv(JSON.parse(e.data)); }catch(_){} });
+  }catch(e){}
+}
+function emit(topic,payload){
+  var note=document.getElementById('note');
+  fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:topic,payload:payload||''})})
+    .then(function(r){ note.textContent = r.ok ? '' : (r.status===401 ? 'écriture gardée — bus authentifié (xion.j0bot.ch)' : 'échec '+r.status); })
+    .catch(function(){ note.textContent='bus injoignable'; });
+}
+document.getElementById('inc').onclick=function(){ emit('compteur.inc', JSON.stringify({by:1})); };
+document.getElementById('rst').onclick=function(){ emit('compteur.reset',''); };
+connectBus(); render();
+</script>
+</body></html>

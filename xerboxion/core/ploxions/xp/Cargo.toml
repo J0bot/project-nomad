@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-xp"
+description = "WASM ploxion: le moteur d'XP du labo. On gagne de l'XP en creant des tsoins + en etant present. Grave les sessions en tsoins."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

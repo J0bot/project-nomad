@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>· − Morse</title>
+<style>
+  html,body{margin:0;height:100%;background:#070a0f;-webkit-text-size-adjust:100%}
+  *{box-sizing:border-box}
+  .ms{display:flex;flex-direction:column;min-height:100vh;background:#0a0e0c;color:#e6f2ea;font-family:ui-sans-serif,system-ui,sans-serif;font-size:.84rem}
+  .ms__bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid rgba(80,200,140,.2)}
+  .ms__t{font-weight:800;color:#34d399}
+  .ms__io{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:11px}
+  .ms textarea{flex:1;min-height:54px;box-sizing:border-box;resize:none;background:rgba(0,0,0,.3);border:1px solid rgba(80,200,140,.25);
+      border-radius:10px;color:#dafce8;padding:10px;font:0.84rem ui-monospace,monospace;outline:none;letter-spacing:.04em}
+  .ms textarea:focus{border-color:rgba(52,211,153,.6)}
+  .ms__row{flex:0 0 auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:0 11px 11px}
+  .ms__b{cursor:pointer;border-radius:9px;border:1px solid rgba(52,211,153,.4);background:rgba(16,54,40,.5);color:#bff5dd;font-size:.8rem;padding:8px 13px;font-weight:600}
+  .ms__b:hover{background:rgba(24,80,58,.6)}
+  .ms__b.main{background:#34d399;color:#04241a;border:0;font-weight:800}
+  .ms__lab{font-size:.62rem;color:rgba(180,220,200,.55)}
+  .ms__viz{font-family:ui-monospace,monospace;font-size:1.1rem;color:#34d399;min-height:1.2em;letter-spacing:2px}
+</style>
+</head>
+<body>
+<div class="ms">
+  <div class="ms__bar"><span class="ms__t">· − Morse</span><span class="ms__lab">texte ↔ morse · écoute</span></div>
+  <div class="ms__io">
+    <textarea data-text placeholder="ton texte…"></textarea>
+    <div class="ms__row" style="padding:0"><button class="ms__b main" data-enc>↓ en morse</button><button class="ms__b" data-dec>↑ en texte</button></div>
+    <textarea data-morse placeholder=".... . .-.. .-.. ---"></textarea>
+    <div class="ms__viz" data-viz></div>
+  </div>
+  <div class="ms__row"><button class="ms__b" data-play>▶ écouter</button><button class="ms__b" data-copy>copier le morse</button>
+    <span class="ms__lab">vitesse</span><input type="range" min="8" max="30" value="18" data-wpm style="accent-color:#34d399"></div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  // ── bions d'interface inlinés (ex window.jOSb : copy / toast / beep) ─────────
+  function copy(text) {
+    try { return navigator.clipboard.writeText(text); }
+    catch (e) {
+      try { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } catch (e2) {}
+      return Promise.resolve();
+    }
+  }
+  function toast(host, msg, opts) {
+    if (!host) return; opts = opts || {};
+    try { if (getComputedStyle(host).position === 'static') host.style.position = 'relative'; } catch (e) {}
+    var t = document.createElement('div'); t.textContent = msg;
+    t.style.cssText = 'position:absolute;left:50%;' + (opts.bottom ? 'bottom:' + opts.bottom + 'px;' : 'top:46px;') + 'transform:translateX(-50%);z-index:40;'
+      + 'padding:6px 13px;border-radius:18px;font-size:.74rem;color:#fff;border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 22px rgba(0,0,0,.5);'
+      + 'background:' + (opts.bad ? 'rgba(120,40,40,.96)' : 'rgba(20,80,60,.96)');
+    host.appendChild(t);
+    setTimeout(function () { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 400); }, opts.ms || 1600);
+  }
+  function beep(ac, o) {
+    if (!ac) return; o = o || {}; var when = o.when || ac.currentTime;
+    var osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = o.type || 'square'; osc.frequency.value = o.freq || 880;
+    g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(o.vol || 0.4, when + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + (o.dur || 0.06));
+    osc.connect(g); g.connect(ac.destination); osc.start(when); osc.stop(when + (o.dur || 0.06) + 0.01);
+  }
+
+  // ── table morse ──────────────────────────────────────────────────────────
+  var M = { A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',
+      '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+      '.':'.-.-.-',',':'--..--','?':'..--..',"'":'.----.','!':'-.-.--','/':'-..-.','(':'-.--.',')':'-.--.-','&':'.-...',':':'---...',';':'-.-.-.','=':'-...-','+':'.-.-.','-':'-....-','_':'..--.-','"':'.-..-.','@':'.--.-.' };
+  var R = {}; for (var k in M) R[M[k]] = k;
+
+  function toMorse(s) { return s.toUpperCase().split('').map(function (c) { if (c === ' ') return '/'; return M[c] || ''; }).filter(function (x) { return x !== ''; }).join(' '); }
+  function fromMorse(s) { return s.trim().split(/\s+/).map(function (t) { return t === '/' ? ' ' : (R[t] || ''); }).join('').replace(/\s+/g, ' '); }
+
+  // ── la page EST le ploxion : on travaille directement dans le document ───────
+  var root = document.querySelector('.ms');
+  var ac = null, playing = false, playTimer = 0;
+  var elText = document.querySelector('[data-text]'), elMorse = document.querySelector('[data-morse]'),
+      elViz = document.querySelector('[data-viz]'), elWpm = document.querySelector('[data-wpm]'),
+      elPlay = document.querySelector('[data-play]');
+
+  document.querySelector('[data-enc]').addEventListener('click', function () { elMorse.value = toMorse(elText.value); });
+  document.querySelector('[data-dec]').addEventListener('click', function () { elText.value = fromMorse(elMorse.value); });
+  elText.addEventListener('input', function () { elMorse.value = toMorse(elText.value); });
+  document.querySelector('[data-copy]').addEventListener('click', function () { if (elMorse.value) { copy(elMorse.value); toast(root, '✓ morse copié'); } });
+
+  function stop() { playing = false; if (playTimer) { clearTimeout(playTimer); playTimer = 0; } elViz.textContent = ''; elPlay.textContent = '▶ écouter'; }
+  function play() {
+    var code = (elMorse.value || toMorse(elText.value)).trim(); if (!code) return;
+    if (playing) { stop(); return; }
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { return; }
+    playing = true; elPlay.textContent = '■ stop';
+    var unit = 1.2 / (+elWpm.value || 18);   // durée d'un « dit » en secondes (PARIS)
+    var seq = [], t = 0;
+    code.split('').forEach(function (ch) {
+      if (ch === '.') { seq.push([t, unit]); t += unit + unit; }
+      else if (ch === '-') { seq.push([t, unit * 3]); t += unit * 3 + unit; }
+      else if (ch === ' ') { t += unit * 2; }       // entre lettres (déjà +unit) -> ~3
+      else if (ch === '/') { t += unit * 4; }       // entre mots -> ~7
+    });
+    seq.forEach(function (s) { beep(ac, { freq: 620, vol: 0.35, when: ac.currentTime + s[0], dur: s[1], type: 'sine' }); });
+    // viz : déroule le code
+    var i = 0; (function step() { if (!playing) return; elViz.textContent = code.slice(0, i).replace(/\//g, ' / '); i++;
+      if (i <= code.length) playTimer = setTimeout(step, unit * 1000 * 1.5); else stop(); })();
+  }
+  elPlay.addEventListener('click', play);
+
+  setTimeout(function () { elText.focus(); }, 30);
+
+  // ── droit au silence : à la fermeture/masquage, on coupe tout (timer + WebAudio)
+  function silence() { stop(); if (ac) { try { ac.close(); } catch (e) {} ac = null; } }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

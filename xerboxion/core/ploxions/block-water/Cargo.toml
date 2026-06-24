@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-block-water"
+description = "WASM ploxion: le bloc Minecraft WATER (cubion fluide). Residu (BlockDef fluid) + block_ploxion! ; en coulant il REVELE le FLOW-BION (emit block.flow, niveau 0-7)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

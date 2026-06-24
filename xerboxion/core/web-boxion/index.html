@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!--
+  boxion · le ploxion MATÉRIEL — voir les PORTS et les PINS quand on utilise un Raspberry Pi ou un ESP
+  (José). Référence de brochage interactive (RPi 40 broches, ESP32 DevKit) : layout physique, type de
+  chaque pin (alim / GND / GPIO / fonctions I2C·SPI·UART·PWM), détail au clic. État LIVE des pins (via
+  device-bions sur le bus, quand un boxion est branché) = prévu. Pur client, mobile-first, chill-tekk.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>boxion</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem} .top .sp{flex:1}
+  .top select{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:7px 10px;font-size:.82rem;outline:none}
+  .legend{flex:0 0 auto;display:flex;gap:9px;flex-wrap:wrap;padding:7px 12px;border-bottom:1px solid var(--line);font-size:.62rem;color:var(--dim)}
+  .lg{display:flex;align-items:center;gap:5px} .dot{width:10px;height:10px;border-radius:3px}
+  .board{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;justify-content:center}
+  .hdr{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;align-content:start}
+  .pin{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;padding:5px 8px;background:var(--surf);cursor:pointer;font-size:.74rem;min-width:148px}
+  .pin.r{flex-direction:row-reverse;text-align:right}
+  .pin:hover{border-color:var(--acc)}
+  .pin .no{font-family:ui-monospace,monospace;font-size:.6rem;color:var(--dim);min-width:16px;text-align:center}
+  .pin .nm{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pin .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .gpio .sw{background:var(--ok)} .pwr3 .sw{background:#ff9e6a} .pwr5 .sw{background:var(--r)} .gnd .sw{background:#6b7a90} .fn .sw{background:var(--acc)} .id .sw{background:var(--acc2)}
+  .sheet{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(4,7,11,.65);padding:16px}
+  .sheet.on{display:flex} .sc{width:min(400px,100%);background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .sc h3{margin:0 0 4px} .sc .t{font-size:.66rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 3px}
+  .sc .fns{display:flex;gap:6px;flex-wrap:wrap} .chip{font-size:.66rem;padding:2px 9px;border:1px solid var(--line);border-radius:20px;color:var(--acc)}
+  .note{flex:0 0 auto;padding:8px 12px;border-top:1px solid var(--line);font-size:.66rem;color:var(--dim)}
+</style></head>
+<body>
+  <div class="top"><b>📌 Boxion</b><select id="board"><option value="rpi">Raspberry Pi (40)</option><option value="esp32">ESP32 DevKit</option></select><span class="sp"></span></div>
+  <div class="legend">
+    <span class="lg"><span class="dot" style="background:var(--ok)"></span>GPIO</span>
+    <span class="lg"><span class="dot" style="background:#ff9e6a"></span>3V3</span>
+    <span class="lg"><span class="dot" style="background:var(--r)"></span>5V</span>
+    <span class="lg"><span class="dot" style="background:#6b7a90"></span>GND</span>
+    <span class="lg"><span class="dot" style="background:var(--acc)"></span>I2C/SPI/UART/PWM</span>
+  </div>
+  <div class="board"><div class="hdr" id="hdr"></div></div>
+  <div class="note" id="note">Référence de brochage. État live des pins (entrée/sortie/PWM) via un boxion branché (device-bions sur le bus) = prévu.</div>
+  <div class="sheet" id="sheet"><div class="sc" id="sc"></div></div>
+<script>
+"use strict";
+function p(pin,name,type,fns){ return {pin:pin,name:name,type:type,fns:fns||[]}; }
+var RPI=[
+  p(1,'3V3','pwr3'),p(2,'5V','pwr5'),
+  p(3,'GPIO2','fn',['SDA1 (I2C)']),p(4,'5V','pwr5'),
+  p(5,'GPIO3','fn',['SCL1 (I2C)']),p(6,'GND','gnd'),
+  p(7,'GPIO4','gpio',['GPCLK0']),p(8,'GPIO14','fn',['TXD (UART)']),
+  p(9,'GND','gnd'),p(10,'GPIO15','fn',['RXD (UART)']),
+  p(11,'GPIO17','gpio'),p(12,'GPIO18','fn',['PCM_CLK','PWM0']),
+  p(13,'GPIO27','gpio'),p(14,'GND','gnd'),
+  p(15,'GPIO22','gpio'),p(16,'GPIO23','gpio'),
+  p(17,'3V3','pwr3'),p(18,'GPIO24','gpio'),
+  p(19,'GPIO10','fn',['MOSI (SPI)']),p(20,'GND','gnd'),
+  p(21,'GPIO9','fn',['MISO (SPI)']),p(22,'GPIO25','gpio'),
+  p(23,'GPIO11','fn',['SCLK (SPI)']),p(24,'GPIO8','fn',['CE0 (SPI)']),
+  p(25,'GND','gnd'),p(26,'GPIO7','fn',['CE1 (SPI)']),
+  p(27,'GPIO0','id',['ID_SD']),p(28,'GPIO1','id',['ID_SC']),
+  p(29,'GPIO5','gpio'),p(30,'GND','gnd'),
+  p(31,'GPIO6','gpio'),p(32,'GPIO12','fn',['PWM0']),
+  p(33,'GPIO13','fn',['PWM1']),p(34,'GND','gnd'),
+  p(35,'GPIO19','fn',['PCM_FS','PWM1','MISO']),p(36,'GPIO16','gpio'),
+  p(37,'GPIO26','gpio'),p(38,'GPIO20','fn',['PCM_DIN','MOSI']),
+  p(39,'GND','gnd'),p(40,'GPIO21','fn',['PCM_DOUT','SCLK'])
+];
+var ESP32=[
+  p(1,'3V3','pwr3'),p(2,'EN','fn',['reset']),
+  p(3,'GPIO36','gpio',['ADC1_0','entrée seule']),p(4,'GPIO39','gpio',['ADC1_3','entrée seule']),
+  p(5,'GPIO34','gpio',['ADC1_6','entrée seule']),p(6,'GPIO35','gpio',['ADC1_7','entrée seule']),
+  p(7,'GPIO32','gpio',['ADC1_4','touch']),p(8,'GPIO33','gpio',['ADC1_5','touch']),
+  p(9,'GPIO25','fn',['DAC1']),p(10,'GPIO26','fn',['DAC2']),
+  p(11,'GPIO27','gpio'),p(12,'GPIO14','fn',['HSPI_CLK']),
+  p(13,'GPIO12','fn',['HSPI_MISO']),p(14,'GND','gnd'),
+  p(15,'GPIO13','fn',['HSPI_MOSI']),p(16,'GPIO9','gpio',['flash']),
+  p(17,'GPIO10','gpio',['flash']),p(18,'GPIO11','gpio',['flash']),
+  p(19,'5V','pwr5'),p(20,'GND','gnd'),
+  p(21,'GPIO23','fn',['VSPI_MOSI']),p(22,'GPIO22','fn',['SCL (I2C)']),
+  p(23,'GPIO1','fn',['TXD0 (UART)']),p(24,'GPIO3','fn',['RXD0 (UART)']),
+  p(25,'GPIO21','fn',['SDA (I2C)']),p(26,'GPIO19','fn',['VSPI_MISO']),
+  p(27,'GPIO18','fn',['VSPI_CLK']),p(28,'GPIO5','fn',['VSPI_CS']),
+  p(29,'GPIO17','fn',['TXD2']),p(30,'GPIO16','fn',['RXD2'])
+];
+var note={ pwr3:'Alimentation 3,3 V (logique).', pwr5:'Alimentation 5 V.', gnd:'Masse (0 V).',
+  gpio:'Entrée/sortie numérique programmable.', fn:'GPIO avec fonction(s) spéciale(s).', id:'Réservé EEPROM HAT (ne pas utiliser).' };
+function render(){
+  var board=document.getElementById('board').value;
+  var pins=board==='esp32'?ESP32:RPI;
+  var h=document.getElementById('hdr'); h.innerHTML='';
+  pins.forEach(function(pn,i){
+    var d=document.createElement('div'); d.className='pin '+pn.type+(i%2?' r':'');
+    d.innerHTML='<span class="no">'+pn.pin+'</span><span class="sw"></span><span class="nm">'+pn.name+'</span>';
+    d.onclick=function(){ detail(pn); }; h.appendChild(d);
+  });
+}
+function detail(pn){
+  var sc=document.getElementById('sc');
+  sc.innerHTML='<h3>'+pn.name+' <span style="font-size:.7rem;color:var(--dim)">· broche '+pn.pin+'</span></h3>'+
+    '<div style="font-size:.8rem;color:var(--dim);line-height:1.5">'+(note[pn.type]||'')+'</div>'+
+    (pn.fns&&pn.fns.length?'<div class="t">fonctions</div><div class="fns">'+pn.fns.map(function(f){return '<span class="chip">'+f+'</span>';}).join('')+'</div>':'')+
+    '<button style="margin-top:14px;width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px;cursor:pointer" onclick="document.getElementById(\'sheet\').classList.remove(\'on\')">fermer</button>';
+  document.getElementById('sheet').classList.add('on');
+}
+document.getElementById('sheet').onclick=function(e){ if(e.target.id==='sheet') e.currentTarget.classList.remove('on'); };
+document.getElementById('board').onchange=render;
+render();
+</script>
+</body></html>

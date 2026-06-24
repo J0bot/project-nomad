@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-osiris-adapter"
+description = "Pure-WASM service adapter: with net.fetch it plc_fetches OSIRIS (machine a veille) GET routes, republishes each world event as an osiris.* topic, and records each as a tsoin (instant of reel) via tsoin.record — the convergence of OSIRIS and the machine a tsoins"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk", features = ["net-fetch"] }

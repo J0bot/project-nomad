@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<!--
+  binder — le UI GÉNÉRIQUE du xerboxion (contrat docs/CORE-UI-BINDING-v0.md). Servi par le core à
+  /px/binder/. Il rend N'IMPORTE QUEL core depuis son descripteur, sans une ligne de code spécifique
+  au domaine : si le core publie /px/<id>/core.json (état + ports typés), il l'utilise ; sinon il
+  retombe sur provides/requires de /ecosystem (provides = ports OUT, requires = ports IN). Pour chaque
+  core : ses ports IN deviennent des formulaires emit, ses ports OUT un flux live (SSE /events). C'est
+  la preuve « un binder, tous les cores » — et la base de tous les UI extrapolés. Pur HTML/CSS/JS.
+-->
+<html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>binder</title>
+<style>
+  :root{--bg:#070a0f;--panel:rgba(14,20,30,.86);--ink:rgba(222,234,244,.92);--dim:rgba(150,178,210,.62);
+    --line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;
+    height:100vh;display:flex;overflow:hidden;font-size:14px}
+  /* ---- liste des cores ---- */
+  #cores{flex:0 0 220px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:rgba(8,12,18,.5)}
+  #cores .h{padding:9px 11px;border-bottom:1px solid var(--line)}
+  #cores input{width:100%;background:rgba(8,12,18,.7);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:6px 9px;font-size:.78rem;outline:none}
+  #cores input:focus{border-color:var(--acc)}
+  #clist{flex:1;min-height:0;overflow:auto;padding:6px}
+  .ci{padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent;display:flex;align-items:center;gap:7px}
+  .ci:hover{background:rgba(40,56,86,.5)}
+  .ci.on{background:rgba(70,44,110,.45);border-color:rgba(184,141,255,.4)}
+  .ci .nm{flex:1;font-weight:600;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ci .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  .ci .dot.running{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .ci .np{font-size:.55rem;color:var(--dim);font-family:ui-monospace,monospace}
+  /* ---- panneau ---- */
+  #panel{flex:1;min-width:0;overflow:auto;padding:14px 16px}
+  .ph{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:3px}
+  .ph .id{font-weight:800;font-size:1.15rem;color:#fff}
+  .ph .kind{font-size:.62rem;padding:1px 8px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .src{font-size:.6rem;color:var(--dim);margin-bottom:12px}
+  .src b{color:var(--acc2)}
+  .sec{margin-top:16px}
+  .sec>.t{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:7px}
+  .port{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;background:var(--panel)}
+  .port .topic{font-family:ui-monospace,monospace;font-size:.78rem;color:var(--acc);font-weight:700}
+  .port.out .topic{color:var(--ok)}
+  .port .doc{font-size:.66rem;color:var(--dim);margin-top:2px}
+  .port .schema{font-size:.62rem;color:var(--dim);font-family:ui-monospace,monospace;margin-top:5px}
+  textarea,.binp{width:100%;background:rgba(8,12,18,.7);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    padding:7px 9px;font-size:.74rem;outline:none;font-family:ui-monospace,monospace;margin-top:7px;resize:vertical}
+  textarea:focus{border-color:var(--acc)}
+  .btn{margin-top:7px;font-size:.72rem;padding:5px 12px;border-radius:8px;border:1px solid rgba(184,141,255,.5);
+    background:rgba(70,44,110,.4);color:rgba(216,182,255,.95);cursor:pointer}
+  .btn:hover{color:#fff;border-color:var(--acc2)}
+  .note{font-size:.62rem;color:var(--warn);margin-top:5px}
+  .feed{font-family:ui-monospace,monospace;font-size:.66rem;line-height:1.5;border:1px solid var(--line);border-radius:11px;
+    padding:9px 11px;background:rgba(8,12,18,.55);max-height:240px;overflow:auto}
+  .feed .ev{padding:2px 0;border-bottom:1px solid rgba(120,160,230,.07);display:flex;gap:8px}
+  .feed .tp{color:var(--ok)} .feed .pl{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .empty{color:var(--dim);font-size:.8rem;padding:30px 6px;text-align:center;line-height:1.6}
+  .st-grid{font-size:.66rem;color:var(--dim);font-family:ui-monospace,monospace}
+  .st-grid b{color:var(--ink)}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:5px}
+  .live.on{background:var(--ok);box-shadow:0 0 7px var(--ok)}
+</style></head>
+<body>
+  <div id="cores">
+    <div class="h"><input id="q" placeholder="chercher un core…" oninput="render()"></div>
+    <div id="clist"></div>
+  </div>
+  <div id="panel"><div class="empty">🔌 Le binder générique.<br>Choisis un core à gauche : je rends ses <b>ports</b> (entrées = formulaires, sorties = flux live) depuis son descripteur — sans code spécifique.<br><span style="font-size:.7rem"><span class="live" id="liveDot"></span><span id="conn">connexion bus…</span></span></div></div>
+<script>
+"use strict";
+var S = { nodes:[], sel:null, desc:{}, feed:[], es:null };
+
+async function pull(){
+  try{ var r = await fetch('/ecosystem',{cache:'no-store'}); if(!r.ok) return;
+    var d = await r.json(); S.nodes = (d.nodes||[]).slice().sort(function(a,b){return a.id.localeCompare(b.id);}); render();
+  }catch(e){}
+}
+// descripteur : core.json si présent (contrat), sinon fallback provides/requires
+async function describe(id){
+  if(S.desc[id]) return S.desc[id];
+  var node = S.nodes.find(function(n){return n.id===id;}) || {id:id};
+  var desc = { id:id, kind:node.kind||'core', state:node.state, source:'ecosystem',
+    ports:{ in:(node.requires||[]).map(function(t){return {topic:t};}),
+            out:(node.provides||[]).map(function(t){return {topic:t};}) }, schema:null };
+  try{ var r = await fetch('/px/'+id+'/core.json',{cache:'no-store'});
+    if(r.ok){ var cj = await r.json(); desc.source='core.json'; desc.schema=cj.state||null;
+      if(cj.ports){ desc.ports.in=cj.ports.in||desc.ports.in; desc.ports.out=cj.ports.out||desc.ports.out; }
+    }
+  }catch(e){}
+  S.desc[id]=desc; return desc;
+}
+
+function render(){
+  var q=(document.getElementById('q').value||'').toLowerCase();
+  var list=document.getElementById('clist'); list.innerHTML='';
+  S.nodes.filter(function(n){ return !q || n.id.toLowerCase().indexOf(q)>=0 ||
+      (n.provides||[]).join(' ').toLowerCase().indexOf(q)>=0; })
+   .forEach(function(n){
+    var d=document.createElement('div'); d.className='ci'+(S.sel===n.id?' on':'');
+    var np=((n.provides||[]).length)+'→ ·  →'+((n.requires||[]).length);
+    d.innerHTML='<span class="dot '+((n.state||'')==='running'?'running':'')+'"></span>'+
+      '<span class="nm">'+n.id+'</span><span class="np">'+np+'</span>';
+    d.onclick=function(){ select(n.id); }; list.appendChild(d);
+  });
+}
+
+async function select(id){ S.sel=id; render(); var desc=await describe(id); renderPanel(desc); }
+
+function renderPanel(desc){
+  var p=document.getElementById('panel');
+  var html='<div class="ph"><span class="id">'+desc.id+'</span><span class="kind">'+desc.kind+'</span></div>'+
+    '<div class="src">descripteur : <b>'+desc.source+'</b>'+(desc.source==='ecosystem'?' (fallback provides/requires — le core ne publie pas encore core.json)':'')+'</div>';
+  // état (si schéma déclaré)
+  if(desc.schema){
+    html+='<div class="sec"><div class="t">état (schéma)</div><div class="st-grid">';
+    var cols=(desc.schema.collections)||{};
+    Object.keys(cols).forEach(function(c){ var f=cols[c].fields||{};
+      html+='<div><b>'+c+'</b> { '+Object.keys(f).map(function(k){return k+':'+f[k];}).join(', ')+' }</div>'; });
+    if(!Object.keys(cols).length) html+='<div>'+JSON.stringify(desc.schema)+'</div>';
+    html+='</div></div>';
+  }
+  // ports IN -> formulaires emit
+  html+='<div class="sec"><div class="t">entrées · commandes (emit)</div>';
+  if(!desc.ports.in.length){ html+='<div class="st-grid">— aucune entrée déclarée —</div>'; }
+  desc.ports.in.forEach(function(port,i){
+    html+='<div class="port in"><div class="topic">'+port.topic+'</div>'+
+      (port.doc?'<div class="doc">'+port.doc+'</div>':'')+
+      (port.payload?'<div class="schema">'+JSON.stringify(port.payload)+'</div>':'')+
+      '<textarea id="pl'+i+'" rows="2" placeholder=\'payload JSON (optionnel)\'></textarea>'+
+      '<button class="btn" data-emit="'+i+'">emit ▸</button><span class="note" id="nt'+i+'"></span></div>';
+  });
+  html+='</div>';
+  // ports OUT -> flux live
+  html+='<div class="sec"><div class="t">sorties · événements (live)</div>';
+  if(!desc.ports.out.length){ html+='<div class="st-grid">— aucune sortie déclarée —</div>'; }
+  else { html+='<div class="schema" style="margin-bottom:6px">'+desc.ports.out.map(function(o){return o.topic;}).join(' · ')+'</div><div class="feed" id="feed"><div class="st-grid">en attente d\'événements…</div></div>'; }
+  html+='</div>';
+  p.innerHTML=html;
+  // wire emit
+  p.querySelectorAll('[data-emit]').forEach(function(b){ b.onclick=function(){
+    var i=+b.getAttribute('data-emit'); var port=desc.ports.in[i];
+    var pl=document.getElementById('pl'+i).value.trim();
+    emit(port.topic, pl, document.getElementById('nt'+i));
+  };});
+  S._outTopics = new Set(desc.ports.out.map(function(o){return o.topic;}));
+  S._feedEl = document.getElementById('feed'); S._feedFresh=true;
+}
+
+async function emit(topic,payload,noteEl){
+  try{ var r=await fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:topic,payload:payload||''})});
+    if(noteEl){ noteEl.textContent = r.ok ? ' émis ✓' : (r.status===401?' écriture gardée (auth requise)':' échec '+r.status);
+      noteEl.style.color = r.ok ? 'var(--ok)' : 'var(--warn)'; setTimeout(function(){noteEl.textContent='';},3000); }
+  }catch(e){ if(noteEl){ noteEl.textContent=' bus injoignable'; } }
+}
+
+function connectBus(){
+  try{ var es=new EventSource('/events'); S.es=es;
+    var setLive=function(v){ var d=document.getElementById('liveDot'); if(d)d.classList.toggle('on',v);
+      var c=document.getElementById('conn'); if(c)c.textContent=v?'bus live':'reconnexion…'; };
+    es.onopen=function(){setLive(true);}; es.onerror=function(){setLive(false);};
+    ['emit','route','log','life'].forEach(function(k){ es.addEventListener(k,function(e){ try{ onEv(JSON.parse(e.data)); }catch(_){}}); });
+  }catch(e){}
+}
+function onEv(ev){
+  if(!S._outTopics || !S._feedEl) return;
+  if(ev.kind==='emit' && (S._outTopics.has(ev.topic) || ev.from===S.sel)){
+    if(S._feedFresh){ S._feedEl.innerHTML=''; S._feedFresh=false; }
+    var d=document.createElement('div'); d.className='ev';
+    d.innerHTML='<span class="tp">'+(ev.topic||'')+'</span><span class="pl">'+((ev.payload||'').slice(0,80))+'</span>';
+    S._feedEl.prepend(d); while(S._feedEl.children.length>60) S._feedEl.lastChild.remove();
+  }
+}
+
+connectBus(); pull(); setInterval(pull, 8000);
+</script>
+</body></html>

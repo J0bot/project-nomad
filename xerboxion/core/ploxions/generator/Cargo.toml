@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-generator"
+description = "WASM ploxion: le GENERATOR — la moitie REEL de l'adressage genuine. Reconstruit le reel a partir d'un residu (residu -> reel), inverse du reel -> residu fait par carte/kion/spectre/diff/xerbion. requires gen.expand {kind,residu_hex,base_hex?} -> provides gen.reel {bytes_hex,addr,verified}. Dispatch xor-delta/lcg/raw via gen_apply ; re-addr64 verifie l'auto-coherence du REEL reconstruit (schema d'adressage du REEL, distinct de tsoin-store qui adresse le residu). Limite: xor-delta reversible ssi base.len() <= reel.len()."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

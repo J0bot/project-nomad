@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-science"
+description = "WASM ploxion: reproduces the lab experiments deterministically (IFS chaos-game + box-counting dimension)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

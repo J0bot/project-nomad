@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-index"
+description = "WASM ploxion: pure CONSUMER that tallies per-topic event counts and emits index.summary"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

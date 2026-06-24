@@ -1,0 +1,21 @@
+# Crate autonome (version "solo" self-contained) — exclue du workspace forge voisin.
+[workspace]
+
+[package]
+name = "skyview-solo"
+version = "1.0.0"
+edition = "2021"
+description = "SkyView ploxion — le bion de wasm : math celeste (equatorial->horizontal->ecran) pour le planetarium WebGL"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+libm = "0.2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+codegen-units = 1
+strip = true

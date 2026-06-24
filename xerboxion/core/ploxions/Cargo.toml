@@ -1,0 +1,21 @@
+# Separate workspace for the example ploxions. They compile to
+# wasm32-unknown-unknown and intentionally do NOT depend on the host (wasmtime).
+# Build with: scripts/build-ploxions.sh
+[workspace]
+resolver = "2"
+members = ["sdk", "ping", "pong", "tracer", "tsoin", "state-client", "watcher", "health-adapter", "ideas-map-adapter", "repoverse-adapter", "gitea-adapter", "osiris-adapter", "index", "science", "synthe", "xp", "ultra-detector", "tester", "link", "carte", "kion", "spectre", "mc-adapter", "xerbion", "xerbion-bit", "block-stone", "block-water", "tsoin-store", "diff", "generator", "clock-coherence", "player", "house-brain-core", "house-mode-manager", "proto-tcp", "proto-udp", "proto-dns", "proto-http", "proto-icmp", "proto-tls", "proto-ntp", "proto-ws", "proto-ssh", "proto-quic", "proto-dhcp", "bion-tester", "tsoin-montage", "object", "bion-accelerator", "forge", "pkg-git", "pkg-curl", "pkg-coreutils", "pkg-bash", "port-22", "port-53", "port-443", "port-80"]
+# The `tsoin` ploxion depends on the REAL tsoin engine crate by path
+# (/home/debian/tsoin), built for wasm32 with default-features off (no
+# zstd/clap). It sits outside this directory tree, so it is pulled in only as a
+# dependency (its lib), never as a workspace member.
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+panic = "abort"

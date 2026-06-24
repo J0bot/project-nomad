@@ -1,0 +1,19 @@
+{
+  "id": "compteur",
+  "kind": "core",
+  "title": "Compteur",
+  "doc": "Core de référence (docs/CORE-UI-BINDING-v0.md §4.1) : la valeur N'EST PAS stockée dans un UI. La vérité = le ruban d'événements compteur.inc/reset sur le bus. Tout UI dérive la valeur en accumulant ces événements → tous les UI ouverts restent synchronisés.",
+  "state": { "value": "int" },
+  "ports": {
+    "in": [
+      { "topic": "compteur.inc", "payload": { "by": "int" }, "doc": "incrémente la valeur de `by` (défaut 1)" },
+      { "topic": "compteur.reset", "doc": "remet la valeur à zéro" }
+    ],
+    "out": [
+      { "topic": "compteur.inc", "payload": { "by": "int" }, "doc": "incrément appliqué — SOURCE DE VÉRITÉ, les UI l'accumulent" },
+      { "topic": "compteur.reset", "doc": "remise à zéro appliquée" }
+    ]
+  },
+  "tsoin": { "stream": "compteur" },
+  "auth": { "read": "public", "write": "bus" }
+}

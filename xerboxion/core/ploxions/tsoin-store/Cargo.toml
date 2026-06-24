@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-tsoin-store"
+description = "WASM ploxion: tsoin-store, l'adressage GENERATIF (addr64 sur la concat len-prefixee de (gen, residu)) + dedup verifiee par refcount + requete par generateur, expose sur le bus xion via tsoin.put/get/query -> tsoin.stored/got/queried."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

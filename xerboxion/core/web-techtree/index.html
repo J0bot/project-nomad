@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!--
+  web-techtree/index.html — le ploxion techtree migré du labo vers le core (1re migration DATA-DRIVEN).
+  José : « un tech-tree de tous les bions et de tous les ploxions ». 3 étages : BIONS (atomes WASM)
+  → CUBIONS (familles) → PLOXIONS (apps). PREUVE que les data-driven sont migrables SANS rebuild :
+  la donnée (bions.json) est servie par le serveur d'assets /px existant (web-techtree/bions.json
+  → fetch /px/techtree/bions.json, same-origin). Les ploxions = le launcher du core (/px). Autonome,
+  zéro Laravel, zéro bus.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>tech-tree · bions</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:#070c0a;color:#e3f0ea;font-family:ui-sans-serif,system-ui,sans-serif;font-size:.84rem;
+    display:flex;flex-direction:column;height:100dvh}
+  .bar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid rgba(120,220,170,.2);flex-wrap:wrap}
+  .t{font-weight:700;color:rgba(140,230,180,.95)} .sub{font-size:.64rem;color:rgba(180,215,195,.55)} .sp{flex:1} .st{font-size:.66rem;color:rgba(180,215,195,.8)}
+  .body{flex:1;min-height:0;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+  .tier{border:1px solid rgba(120,220,170,.18);border-radius:12px;padding:10px 12px;background:rgba(255,255,255,.02)}
+  .h{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(140,230,180,.7);margin-bottom:7px;display:flex;gap:7px;align-items:baseline}
+  .h span{font-size:.56rem;color:rgba(180,215,195,.5)}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:.68rem;padding:3px 9px;border-radius:8px;border:1px solid rgba(120,220,170,.25);background:rgba(20,34,28,.5);cursor:pointer;white-space:nowrap}
+  .chip:hover{border-color:rgba(140,230,180,.55)}
+  .chip.bion{color:rgba(150,235,190,.95)} .chip.cub{color:rgba(170,200,255,.95);border-color:rgba(140,170,255,.3)} .chip.plx{color:rgba(230,200,255,.9);border-color:rgba(190,150,255,.3)}
+  .detail{font:0.72rem/1.5 ui-monospace,monospace;color:rgba(170,225,195,.95);background:#05080a;border-radius:8px;padding:8px 10px;margin-top:7px;white-space:pre-wrap;display:none}
+  .detail.on{display:block}
+  .foot{flex:0 0 auto;padding:6px 12px;border-top:1px solid rgba(120,220,170,.14);font-size:.62rem;color:rgba(170,205,190,.6)}
+</style>
+</head>
+<body>
+  <div class="bar"><span class="t">🌳 Tech-tree</span><span class="sub">atomes → apps</span><span class="sp"></span><span class="st" id="st"></span></div>
+  <div class="body">
+    <div class="tier"><div class="h">⬡ BIONS <span>atomes WASM · clic = détail</span></div><div class="chips" id="bions"></div><div class="detail" id="bd"></div></div>
+    <div class="tier"><div class="h">▦ CUBIONS <span>familles · clic = membres</span></div><div class="chips" id="cubs"></div><div class="detail" id="cd"></div></div>
+    <div class="tier"><div class="h">▣ PLOXIONS <span>apps servies par le cœur (/px)</span></div><div class="chips" id="plx"></div></div>
+  </div>
+  <div class="foot">tier 0 bions (purs → core) → tier 1 cubions (compositions) → tier 2 ploxions (apps). Migré du labo vers le cœur : la donnée vit dans web-techtree/, servie par /px.</div>
+
+<script>
+"use strict";
+var bions=[], cubions=[], ploxions=[];
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+function st(){ document.getElementById('st').textContent=bions.length+' bions · '+cubions.length+' cubions · '+ploxions.length+' ploxions'; }
+var bd=document.getElementById('bd'), cd=document.getElementById('cd');
+
+// BIONS — données servies par /px (web-techtree/bions.json), même-origine, sans rebuild.
+fetch('/px/techtree/bions.json',{headers:{'Accept':'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  bions=(d&&d.bions)||[]; st();
+  document.getElementById('bions').innerHTML=bions.map(function(b){return '<span class="chip bion" data-b="'+esc(b.name)+'">'+esc(b.name)+'</span>';}).join('');
+}).catch(function(){});
+document.getElementById('bions').addEventListener('click',function(e){ var c=e.target.closest('[data-b]'); if(!c)return;
+  var b=bions.filter(function(x){return x.name===c.getAttribute('data-b');})[0]; if(!b)return;
+  bd.textContent='bion '+b.name+'  ('+(b.desc||'')+')\n\ntest: '+JSON.stringify(b.test||{}); bd.classList.add('on'); });
+
+// CUBIONS — best-effort (snapshot servi via /px si présent).
+fetch('/px/techtree/cubions.json',{headers:{'Accept':'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  cubions=(d&&d.cubions)||[]; st();
+  document.getElementById('cubs').innerHTML=cubions.map(function(c){return '<span class="chip cub" data-c="'+esc(c.id)+'">'+esc((c.name||c.id).replace(/^CUBION /i,''))+' ·'+(c.members||[]).length+'</span>';}).join('');
+}).catch(function(){});
+document.getElementById('cubs').addEventListener('click',function(e){ var el=e.target.closest('[data-c]'); if(!el)return;
+  var c=cubions.filter(function(x){return x.id===el.getAttribute('data-c');})[0]; if(!c)return;
+  cd.textContent=c.name+'\nmembres: '+(c.members||[]).join(', ')+'\n\n'+(c.description||''); cd.classList.add('on'); });
+
+// PLOXIONS — le launcher du cœur : les ploxions servis à /px (remplace window.__PLOXIONS__ du labo).
+fetch('/px',{headers:{'Accept':'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  ploxions=(d&&d.ploxions)||[]; st();
+  document.getElementById('plx').innerHTML=ploxions.map(function(p){return '<span class="chip plx" title="'+esc(p)+'">▣ '+esc(p)+'</span>';}).join('');
+}).catch(function(){});
+</script>
+</body>
+</html>

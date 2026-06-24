@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!--
+  inventaire · MakeLab — UNE vue du cœur `inventaire` (descripteur /px/inventaire/core.json).
+  Les données vivent dans le store du cœur (/store/inventaire/items). Lectures publiques ;
+  écritures via X-Xer-Token (token fablab partagé, saisi une fois → localStorage). Live-refresh
+  via le bus (/events : store.inventaire.items.changed). Pur HTML/CSS/JS, mobile-first, chill-tekk.
+  Première brique du makelab « tout dans le cœur » — à enrichir : mouvements, scan, 3d, slicer, boxion.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>inventaire</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem;white-space:nowrap}
+  .top .sp{flex:1}
+  .top input{flex:1;min-width:80px;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:7px 10px;font-size:.82rem;outline:none}
+  .top input:focus{border-color:var(--acc)}
+  .ic{width:34px;height:34px;flex:0 0 auto;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-size:.95rem}
+  .ic:hover{border-color:var(--acc)}
+  .ic.tok.on{border-color:var(--ok);color:var(--ok)}
+  .btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none;border-radius:9px;padding:8px 13px;font-weight:800;font-size:.82rem;cursor:pointer;white-space:nowrap}
+  .bar{flex:0 0 auto;display:flex;gap:12px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);font-size:.7rem;color:var(--dim)}
+  .bar b{color:var(--ink)} .chk{display:flex;align-items:center;gap:5px;cursor:pointer}
+  .list{flex:1;min-height:0;overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .row{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:11px;padding:9px 12px;background:var(--surf);cursor:pointer}
+  .row:hover{border-color:var(--acc)} .row.low{border-color:rgba(255,122,138,.4)}
+  .row .nm{flex:1;min-width:0} .row .nm b{display:block;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .nm span{font-size:.64rem;color:var(--dim);font-family:ui-monospace,monospace}
+  .qty{font-weight:800;font-size:1.05rem;font-variant-numeric:tabular-nums;text-align:right}
+  .qty small{font-size:.6rem;color:var(--dim);font-weight:500}
+  .qty.low{color:var(--r)}
+  .loc{font-size:.6rem;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .empty{color:var(--dim);text-align:center;padding:36px 14px;line-height:1.6}
+  /* feuille (add/edit/token) */
+  .sheet{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center;background:rgba(4,7,11,.6)}
+  .sheet.on{display:flex}
+  .card{width:min(540px,100vw);max-height:88vh;overflow:auto;background:var(--surf);border:1px solid var(--line);border-radius:16px 16px 0 0;padding:15px 16px}
+  @media(min-width:560px){.sheet{align-items:center}.card{border-radius:16px}}
+  .card h3{margin:0 0 12px;font-size:1rem}
+  label{display:block;font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin:9px 0 3px}
+  input.f,select.f,textarea.f{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:.86rem;outline:none;font-family:inherit;min-height:38px}
+  input.f:focus,select.f:focus,textarea.f:focus{border-color:var(--acc)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .acts{display:flex;gap:9px;margin-top:15px;align-items:center}
+  .acts .sp{flex:1}
+  .btn.sec{background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600}
+  .btn.del{background:rgba(255,122,138,.12);color:var(--r);border:1px solid rgba(255,122,138,.4);font-weight:600}
+  .note{font-size:.68rem;color:var(--warn);min-height:1em;margin-top:8px}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
+  .live.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+</style></head>
+<body>
+  <div class="top">
+    <b>📦 Inventaire<span class="live" id="live"></span></b>
+    <input id="q" placeholder="chercher (nom, sku, emplacement)…" oninput="render()">
+    <button class="ic tok" id="tokBtn" title="token fablab">🔑</button>
+    <button class="btn" id="addBtn">+ article</button>
+  </div>
+  <div class="bar"><span><b id="cTot">0</b> articles</span><span><b id="cLow" style="color:var(--r)">0</b> en stock bas</span>
+    <label class="chk" style="margin-left:auto"><input type="checkbox" id="onlyLow" onchange="render()"> stock bas seulement</label></div>
+  <div class="list" id="list"></div>
+
+  <div class="sheet" id="sheet"><div class="card" id="sheetCard"></div></div>
+<script>
+"use strict";
+var BASE='/store/inventaire', TOK='xer.fablab.token';
+var S={ items:[], q:'', onlyLow:false };
+function token(){ try{return localStorage.getItem(TOK)||'';}catch(e){return '';} }
+function hasToken(){ return !!token(); }
+function num(v){ v=parseFloat(v); return isFinite(v)?v:0; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+async function dbList(coll){ try{ var r=await fetch(BASE+'/'+coll,{cache:'no-store'}); return r.ok?await r.json():[]; }catch(e){ return []; } }
+async function dbWrite(method,url,doc){
+  var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json','X-Xer-Token':token()},body:doc?JSON.stringify(doc):undefined});
+  if(r.status===401){ var e=new Error('auth'); e.auth=true; throw e; }
+  if(!r.ok){ throw new Error('HTTP '+r.status); }
+  return r.status===204?null:r.json().catch(function(){return null;});
+}
+var dbCreate=function(c,d){return dbWrite('POST',BASE+'/'+c,d);};
+var dbUpdate=function(c,id,d){return dbWrite('PUT',BASE+'/'+c+'/'+encodeURIComponent(id),d);};
+var dbDelete=function(c,id){return dbWrite('DELETE',BASE+'/'+c+'/'+encodeURIComponent(id));};
+
+async function refresh(){ S.items=await dbList('items'); render(); }
+
+function isLow(it){ var mn=num(it.min_stock); return mn>0 && num(it.quantity)<=mn; }
+function render(){
+  document.getElementById('tokBtn').classList.toggle('on',hasToken());
+  var q=(document.getElementById('q').value||'').toLowerCase();
+  var items=S.items.filter(function(it){
+    if(S.onlyLow && !isLow(it)) return false;
+    if(!q) return true;
+    return (it.name||'').toLowerCase().indexOf(q)>=0 || (it.sku||'').toLowerCase().indexOf(q)>=0 || (it.location||'').toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  document.getElementById('cTot').textContent=S.items.length;
+  document.getElementById('cLow').textContent=S.items.filter(isLow).length;
+  S.onlyLow=document.getElementById('onlyLow').checked;
+  var L=document.getElementById('list');
+  if(!items.length){ L.innerHTML='<div class="empty">📦 '+(S.items.length?'Aucun article ne correspond.':'Inventaire vide.<br>Ajoute un article (+), ou importe ton SQL — il atterrira ici.')+'</div>'; return; }
+  L.innerHTML='';
+  items.forEach(function(it){
+    var low=isLow(it);
+    var d=document.createElement('div'); d.className='row'+(low?' low':'');
+    d.innerHTML='<div class="nm"><b>'+esc(it.name||'(sans nom)')+'</b>'+(it.sku?'<span>'+esc(it.sku)+'</span>':'')+'</div>'+
+      (it.location?'<span class="loc">'+esc(it.location)+'</span>':'')+
+      '<div class="qty'+(low?' low':'')+'">'+num(it.quantity)+' <small>'+esc(it.unit||'pcs')+'</small></div>';
+    d.onclick=function(){ openForm(it); };
+    L.appendChild(d);
+  });
+}
+
+// ---- feuille générique ----
+function sheet(html){ var c=document.getElementById('sheetCard'); c.innerHTML=html; document.getElementById('sheet').classList.add('on'); return c; }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); }
+document.getElementById('sheet').onclick=function(e){ if(e.target.id==='sheet') closeSheet(); };
+
+function tokenSheet(){
+  var c=sheet('<h3>🔑 Token fablab</h3><div style="font-size:.74rem;color:var(--dim);line-height:1.5;margin-bottom:8px">Le « compte que tout le monde connaît » : nécessaire pour <b>modifier</b> l\'inventaire (lecture libre). Demande-le à un responsable du fablab.</div>'+
+    '<input class="f" id="tokIn" placeholder="fablab-…" value="'+esc(token())+'">'+
+    '<div class="acts"><span class="sp"></span><button class="btn sec" onclick="closeSheet()">annuler</button><button class="btn" id="tokSave">enregistrer</button></div>');
+  c.querySelector('#tokSave').onclick=function(){ try{ localStorage.setItem(TOK,c.querySelector('#tokIn').value.trim()); }catch(e){} closeSheet(); render(); };
+}
+document.getElementById('tokBtn').onclick=tokenSheet;
+
+function openForm(it){
+  it=it||{};
+  var isNew=!it.id;
+  var units=['pcs','reel','bag','set','other'];
+  var c=sheet('<h3>'+(isNew?'+ Nouvel article':'✏️ '+esc(it.name||''))+'</h3>'+
+    '<label>nom</label><input class="f" id="f_name" value="'+esc(it.name||'')+'" placeholder="Vis M3 12mm">'+
+    '<div class="two"><div><label>quantité</label><input class="f" id="f_qty" type="number" value="'+(it.quantity!=null?num(it.quantity):'')+'"></div>'+
+    '<div><label>unité</label><select class="f" id="f_unit">'+units.map(function(u){return '<option'+(it.unit===u?' selected':'')+'>'+u+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="two"><div><label>seuil bas (min_stock)</label><input class="f" id="f_min" type="number" value="'+(it.min_stock!=null?num(it.min_stock):'')+'"></div>'+
+    '<div><label>emplacement</label><input class="f" id="f_loc" value="'+esc(it.location||'')+'" placeholder="E5-T2-G4"></div></div>'+
+    '<label>SKU / réf</label><input class="f" id="f_sku" value="'+esc(it.sku||'')+'">'+
+    '<label>notes</label><textarea class="f" id="f_notes" rows="2">'+esc(it.notes||'')+'</textarea>'+
+    '<div class="acts">'+(isNew?'':'<button class="btn del" id="f_del">supprimer</button>')+'<span class="sp"></span>'+
+    '<button class="btn sec" onclick="closeSheet()">annuler</button><button class="btn" id="f_save">'+(isNew?'créer':'enregistrer')+'</button></div>'+
+    '<div class="note" id="f_note"></div>');
+  var note=c.querySelector('#f_note');
+  function collect(){ return { name:c.querySelector('#f_name').value.trim(), quantity:num(c.querySelector('#f_qty').value),
+    unit:c.querySelector('#f_unit').value, min_stock:num(c.querySelector('#f_min').value), location:c.querySelector('#f_loc').value.trim(),
+    sku:c.querySelector('#f_sku').value.trim(), notes:c.querySelector('#f_notes').value.trim() }; }
+  function guard(fn){ if(!hasToken()){ closeSheet(); tokenSheet(); return; } fn().catch(function(e){
+    if(e&&e.auth){ note.textContent='token refusé — vérifie le token fablab (🔑)'; } else { note.textContent='échec : '+(e&&e.message||e); } }); }
+  c.querySelector('#f_save').onclick=function(){ var doc=collect(); if(!doc.name){ note.textContent='le nom est requis'; return; }
+    guard(function(){ var p=isNew?dbCreate('items',doc):dbUpdate('items',it.id,Object.assign({},it,doc)); return p.then(function(){ closeSheet(); refresh(); }); }); };
+  var del=c.querySelector('#f_del'); if(del) del.onclick=function(){ guard(function(){ return dbDelete('items',it.id).then(function(){ closeSheet(); refresh(); }); }); };
+}
+document.getElementById('addBtn').onclick=function(){ openForm(null); };
+
+// ---- live-refresh via le bus ----
+(function bus(){ try{ var es=new EventSource('/events');
+  es.onopen=function(){ document.getElementById('live').classList.add('on'); };
+  es.onerror=function(){ document.getElementById('live').classList.remove('on'); };
+  es.addEventListener('emit',function(e){ try{ var ev=JSON.parse(e.data);
+    if(ev.topic==='store.inventaire.items.changed') refresh(); }catch(_){} });
+}catch(e){} })();
+
+refresh();
+</script>
+</body></html>

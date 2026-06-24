@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+  web-social/index.html — le ploxion SOCIAL, servi par le core a /px/social/. José : « le but ENTIER
+  du projet = connecter des gens, partager des tsoins entre potes/famille/travail ; un mélange
+  WhatsApp+Insta+Mastodon+Twitter+YouTube+Discord ; l'origine = en soirée, envoyer/voir des tsoins. »
+  V1 = le PARTAGE DE TSOINS, REAL : persisté dans le tsoin-store (tsoin.put gen='social') + temps réel
+  via le bus (social.share sur /events → tous les clients du core le voient live). Identité = xi0n
+  (vraies clés GPG). Mobile-first. Pas de localStorage-fake : la donnée vit dans le store du core.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>social · tsoins</title>
+<style>
+  :root{--bg:#070a0f;--ink:rgba(224,236,246,.94);--dim:rgba(150,178,210,.6);--line:rgba(120,160,230,.15);
+    --acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--panel:rgba(14,20,30,.9);}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(700px 400px at 80% -8%,rgba(80,60,150,.16),transparent 60%),var(--bg);
+    color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;height:100dvh}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line);
+    background:linear-gradient(rgba(8,12,18,.7),rgba(8,12,18,.2));backdrop-filter:blur(8px);position:sticky;top:0;z-index:5}
+  header b{color:#fff;letter-spacing:.05em} header .me{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78rem}
+  .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.85rem;
+    background:radial-gradient(circle at 35% 30%,rgba(120,90,220,.55),rgba(40,30,80,.55));color:#fff;flex:0 0 auto}
+  .me select{background:rgba(8,12,18,.7);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:4px 8px;font-size:.76rem;outline:none}
+  .compose{flex:0 0 auto;display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:flex-end}
+  .compose textarea{flex:1;background:rgba(8,12,18,.7);border:1px solid var(--line);border-radius:14px;color:var(--ink);
+    padding:10px 13px;font-size:.92rem;outline:none;font-family:inherit;resize:none;max-height:120px;line-height:1.35}
+  .compose textarea:focus{border-color:var(--acc)}
+  .send{width:44px;height:44px;border-radius:50%;border:1px solid rgba(184,141,255,.5);background:rgba(70,44,110,.5);
+    color:#fff;font-size:1.1rem;cursor:pointer;flex:0 0 auto}
+  .send:active{transform:scale(.93)}
+  .feed{flex:1;min-height:0;overflow-y:auto;padding:8px 12px 18px;-webkit-overflow-scrolling:touch}
+  .post{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid rgba(120,160,230,.08)}
+  .post .body{flex:1;min-width:0}
+  .post .top{display:flex;align-items:baseline;gap:7px}
+  .post .nm{font-weight:700;color:#fff;font-size:.88rem}
+  .post .fp{font-family:ui-monospace,monospace;font-size:.56rem;color:var(--dim)}
+  .post .t{margin-left:auto;font-size:.64rem;color:var(--dim)}
+  .post .txt{margin-top:3px;font-size:.94rem;line-height:1.42;white-space:pre-wrap;word-break:break-word}
+  .post.mine .av{background:radial-gradient(circle at 35% 30%,rgba(90,200,140,.55),rgba(30,70,50,.55))}
+  .empty{text-align:center;color:var(--dim);padding:40px 20px;font-size:.85rem}
+  .flash{animation:fl 1s ease-out} @keyframes fl{from{background:rgba(90,180,255,.16)}to{background:transparent}}
+  .live{flex:0 0 auto;font-size:.6rem;padding:1px 7px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .live.on{color:var(--ok);border-color:rgba(92,224,140,.4)}
+</style>
+</head>
+<body>
+  <header>
+    <b>social</b><span class="live" id="live">·</span>
+    <div class="me">
+      <select id="idsel" title="ton identité"></select>
+      <div class="av" id="meav">?</div>
+    </div>
+  </header>
+  <div class="compose">
+    <textarea id="ta" rows="1" placeholder="partage un tsoin à tes potes…" autocomplete="off"></textarea>
+    <button class="send" id="send" title="partager">➤</button>
+  </div>
+  <div class="feed" id="feed"><div class="empty">aucun tsoin partagé pour l'instant — sois le premier ✦</div></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const GEN='social';                         // le générateur tsoin-store du feed social
+const posts=new Map();                       // addr|key -> post {from,fp,text,ts}
+let me={name:'',fp:''}, es=null, pending=new Set();
+
+// --- identité : depuis xi0n (vraies clés GPG) sinon un nom local --------------
+function loadIdentities(){
+  let ids=[]; try{ ids=JSON.parse(localStorage.getItem('xi0n:identities')||'[]'); }catch(e){}
+  const sel=$('#idsel'); sel.innerHTML='';
+  if(ids.length){
+    const act=localStorage.getItem('xi0n:active');
+    ids.forEach(i=>{ const o=document.createElement('option'); o.value=i.fp; o.textContent=i.name; if(i.fp===act)o.selected=true; sel.appendChild(o); });
+    const cur=ids.find(i=>i.fp===(sel.value))||ids[0]; me={name:cur.name,fp:cur.fp};
+  } else {
+    let n=''; try{ n=localStorage.getItem('social:name')||''; }catch(e){}
+    if(!n){ n=prompt('ton nom (ou crée une identité GPG dans le ploxion xi0n) :')||'anon'; try{localStorage.setItem('social:name',n);}catch(e){} }
+    const o=document.createElement('option'); o.textContent=n+' (local)'; o.value='local:'+n; o.selected=true; sel.appendChild(o);
+    me={name:n,fp:''};
+  }
+  $('#meav').textContent=(me.name[0]||'?').toUpperCase();
+}
+$('#idsel').onchange=()=>loadIdentities();
+
+// --- bus (same-origin : le core sert cette page) -----------------------------
+function emit(topic,payload){ return fetch('/emit',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({topic,payload:payload||''})}).catch(()=>{}); }
+function hex(s){ return Array.from(new TextEncoder().encode(s)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function unhex(h){ const a=new Uint8Array(h.length/2); for(let i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16); return new TextDecoder().decode(a); }
+
+// --- rendu du feed -----------------------------------------------------------
+function rel(ts){ const s=(Date.now()-ts)/1000; if(s<60)return 'à l\'instant'; if(s<3600)return Math.floor(s/60)+'min';
+  if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'j'; }
+function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+function render(flashKey){
+  const arr=[...posts.values()].sort((a,b)=>b.ts-a.ts);
+  const feed=$('#feed');
+  if(!arr.length){ feed.innerHTML='<div class="empty">aucun tsoin partagé — sois le premier ✦</div>'; return; }
+  feed.innerHTML=arr.map(p=>{
+    const mine=p.fp&&p.fp===me.fp || (!p.fp&&p.from===me.name);
+    return '<div class="post'+(mine?' mine':'')+(p.key===flashKey?' flash':'')+'">'
+      +'<div class="av">'+esc((p.from[0]||'?').toUpperCase())+'</div>'
+      +'<div class="body"><div class="top"><span class="nm">'+esc(p.from)+'</span>'
+      +(p.fp?'<span class="fp">'+esc(p.fp.slice(0,8))+'</span>':'')
+      +'<span class="t">'+rel(p.ts)+'</span></div>'
+      +'<div class="txt">'+esc(p.text)+'</div></div></div>';
+  }).join('');
+}
+function addPost(key,p){ if(posts.has(key))return false; p.key=key; posts.set(key,p); return true; }
+
+// --- partager un tsoin -------------------------------------------------------
+async function share(){
+  const text=$('#ta').value.trim(); if(!text)return;
+  $('#ta').value=''; $('#ta').style.height='auto';
+  const ts=Date.now();
+  const post={ from:me.name, fp:me.fp, text, ts };
+  const json=JSON.stringify(post);
+  // 1) persiste dans le tsoin-store (content-addressé, partagé sur le core)
+  emit('tsoin.put', JSON.stringify({ gen:GEN, residu_hex:hex(json) }));
+  // 2) broadcast temps réel (les autres clients le voient via /events)
+  emit('social.share', json);
+  // 3) optimiste : affiche tout de suite
+  if(addPost('local:'+ts, post)) render('local:'+ts);
+}
+$('#send').onclick=share;
+$('#ta').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); share(); } });
+$('#ta').addEventListener('input',e=>{ e.target.style.height='auto'; e.target.style.height=Math.min(120,e.target.scrollHeight)+'px'; });
+
+// --- charger l'historique (tsoin.query gen=social -> tsoin.get par addr) ------
+function loadHistory(){ emit('tsoin.query', JSON.stringify({ gen:GEN })); }
+
+// --- flux live ---------------------------------------------------------------
+function connect(){
+  es=new EventSource('/events');
+  es.onopen=()=>$('#live').classList.add('on');
+  es.onerror=()=>$('#live').classList.remove('on');
+  const on=e=>{ try{ handle(JSON.parse(e.data)); }catch(_){} };
+  ['emit','route','log','life'].forEach(k=>es.addEventListener(k,on));
+}
+function handle(ev){
+  if(ev.kind!=='emit')return;
+  if(ev.topic==='social.share'){
+    try{ const p=JSON.parse(ev.payload); const k='live:'+p.from+':'+p.ts;
+      if(addPost(k,{from:p.from,fp:p.fp||'',text:p.text,ts:p.ts})) render(k); }catch(_){}
+  } else if(ev.topic==='tsoin.queried'){
+    try{ const d=JSON.parse(ev.payload); if(d.gen!==GEN)return;
+      (d.addrs||[]).forEach(a=>{ if(!pending.has(a)){ pending.add(a); emit('tsoin.get', JSON.stringify({addr:a})); } }); }catch(_){}
+  } else if(ev.topic==='tsoin.got'){
+    try{ const d=JSON.parse(ev.payload); if(!d.found||d.gen!==GEN)return;
+      const p=JSON.parse(unhex(d.residu_hex));
+      if(addPost('a:'+d.addr,{from:p.from,fp:p.fp||'',text:p.text,ts:p.ts})) render(); }catch(_){}
+  }
+}
+
+// --- droit au silence + boot -------------------------------------------------
+addEventListener('pagehide',()=>{ if(es)es.close(); });
+addEventListener('beforeunload',()=>{ if(es)es.close(); });
+loadIdentities(); connect(); loadHistory();
+setInterval(()=>{ // rafraîchit les temps relatifs
+  document.querySelectorAll('.post .t').forEach((el,i)=>{});
+}, 60000);
+</script>
+</body>
+</html>

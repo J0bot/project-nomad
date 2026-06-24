@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- (3)(NN3) la pubkey voyage dans le # ; no-referrer empeche toute fuite via Referer -->
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#06121d">
+<title>🚃 minecart — le /warp</title>
+<style>
+  :root{ --bg:#06121d; --bg2:#0a1c2c; --ink:#dff0ff; --dim:#7fa6c2; --warp:#39d3ff; --warp2:#7ae8ff; --rose:#ff4d7a; --line:#16344a; --ok:#46e6a0; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:radial-gradient(120% 80% at 50% -10%, #0d2638 0%, var(--bg) 60%); color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; overscroll-behavior:none; }
+  #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
+  header{ display:flex; align-items:center; gap:10px; padding:max(10px,env(safe-area-inset-top)) 14px 10px;
+    border-bottom:1px solid var(--line); background:rgba(6,18,29,.7); backdrop-filter:blur(10px); }
+  header .h{ font-size:22px; }
+  header .meta{ flex:1; min-width:0; }
+  header .meta b{ font-size:14px; }
+  header .meta small{ display:block; color:var(--dim); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .state{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#43506a; }
+  .dot.live{ background:var(--ok); box-shadow:0 0 10px var(--ok); animation:blink 1.6s infinite; }
+  .dot.relay{ background:var(--warp); box-shadow:0 0 10px var(--warp); }
+  @keyframes blink{ 50%{opacity:.3} }
+  .iconbtn{ background:#0e2435; border:1px solid var(--line); color:var(--ink); border-radius:11px; padding:8px 10px; font-size:13px; }
+  /* rails / wagons */
+  #rail{ position:relative; padding:18px 14px 6px; }
+  #rail::before,#rail::after{ content:""; position:absolute; left:8px; right:8px; height:2px; background:repeating-linear-gradient(90deg,#16344a 0 10px,transparent 10px 18px); }
+  #rail::before{ top:8px; } #rail::after{ bottom:0; }
+  #carts{ display:flex; gap:10px; overflow-x:auto; padding:6px 2px 10px; -webkit-overflow-scrolling:touch; }
+  .cart{ flex:0 0 auto; width:128px; min-height:84px; border:1px solid var(--line); border-radius:12px;
+    background:linear-gradient(180deg,#0e2638,#0a1c2c); padding:9px 10px; position:relative; }
+  .cart.them{ border-color:#3a2540; background:linear-gradient(180deg,#241026,#1a0c1d); }
+  .cart .k{ font-size:18px; } .cart .lbl{ font-size:11px; color:var(--dim); margin-top:2px; word-break:break-all; }
+  .cart .pl{ font-size:11px; margin-top:4px; white-space:pre-wrap; word-wrap:break-word; max-height:46px; overflow:hidden; }
+  .cart .wheels{ position:absolute; bottom:-7px; left:14px; right:14px; display:flex; justify-content:space-between; }
+  .cart .wheels i{ width:12px; height:12px; border-radius:50%; background:#0a1c2c; border:2px solid #2a4862; }
+  /* thread */
+  #thread{ flex:1; overflow-y:auto; padding:14px 14px 8px; display:flex; flex-direction:column; gap:9px; -webkit-overflow-scrolling:touch; }
+  .msg{ align-self:flex-end; max-width:84%; background:linear-gradient(180deg,#103048,#0c2236); border:1px solid var(--line);
+    padding:9px 12px; border-radius:16px 16px 4px 16px; white-space:pre-wrap; word-wrap:break-word; animation:rise .25s ease; }
+  .msg.them{ align-self:flex-start; border-radius:16px 16px 16px 4px; background:#1a0c1d; border-color:#3a2540; }
+  .msg .ts{ display:block; margin-top:3px; color:var(--dim); font-size:10px; }
+  .msg.sys{ align-self:center; background:none; border:none; color:var(--dim); font-size:11px; padding:2px; }
+  @keyframes rise{ from{opacity:0; transform:translateY(8px)} }
+  #bar{ display:flex; gap:8px; align-items:flex-end; padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:rgba(6,18,29,.85); backdrop-filter:blur(10px); }
+  #draft{ flex:1; resize:none; max-height:120px; min-height:42px; background:#0e2435; color:var(--ink);
+    border:1px solid var(--line); border-radius:21px; padding:11px 15px; font:inherit; }
+  .btn{ appearance:none; border:none; border-radius:50%; width:42px; height:42px; flex:0 0 auto; font:700 18px/1 inherit;
+    color:#04121c; background:linear-gradient(180deg,var(--warp2),var(--warp)); box-shadow:0 6px 18px rgba(57,211,255,.3); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.ghost{ background:#0e2435; color:var(--ink); border:1px solid var(--line); box-shadow:none; font-size:20px; }
+  /* overlay couplage */
+  .sheet{ position:absolute; inset:0; z-index:30; display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:26px; text-align:center; background:radial-gradient(120% 80% at 50% 20%, #0d2638, var(--bg)); }
+  .sheet.on{ display:flex; }
+  .sheet h1{ font-size:19px; margin:0; } .sheet p{ color:var(--dim); max-width:320px; margin:0; font-size:13px; }
+  .sheet .big{ font-size:54px; filter:drop-shadow(0 0 22px rgba(57,211,255,.5)); }
+  input[type=text]{ width:min(330px,84vw); background:#0e2435; color:var(--ink); border:1px solid var(--line);
+    border-radius:14px; padding:13px 15px; font:inherit; text-align:center; }
+  .pillbtn{ appearance:none; border:none; border-radius:14px; padding:13px 20px; font:700 15px/1 inherit; color:#04121c;
+    background:linear-gradient(180deg,var(--warp2),var(--warp)); box-shadow:0 8px 24px rgba(57,211,255,.3); }
+  .pillbtn.ghost{ background:#0e2435; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
+  .safety{ font-variant-numeric:tabular-nums; letter-spacing:2px; font-size:22px; color:var(--warp2);
+    background:#04121c; border:1px solid var(--line); border-radius:12px; padding:8px 14px; }
+  #toast{ position:fixed; left:50%; bottom:84px; transform:translateX(-50%); z-index:40; background:#0c2236;
+    border:1px solid var(--line); border-radius:12px; padding:9px 14px; font-size:13px; opacity:0; transition:opacity .3s; max-width:88%; text-align:center; }
+  #toast.show{ opacity:1; }
+  .hidden{ display:none !important; }
+  a.lnk{ color:var(--warp2); word-break:break-all; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="h">🚃</div>
+    <div class="meta"><b id="who">minecart</b><small id="sub">le /warp — conteneur E2E</small></div>
+    <div class="state"><span class="dot" id="dot"></span><span id="st">local</span></div>
+    <button class="iconbtn" id="bWarp" title="coupler">🔗</button>
+    <button class="iconbtn" id="bMore" title="plus">⋯</button>
+  </header>
+
+  <div id="rail"><div id="carts"></div></div>
+  <div id="thread"></div>
+
+  <div id="bar">
+    <button class="btn ghost" id="plus" title="charger un ploxion">＋</button>
+    <textarea id="draft" rows="1" placeholder="écris dans le wagon… (chiffré E2E)"></textarea>
+    <button class="btn" id="send">➤</button>
+  </div>
+</div>
+
+<!-- couplage -->
+<div class="sheet" id="warp">
+  <div class="big">🔗</div>
+  <h1>le /warp</h1>
+  <p>Un lien <b>privé direct</b> entre deux êtres. Ta clé privée ne quitte JAMAIS ce téléphone. Tu partages seulement ta clé <b>publique</b> — par un canal de confiance (en personne, Signal).</p>
+  <button class="pillbtn" id="copyLink">⤴ copier MON lien /warp</button>
+  <p style="font-size:11px">colle ici le lien /warp de l’autre :</p>
+  <input type="text" id="otherLink" placeholder="https://warp.j0bot.ch/#p=…" autocomplete="off">
+  <div style="display:flex;gap:10px"><button class="pillbtn" id="doCouple">coupler</button>
+    <button class="pillbtn ghost" id="warpClose">fermer</button></div>
+  <div id="safetyWrap" class="hidden"><p style="font-size:11px">empreinte de sécurité — doit être <b>identique</b> des deux côtés :</p>
+    <div class="safety" id="safety">········</div></div>
+</div>
+
+<input type="file" id="impWarp" accept=".warp,.heart,application/json,text/plain" class="hidden">
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const enc=new TextEncoder(), dec=new TextDecoder();
+const BUS = (location.hostname==="warp.j0bot.ch") ? "" /* same-origin relay route */ : "http://10.0.0.1:8730";
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>e.classList.remove('show'),2600); }
+const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
+const b64u=u=>b64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const unb64u=s=>unb64(s.replace(/-/g,'+').replace(/_/g,'/'));
+
+// ===== addr64 : meme empreinte content-adressee que le heart (FNV-1a 64) =====
+function addr64(obj){
+  let h=0xcbf29ce484222325n; const M=0x100000001b3n, MASK=(1n<<64n)-1n;
+  const s=typeof obj==='string'?obj:JSON.stringify(obj);
+  for(let i=0;i<s.length;i++){ h=((h ^ BigInt(s.charCodeAt(i))) * M) & MASK; }
+  return h.toString(16).padStart(16,'0');
+}
+
+// ===== IndexedDB minimal (la PRIVEE non-extractible y vit, jamais exportee) =====
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('jos.warp',1);
+  r.onupgradeneeded=()=>{ r.result.createObjectStore('ident'); r.result.createObjectStore('outbox',{autoIncrement:true}); };
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(store,key){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction(store).objectStore(store).get(key); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function idbPut(store,val,key){ const db=await idb(); return new Promise((res,rej)=>{ const o=db.transaction(store,'readwrite').objectStore(store); const t=key===undefined?o.add(val):o.put(val,key); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function idbAll(store){ const db=await idb(); return new Promise((res,rej)=>{ const o=db.transaction(store).objectStore(store); const out=[]; const c=o.openCursor(); c.onsuccess=e=>{ const cur=e.target.result; if(cur){ out.push({k:cur.key,v:cur.value}); cur.continue(); } else res(out); }; c.onerror=()=>rej(c.error); }); }
+async function idbDel(store,key){ const db=await idb(); return new Promise((res)=>{ const t=db.transaction(store,'readwrite').objectStore(store).delete(key); t.onsuccess=()=>res(); }); }
+
+// ============================================================================
+//  jOSwarp — le coeur du /warp : ECDH P-256 + HKDF + AES-GCM, content-blind
+// ============================================================================
+const jOSwarp = (()=>{
+  let IDENT=null;           // {privKey(CryptoKey non-extractible), pub(JWK), fp}
+  let ROOM=null;            // {key(AES-GCM), roomId, safety, otherPub, otherName}
+  let recvCb=null, es=null, myName=localStorage.getItem('warp.name')||'';
+
+  // (NN2)(2) auto-generation transparente ; privee extractable=false => impossible a exporter
+  async function identity(){
+    if(IDENT) return IDENT;
+    let pub=await idbGet('ident','pub'), priv=await idbGet('ident','priv');
+    if(!priv){
+      const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'}, false, ['deriveKey','deriveBits']);
+      priv=kp.privateKey; pub=await crypto.subtle.exportKey('jwk', kp.publicKey);
+      await idbPut('ident', priv, 'priv'); await idbPut('ident', pub, 'pub');
+    }
+    const fp=addr64({x:pub.x,y:pub.y}).slice(0,12);
+    IDENT={ privKey:priv, pub, fp };
+    return IDENT;
+  }
+  function setName(n){ myName=n; localStorage.setItem('warp.name', n); }
+
+  // lien /warp : pubkey COMPACTE (x,y de P-256) dans le FRAGMENT (#) — (3)(NN3)
+  async function linkFor(){
+    const id=await identity();
+    const p=b64u(JSON.stringify({x:id.pub.x,y:id.pub.y}));
+    const base = (location.hostname==="localhost"||location.protocol==="file:") ? location.href.split('#')[0] : "https://warp.j0bot.ch/";
+    return base+"#p="+p+(myName?("&n="+encodeURIComponent(myName)):"");
+  }
+
+  async function importPub(p){ const {x,y}=JSON.parse(dec.decode(unb64u(p)));
+    return crypto.subtle.importKey('jwk', {kty:'EC',crv:'P-256',x,y}, {name:'ECDH',namedCurve:'P-256'}, false, []); }
+
+  // couplage : secret partage ECDH -> roomKey + roomId OPAQUE + safety-number
+  async function couple(link, otherName){
+    const id=await identity();
+    const m=(link.split('#')[1]||link).match(/p=([^&]+)/); if(!m) throw new Error('lien sans pubkey');
+    const otherPub=await importPub(m[1]);
+    const sharedBits=await crypto.subtle.deriveBits({name:'ECDH',public:otherPub}, id.privKey, 256);
+    const shared=new Uint8Array(sharedBits);
+    // HKDF-SHA256(shared) -> roomKey AES-GCM (non-extractible)
+    const hk=await crypto.subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey','deriveBits']);
+    const saltSrc=await crypto.subtle.digest('SHA-256', enc.encode("xerboxion/warp/v1"));
+    const key=await crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:new Uint8Array(saltSrc),info:enc.encode("room")},
+                 hk, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+    const sha=new Uint8Array(await crypto.subtle.digest('SHA-256', shared));
+    const roomId=b64u(sha).slice(0,16);                 // OPAQUE : le relais ne peut PAS le relier aux pubkeys
+    const safety=addr64(b64(shared)).slice(0,8);         // (NN risk MITM) empreinte affichee DES DEUX cotes
+    const nm=otherName||(link.split('#')[1]||'').match(/n=([^&]+)/)?.[1];
+    ROOM={ key, roomId, safety, otherPub:m[1], otherName: nm?decodeURIComponent(nm):'l’autre' };
+    listen();
+    return ROOM;
+  }
+  function room(){ return ROOM; }
+
+  async function _seal(msg){ const iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv}, ROOM.key, enc.encode(JSON.stringify(msg)));
+    const blob=new Uint8Array(12+ct.byteLength); blob.set(iv); blob.set(new Uint8Array(ct),12); return b64(blob); }
+  async function _open(body){ const blob=unb64(body); const iv=blob.slice(0,12), ct=blob.slice(12);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv}, ROOM.key, ct); return JSON.parse(dec.decode(pt)); }
+
+  // (NN1)(1) le relais ne voit QUE roomId opaque + ciphertext b64. zero plaintext, zero pubkey.
+  async function send(obj){ if(!ROOM) throw new Error('pas couplé');
+    const id=await identity(); const msg=Object.assign({from:id.fp,at:Date.now()}, obj);
+    const body=await _seal(msg);
+    try{
+      const r=await fetch(BUS+"/emit",{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({topic:"warp."+ROOM.roomId, payload:body})});
+      if(!r.ok) throw new Error(r.status);
+    }catch(e){ await idbPut('outbox',{topic:"warp."+ROOM.roomId,body}); throw e; } // (NN4)(4) offline-first : file locale
+    return msg;
+  }
+  async function flushOutbox(){ const all=await idbAll('outbox'); for(const {k,v} of all){
+    try{ const r=await fetch(BUS+"/emit",{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({topic:v.topic,payload:v.body})}); if(r.ok) await idbDel('outbox',k); }catch(e){ break; } } }
+
+  function onRecv(cb){ recvCb=cb; }
+  function listen(){
+    if(es){ es.close(); es=null; }
+    if(!ROOM) return;
+    try{ es=new EventSource(BUS+"/events"); }catch(e){ return; }
+    es.onopen=()=>{ document.dispatchEvent(new CustomEvent('warp:relay',{detail:true})); flushOutbox(); };
+    es.onerror=()=>{ document.dispatchEvent(new CustomEvent('warp:relay',{detail:false})); };
+    es.onmessage=async ev=>{
+      let d; try{ d=JSON.parse(ev.data); }catch(_){ return; }
+      if(d.topic!=="warp."+ROOM.roomId || !d.payload) return;
+      let msg; try{ msg=await _open(d.payload); }catch(_){ return; }      // pas notre salon / corrompu -> ignore
+      const me=(await identity()).fp; if(msg.from===me) return;          // ignore ses propres echos
+      recvCb&&recvCb(msg);
+      document.dispatchEvent(new CustomEvent('warp:msg',{detail:msg}));
+    };
+  }
+  // export .warp : blob scelle content-adresse (remplace le relais ; partage manuel) (NN4)
+  async function exportWarp(payloadObj){ if(!ROOM) throw new Error('pas couplé');
+    const body=await _seal(payloadObj); return { name:addr64(body).slice(0,8)+".warp", body }; }
+
+  return { identity, setName, getName:()=>myName, linkFor, couple, room, send, onRecv, listen, flushOutbox, exportWarp };
+})();
+
+// ============================================================================
+//  UI : wagons + fil + couplage
+// ============================================================================
+let carts=[];  // wagons charges (ploxions a transporter)
+let msgs = JSON.parse(localStorage.getItem('warp.msgs')||'[]');
+
+function renderCarts(){
+  const c=$('#carts'); c.innerHTML='';
+  // wagon 0 = MOI (le Josion), toujours present
+  const meCart=document.createElement('div'); meCart.className='cart';
+  meCart.innerHTML='<div class="k">🟦</div><div class="lbl" id="meFp">moi…</div><div class="wheels"><i></i><i></i></div>';
+  c.appendChild(meCart);
+  jOSwarp.identity().then(id=>{ $('#meFp').textContent='moi · '+id.fp.slice(0,8); });
+  // wagon de l'autre si couple
+  const rm=jOSwarp.room();
+  if(rm){ const t=document.createElement('div'); t.className='cart them';
+    t.innerHTML='<div class="k">🟪</div><div class="lbl">'+rm.otherName+' · '+rm.safety+'</div><div class="wheels"><i></i><i></i></div>'; c.appendChild(t); }
+  // wagons-ploxions charges
+  for(const w of carts){ const e=document.createElement('div'); e.className='cart';
+    e.innerHTML='<div class="k">📦</div><div class="lbl">'+(w.name||'ploxion')+'</div><div class="pl">'+(w.note||'')+'</div><div class="wheels"><i></i><i></i></div>'; c.appendChild(e); }
+}
+
+function renderThread(){
+  const th=$('#thread'); th.innerHTML='';
+  for(const m of msgs){ const e=document.createElement('div');
+    if(m.sys){ e.className='msg sys'; e.textContent=m.text; th.appendChild(e); continue; }
+    e.className='msg'+(m.them?' them':'');
+    if(m.kind==='ploxion'){ e.textContent='📦 '+(m.text||'ploxion chargé'); }
+    else e.appendChild(document.createTextNode(m.text||''));
+    const ts=document.createElement('span'); ts.className='ts';
+    ts.textContent=new Date(m.at).toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}); e.appendChild(ts);
+    th.appendChild(e);
+  }
+  th.scrollTop=th.scrollHeight;
+}
+function pushMsg(m){ msgs.push(m); if(msgs.length>500) msgs=msgs.slice(-500);
+  localStorage.setItem('warp.msgs', JSON.stringify(msgs)); renderThread(); }
+
+async function commit(){
+  const d=$('#draft'); const text=d.value.trim(); if(!text) return;
+  d.value=''; d.style.height='42px';
+  const m={kind:'note', text, at:Date.now()};
+  if(jOSwarp.room()){
+    try{ await jOSwarp.send(m); pushMsg(m); }
+    catch(e){ pushMsg(Object.assign({},m,{pending:true})); pushMsg({sys:true,text:'relais hors-ligne — gardé dans l’outbox (offline-first)'}); }
+  } else { pushMsg(m); pushMsg({sys:true,text:'pas encore couplé — tape 🔗 pour faire le /warp'}); }
+}
+
+// reception : message de l'autre -> wagon "them"
+jOSwarp.onRecv(m=>{
+  if(m.kind==='ploxion'){ carts.push({name:m.text||'ploxion',note:m.note||''}); renderCarts(); }
+  pushMsg({kind:m.kind, text:m.text, them:true, at:m.at||Date.now()});
+});
+
+// ===== couplage UI =====
+async function openWarp(){
+  $('#warp').classList.add('on');
+  const rm=jOSwarp.room();
+  if(rm){ $('#safetyWrap').classList.remove('hidden'); $('#safety').textContent=rm.safety; }
+}
+async function copyLink(){
+  if(!jOSwarp.getName()){ const n=prompt('le nom de ton -ion (ex: Josion) ?','Josion'); if(n) jOSwarp.setName(n.trim()); }
+  const link=await jOSwarp.linkFor();
+  try{ await navigator.clipboard.writeText(link); toast('lien /warp copié — envoie-le par canal de confiance'); }
+  catch(e){ prompt('copie ton lien /warp :', link); }
+}
+async function doCouple(){
+  const link=$('#otherLink').value.trim(); if(!link){ toast('colle le lien de l’autre'); return; }
+  try{ const rm=await jOSwarp.couple(link);
+    $('#safetyWrap').classList.remove('hidden'); $('#safety').textContent=rm.safety;
+    pushMsg({sys:true,text:'/warp ouvert avec '+rm.otherName+' — vérifie l’empreinte '+rm.safety+' des DEUX côtés'});
+    renderCarts(); $('#st').textContent='couplé'; $('#dot').className='dot live';
+    toast('couplé · '+rm.safety);
+  }catch(e){ toast('lien /warp invalide'); }
+}
+
+// ===== charger un ploxion dans un wagon (le minecart PORTE des ploxions) =====
+function loadPloxion(){
+  const name=prompt('nom du ploxion à charger dans le wagon (ex: wormion, portion, cub4ion) ?'); if(!name) return;
+  carts.push({name:name.trim(), note:'opaque'}); renderCarts();
+  const m={kind:'ploxion', text:name.trim(), at:Date.now()};
+  if(jOSwarp.room()){ jOSwarp.send(m).then(()=>pushMsg(m)).catch(()=>{ pushMsg(m); pushMsg({sys:true,text:'wagon gardé en outbox'}); }); }
+  else pushMsg(m);
+}
+
+// ===== more =====
+async function more(){
+  const m=[
+    ['🔗 faire / voir le /warp', openWarp],
+    ['📦 charger un ploxion dans un wagon', loadPloxion],
+    ['⤓ exporter ce wagon en .warp (scellé)', exportCart],
+    ['🚃 mon empreinte d’-ion', async()=>{ const id=await jOSwarp.identity(); alert('ton -ion · '+id.fp+'\n(clé publique seulement ; la privée ne sort jamais)'); }],
+    ['⌫ vider le fil (local)', ()=>{ if(confirm('Vider le fil de CE téléphone ?')){ msgs=[]; localStorage.removeItem('warp.msgs'); renderThread(); } }],
+  ];
+  const i=prompt('🚃  ·  '+m.map((x,k)=>(k+1)+') '+x[0]).join('\n')+'\n\nnuméro ?'); const k=parseInt(i,10)-1; if(m[k]) m[k][1]();
+}
+async function exportCart(){
+  if(!jOSwarp.room()){ toast('couple d’abord (le .warp est scellé avec la clé de salon)'); return; }
+  const f=await jOSwarp.exportWarp({carts, msgs, at:Date.now()});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([f.body],{type:'text/plain'}));
+  a.download=f.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('wagon exporté · '+f.name+' (scellé, content-adressé)');
+}
+
+// ===== presence relais (alimente aussi le wormion via le bus) =====
+document.addEventListener('warp:relay', e=>{
+  if(e.detail){ $('#dot').classList.add('relay'); $('#st').textContent=jOSwarp.room()?'live':'relais'; }
+});
+
+// ===== wire =====
+function wire(){
+  $('#bWarp').onclick=openWarp;
+  $('#warpClose').onclick=()=>$('#warp').classList.remove('on');
+  $('#copyLink').onclick=copyLink;
+  $('#doCouple').onclick=doCouple;
+  $('#bMore').onclick=more;
+  $('#plus').onclick=loadPloxion;
+  $('#send').onclick=commit;
+  const d=$('#draft');
+  d.addEventListener('input',()=>{ d.style.height='42px'; d.style.height=Math.min(d.scrollHeight,120)+'px'; });
+  d.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); commit(); } });
+}
+
+// ===== boot =====
+(async function boot(){
+  wire(); await jOSwarp.identity(); renderCarts(); renderThread();
+  // si on arrive PAR un lien /warp (#p=...) : auto-couplage transparent (NN2 : sans rien dévoiler)
+  if(location.hash.includes('p=')){
+    try{ const rm=await jOSwarp.couple(location.hash);
+      // on retire le hash de la barre pour qu'il ne traine pas (et zero referrer leak deja couvert)
+      history.replaceState(null,'',location.pathname+location.search);
+      $('#safetyWrap')&&null; $('#st').textContent='couplé'; $('#dot').className='dot live';
+      pushMsg({sys:true,text:'/warp reçu de '+rm.otherName+' — empreinte '+rm.safety+' (vérifie des deux côtés)'});
+      renderCarts(); toast('/warp ouvert · '+rm.safety);
+    }catch(e){ toast('lien /warp illisible'); }
+  }
+  jOSwarp.flushOutbox();
+})();
+</script>
+</body>
+</html>

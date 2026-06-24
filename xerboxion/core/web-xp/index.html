@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · xp</title>
+<style>
+  /* PL0XI0N xp — le COOKIE-CLICKER de l'XP (José : « automatise l'xp, comme un
+     cookie clicker mais de l'xp »). Clique l'orbe ⚡ pour de l'XP, achète des
+     générateurs (bion→xerboxion) qui en produisent tout seuls (XP/sec), monte
+     de niveau (Bion → Xeroction). 100% client-side (localStorage xb:xpclick).
+     Migré du blade Laravel : la page EST le ploxion (mount sur <body>). */
+  :root{
+    --xr-bg:#070a0f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:var(--xr-bg);overflow:hidden;}
+  .xp { display:flex; flex-direction:column; height:100%; max-width:620px; margin:0 auto;
+      background:radial-gradient(circle at 50% 22%, rgba(30,46,70,.5), #06090d 70%);
+      color:rgba(220,232,240,.92); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.84rem; }
+  .xp *{box-sizing:border-box;}
+  .xp__head { flex:0 0 auto; padding:12px 14px 8px; text-align:center; }
+  .xp__lvl { font-weight:800; color:#fff; font-size:1.1rem; }
+  .xp__lvl b { color:rgba(120,220,160,.95); }
+  .xp__tot { font-family:'Share Tech Mono',ui-monospace,monospace; color:rgba(150,200,255,.95); font-size:1.35rem; margin-top:2px; }
+  .xp__rate { font-size:.72rem; color:rgba(150,180,220,.65); }
+  .xp__bar { height:8px; border-radius:20px; background:rgba(30,40,60,.7); border:1px solid rgba(120,160,230,.25); overflow:hidden; margin:7px auto 0; max-width:320px; }
+  .xp__barf { height:100%; background:linear-gradient(90deg,rgba(90,180,255,.85),rgba(120,220,160,.9)); transition:width .2s; }
+  .xp__next { font-size:.64rem; color:rgba(150,180,220,.55); margin-top:3px; }
+  .xp__orbwrap { flex:0 0 auto; display:flex; justify-content:center; padding:10px 0 6px; position:relative; }
+  .xp__orb { width:120px; height:120px; border-radius:50%; cursor:pointer; border:0; font-size:3rem;
+      background:radial-gradient(circle at 38% 32%, rgba(150,220,255,.95), rgba(60,120,220,.85) 60%, rgba(30,60,140,.9));
+      box-shadow:0 0 36px rgba(90,160,255,.5), inset 0 -8px 20px rgba(0,0,0,.3); color:#fff; user-select:none;
+      transition:transform .06s; }
+  .xp__orb:active { transform:scale(.92); }
+  .xp__float { position:absolute; pointer-events:none; color:rgba(180,230,255,.95); font-weight:700; font-size:.9rem;
+      animation:xpf .8s ease-out forwards; }
+  @keyframes xpf { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-38px); } }
+  .xp__gens { flex:1; min-height:0; overflow-y:auto; padding:6px 11px 11px; }
+  .xp__g { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; margin-bottom:6px;
+      border:1px solid rgba(120,160,230,.18); background:rgba(18,26,42,.5); cursor:pointer; }
+  .xp__g:hover { border-color:rgba(120,170,255,.6); }
+  .xp__g.no { opacity:.5; cursor:not-allowed; }
+  .xp__gic { font-size:1.4rem; width:30px; text-align:center; }
+  .xp__gn { font-weight:600; color:#fff; }
+  .xp__gm { font-size:.66rem; color:rgba(150,180,220,.65); }
+  .xp__gr { margin-left:auto; text-align:right; }
+  .xp__gc { font-family:'Share Tech Mono',monospace; color:rgba(120,220,160,.95); font-size:.8rem; }
+  .xp__go { font-size:.66rem; color:rgba(150,180,220,.6); }
+  .xp__foot { flex:0 0 auto; display:flex; gap:8px; padding:5px 11px; border-top:1px solid rgba(120,160,230,.14); }
+  .xp__btn { cursor:pointer; font-size:.7rem; padding:3px 9px; border-radius:6px; border:1px solid rgba(120,160,230,.3); background:none; color:rgba(160,195,255,.85); }
+  .xp__btn:hover { background:rgba(120,160,230,.12); color:#fff; }
+</style>
+</head>
+<body>
+<script>
+(function () {
+    'use strict';
+
+    var KEY = 'xb:xpclick';
+    var TITLES = ['Bion', 'Cubion', 'Ploxion', 'Plugion', 'Boxion', 'Xerion', 'Archiviste', 'Explorateur', 'Constructeur', 'Chercheur', 'Xeroction'];
+    function levelFor(t) { var n = 0; while (50 * (n + 1) * (n + 2) <= t) n++; return n; }
+    function floorXp(n) { return 50 * n * (n + 1); }
+    function title(n) { return TITLES[Math.min(n, TITLES.length - 1)]; }
+    var GENS = [
+        { id: 'bion', n: 'Bion', ic: '·', cost: 15, rate: 0.1 },
+        { id: 'cubion', n: 'Cubion', ic: '⬡', cost: 100, rate: 1 },
+        { id: 'ploxion', n: 'Ploxion', ic: '◌', cost: 1100, rate: 8 },
+        { id: 'boxion', n: 'Boxion', ic: '▣', cost: 12000, rate: 47 },
+        { id: 'xerion', n: 'Xerion', ic: '✦', cost: 130000, rate: 260 },
+        { id: 'galaxion', n: 'Galaxion', ic: '🌌', cost: 1400000, rate: 1400 },
+        { id: 'xerboxion', n: 'Xerboxion', ic: '♾', cost: 20000000, rate: 7800 }
+    ];
+    function fmt(n) { n = Math.floor(n); if (n < 1e4) return '' + n; if (n < 1e6) return (n / 1e3).toFixed(1) + 'k'; if (n < 1e9) return (n / 1e6).toFixed(2) + 'M'; return (n / 1e9).toFixed(2) + 'Md'; }
+    function load() { try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && typeof d.xp === 'number') return d; } catch (e) {} return { xp: 0, owned: {} }; }
+    function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+    function costOf(g, owned) { return Math.floor(g.cost * Math.pow(1.15, owned || 0)); }
+
+    /* ── bus xion (same-origin : la page est servie à /px/xp/index.html) ── */
+    function emit(topic, payload) {
+        try {
+            fetch('/emit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, payload: payload })
+            }).catch(function () {});
+        } catch (e) {}
+    }
+
+    function mount(container) {
+        var s = load(), alive = true, timer = null, lastT = Date.now();
+        var floatTimers = [];
+        var lastLvl = levelFor(s.xp);
+
+        container.innerHTML =
+            '<div class="xp">'
+          + '  <div class="xp__head"><div class="xp__lvl"></div><div class="xp__tot"></div><div class="xp__rate"></div>'
+          + '    <div class="xp__bar"><div class="xp__barf"></div></div><div class="xp__next"></div></div>'
+          + '  <div class="xp__orbwrap"><button class="xp__orb" data-orb>⚡</button></div>'
+          + '  <div class="xp__gens"></div>'
+          + '  <div class="xp__foot"><span class="xp__btn" style="cursor:default;border:0">générateurs auto · clique l’orbe</span>'
+          + '    <span style="flex:1"></span><button class="xp__btn" data-reset>reset</button></div>'
+          + '</div>';
+        var elLvl = container.querySelector('.xp__lvl'), elTot = container.querySelector('.xp__tot');
+        var elRate = container.querySelector('.xp__rate'), elBar = container.querySelector('.xp__barf');
+        var elNext = container.querySelector('.xp__next'), elGens = container.querySelector('.xp__gens');
+        var orb = container.querySelector('[data-orb]'), wrap = container.querySelector('.xp__orbwrap');
+
+        function rate() { var r = 0; GENS.forEach(function (g) { r += (s.owned[g.id] || 0) * g.rate; }); return r; }
+        function clickPower() { return 1 + Math.floor(levelFor(s.xp) / 2); }
+
+        function checkLevel() {
+            var n = levelFor(s.xp);
+            if (n !== lastLvl) { lastLvl = n; emit('xp.level', { level: n, title: title(n), xp: Math.floor(s.xp) }); }
+        }
+
+        function renderHead() {
+            var n = levelFor(s.xp), base = floorXp(n), ceil = floorXp(n + 1);
+            elLvl.innerHTML = 'Niv ' + n + ' · <b>' + title(n) + '</b>';
+            elTot.textContent = fmt(s.xp) + ' XP';
+            elRate.textContent = '+' + (rate()).toFixed(1) + ' XP/s · clic +' + clickPower();
+            elBar.style.width = (ceil > base ? Math.round((s.xp - base) / (ceil - base) * 100) : 100) + '%';
+            elNext.textContent = fmt(Math.max(0, ceil - s.xp)) + ' avant Niv ' + (n + 1) + ' · ' + title(n + 1);
+            checkLevel();
+        }
+        function renderGens() {
+            elGens.innerHTML = GENS.map(function (g) {
+                var owned = s.owned[g.id] || 0, c = costOf(g, owned), can = s.xp >= c;
+                return '<div class="xp__g' + (can ? '' : ' no') + '" data-buy="' + g.id + '">'
+                     + '<span class="xp__gic">' + g.ic + '</span>'
+                     + '<span><div class="xp__gn">' + g.n + '</div><div class="xp__gm">+' + g.rate + ' XP/s</div></span>'
+                     + '<span class="xp__gr"><div class="xp__gc">' + fmt(c) + ' XP</div><div class="xp__go">×' + owned + '</div></span></div>';
+            }).join('');
+        }
+        function render() { renderHead(); renderGens(); }
+
+        orb.addEventListener('click', function () {
+            var p = clickPower(); s.xp += p;
+            var f = document.createElement('span'); f.className = 'xp__float'; f.textContent = '+' + p;
+            f.style.left = (40 + Math.random() * 40) + '%'; f.style.top = '20px'; wrap.appendChild(f);
+            var t = setTimeout(function () { f.remove(); }, 800); floatTimers.push(t);
+            renderHead();
+            emit('xp.click', { gained: p, xp: Math.floor(s.xp) });
+        });
+        elGens.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-buy]'); if (!b) return;
+            var g = GENS.find(function (x) { return x.id === b.getAttribute('data-buy'); });
+            var owned = s.owned[g.id] || 0, c = costOf(g, owned);
+            if (s.xp < c) return;
+            s.xp -= c; s.owned[g.id] = owned + 1; render();
+            emit('xp.buy', { gen: g.id, owned: s.owned[g.id], xp: Math.floor(s.xp) });
+        });
+        container.querySelector('[data-reset]').addEventListener('click', function () {
+            if (!confirm('Repartir de zéro ?')) return; s = { xp: 0, owned: {} }; lastLvl = 0; save(s); render();
+        });
+
+        render();
+        timer = setInterval(function () {
+            if (!alive) return;
+            var now = Date.now(), dt = (now - lastT) / 1000; lastT = now;
+            var r = rate(); if (r > 0) { s.xp += r * dt; renderHead(); }
+            save(s);
+        }, 250);
+
+        return {
+            unmount: function () {
+                alive = false;
+                if (timer) { clearInterval(timer); timer = null; }
+                floatTimers.forEach(function (t) { clearTimeout(t); });
+                floatTimers = [];
+                save(s);
+                container.innerHTML = '';
+            }
+        };
+    }
+
+    /* ── boot : on monte directement dans le body (la page EST le ploxion) ── */
+    var app = mount(document.body);
+
+    /* ── DROIT AU SILENCE : on coupe tout proprement à la sortie ─────────── */
+    function silence() {
+        if (app && app.unmount) { app.unmount(); app = null; }
+    }
+    window.addEventListener('pagehide', silence);
+    window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

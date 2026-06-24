@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · dictionnaire — lexique ionique</title>
+<style>
+  /* PL0XI0N dictionnaire — le LEXIQUE IONIQUE de XERB0XI0N, cherchable.
+     Migré de Laravel (mount dans un container) vers xerboxion-core : ici la
+     page EST le ploxion, l'UI vit directement dans le <body>.
+     Source des termes : /wiki/lexicon.json (same-origin). Recherche live,
+     filtre par catégorie, décomposition + définition + lien page wiki. */
+  :root{
+    --xr-bg:#070a0f;
+    --xr-surface:rgba(18,26,42,.5);
+    --xr-surface-2:rgba(18,26,42,.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--xr-bg);
+    color:rgba(220,232,240,.92);
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:.84rem;
+    overflow:hidden;
+  }
+
+  .dic{ display:flex; flex-direction:column; height:100%; background:#06090d;
+    color:rgba(220,232,240,.92); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.84rem; }
+  .dic *{box-sizing:border-box;}
+  .dic__bar{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 11px; border-bottom:1px solid rgba(120,160,230,.18); }
+  .dic__t{ font-weight:700; letter-spacing:.04em; color:rgba(160,195,255,.95); white-space:nowrap; }
+  .dic__f{ flex:1; min-width:0; border-radius:8px; padding:6px 11px; border:1px solid rgba(120,160,230,.25);
+    background:var(--xr-surface-2); color:#fff; font-family:inherit; font-size:.84rem; outline:none; }
+  .dic__f:focus{ border-color:rgba(120,160,230,.55); }
+  .dic__cnt{ font-size:.68rem; color:rgba(150,180,220,.6); font-family:ui-monospace,monospace; white-space:nowrap; }
+  .dic__cats{ flex:0 0 auto; display:flex; flex-wrap:wrap; gap:5px; padding:7px 11px; border-bottom:1px solid rgba(120,160,230,.1); }
+  .dic__cat{ cursor:pointer; font-size:.64rem; text-transform:uppercase; letter-spacing:.04em; padding:2px 8px; border-radius:20px;
+    border:1px solid rgba(120,160,230,.28); color:rgba(150,180,220,.8); background:none; font-family:inherit; }
+  .dic__cat.on{ background:rgba(120,160,230,.18); color:#fff; border-color:rgba(120,160,230,.6); }
+  .dic__list{ flex:1; min-height:0; overflow-y:auto; padding:9px 11px; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:9px; align-content:start; }
+  .dic__c{ border:1px solid rgba(120,160,230,.18); border-radius:11px; padding:10px 12px; background:var(--xr-surface);
+    display:flex; flex-direction:column; gap:5px; }
+  .dic__h{ display:flex; align-items:baseline; gap:8px; }
+  .dic__g{ font-size:1.15rem; color:rgba(150,200,255,.95); font-family:'Share Tech Mono',ui-monospace,monospace; }
+  .dic__n{ font-weight:700; color:#fff; }
+  .dic__deco{ font-size:.7rem; color:rgba(160,200,255,.75); font-family:ui-monospace,monospace; }
+  .dic__cat-tag{ margin-left:auto; font-size:.58rem; text-transform:uppercase; letter-spacing:.04em; color:rgba(150,180,220,.6); }
+  .dic__d{ font-size:.76rem; color:rgba(190,212,228,.8); line-height:1.4; }
+  .dic__lm{ font-size:.68rem; color:rgba(140,170,210,.6); font-style:italic; }
+  .dic__lnk{ font-size:.68rem; color:rgba(160,195,255,.82); text-decoration:none; align-self:flex-start; }
+  .dic__lnk:hover{ color:#fff; }
+  .dic__msg{ grid-column:1/-1; text-align:center; padding:22px; color:rgba(190,212,228,.55); }
+  .dic__flag{ font-size:.56rem; color:rgba(255,200,120,.9); border:1px solid rgba(255,180,90,.4); border-radius:10px; padding:0 5px; }
+</style>
+</head>
+<body>
+<div class="dic">
+  <div class="dic__bar">
+    <span class="dic__t">📖 Lexique</span>
+    <input class="dic__f" placeholder="cherche un terme, une lettre, un sens…">
+    <span class="dic__cnt"></span>
+  </div>
+  <div class="dic__cats"></div>
+  <div class="dic__list"><div class="dic__msg">chargement du lexique ionique…</div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- clés localStorage (préfixe xb:) : on garde le dernier filtre/recherche ----
+  var LS_Q = 'xb:dictionnaire:q', LS_CAT = 'xb:dictionnaire:cat';
+  function lsGet(k){ try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function esc(s){ var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; }
+
+  // ---- bus xerboxion (same-origin, optionnel) : émet quand un terme est ouvert ----
+  function emit(topic, payload){
+    try {
+      fetch('/emit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topic, payload: payload }),
+        keepalive: true
+      }).catch(function(){});
+    } catch (e) {}
+  }
+
+  // ---- état + ressources vivantes (à libérer au silence) ----
+  var alive = true;
+  var ac = ('AbortController' in window) ? new AbortController() : null;
+  var es = null;
+  var terms = [];
+  var cat = lsGet(LS_CAT);
+  var q = lsGet(LS_Q);
+
+  var elF    = document.querySelector('.dic__f');
+  var elCnt  = document.querySelector('.dic__cnt');
+  var elCats = document.querySelector('.dic__cats');
+  var elList = document.querySelector('.dic__list');
+
+  if (q) elF.value = q;
+
+  function cats(){
+    var s = {};
+    terms.forEach(function (t) { if (t.category) s[t.category] = (s[t.category] || 0) + 1; });
+    return Object.keys(s).sort();
+  }
+  function renderCats(){
+    var html = '<button class="dic__cat' + (cat === '' ? ' on' : '') + '" data-cat="">tout (' + terms.length + ')</button>';
+    cats().forEach(function (c) {
+      html += '<button class="dic__cat' + (cat === c ? ' on' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+    });
+    elCats.innerHTML = html;
+  }
+  function match(t){
+    if (cat && t.category !== cat) return false;
+    if (!q) return true;
+    var hay = (t.name + ' ' + t.slug + ' ' + (t.decomposition || '') + ' ' + (t.letter_meaning || '') + ' ' + (t.definition || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  }
+  function render(){
+    var shown = terms.filter(match);
+    elCnt.textContent = shown.length + '/' + terms.length;
+    if (!shown.length) { elList.innerHTML = '<div class="dic__msg">aucun terme — élargis la recherche</div>'; return; }
+    elList.innerHTML = shown.map(function (t) {
+      return '<div class="dic__c" data-slug="' + esc(t.slug) + '" data-name="' + esc(t.name) + '">'
+           + '<div class="dic__h">' + (t.glyph ? '<span class="dic__g">' + esc(t.glyph) + '</span>' : '')
+           +   '<span class="dic__n">' + esc(t.name) + '</span>'
+           +   (t.flag ? ' <span class="dic__flag">' + esc(t.flag) + '</span>' : '')
+           +   (t.category ? '<span class="dic__cat-tag">' + esc(t.category) + '</span>' : '') + '</div>'
+           + (t.decomposition ? '<div class="dic__deco">' + esc(t.decomposition) + '</div>' : '')
+           + (t.letter_meaning ? '<div class="dic__lm">' + esc(t.letter_meaning) + '</div>' : '')
+           + (t.definition ? '<div class="dic__d">' + esc(t.definition) + '</div>' : '')
+           + '<a class="dic__lnk" href="/wiki/' + esc(t.slug) + '" target="_blank" rel="noopener">→ page wiki</a>'
+           + '</div>';
+    }).join('');
+  }
+
+  elF.addEventListener('input', function () {
+    q = elF.value.trim().toLowerCase();
+    lsSet(LS_Q, q);
+    render();
+  });
+  elCats.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cat]'); if (!b) return;
+    cat = b.getAttribute('data-cat');
+    lsSet(LS_CAT, cat);
+    renderCats(); render();
+  });
+  // ouverture d'un terme : émet sur le bus (le lien <a> garde son comportement natif)
+  elList.addEventListener('click', function (e) {
+    if (!e.target.closest('.dic__lnk')) return;
+    var c = e.target.closest('.dic__c'); if (!c) return;
+    emit('dictionnaire.term.open', { slug: c.getAttribute('data-slug'), name: c.getAttribute('data-name') });
+  });
+
+  // ---- chargement du lexique (same-origin) ----
+  fetch('/wiki/lexicon.json', { headers: { Accept: 'application/json' }, signal: ac && ac.signal })
+    .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+    .then(function (d) {
+      if (!alive) return;
+      terms = (d && d.terms) || [];
+      terms.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      if (cat && cats().indexOf(cat) === -1) { cat = ''; lsSet(LS_CAT, ''); }
+      renderCats(); render();
+      emit('dictionnaire.loaded', { count: terms.length });
+    })
+    .catch(function () { if (alive) elList.innerHTML = '<div class="dic__msg">lexique hors ligne (réessaie plus tard)</div>'; });
+
+  // ---- bus live (optionnel) : recharge si le lexique wiki change ----
+  try {
+    if ('EventSource' in window) {
+      es = new EventSource('/events');
+      es.addEventListener('lexicon.changed', function () {
+        if (!alive) return;
+        fetch('/wiki/lexicon.json', { headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!alive || !d) return;
+            terms = (d.terms || []);
+            terms.sort(function (a, b) { return a.name.localeCompare(b.name); });
+            renderCats(); render();
+          })
+          .catch(function () {});
+      });
+      es.onerror = function () { /* relais absent en local : pas grave, on reste statique */ };
+    }
+  } catch (e) {}
+
+  // ---- DROIT AU SILENCE : on coupe toutes les ressources vivantes ----
+  function silence(){
+    alive = false;
+    if (ac) { try { ac.abort(); } catch (e) {} ac = null; }
+    if (es) { try { es.close(); } catch (e) {} es = null; }
+  }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

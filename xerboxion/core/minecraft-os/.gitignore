@@ -1,0 +1,10 @@
+# Sous-projet Gradle -- ne pas polluer la branche operational-core.
+.gradle/
+build/
+run/
+*.class
+
+.idea/
+*.iml
+.vscode/
+bin/

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hasard 🎲</title>
+<style>
+  html,body{margin:0;height:100%;background:#070a0f}
+  *{box-sizing:border-box}
+  .rnd{display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--xr-bg,#070a0f);color:var(--xr-text,#e7f0ff);font-family:'Share Tech Mono',ui-monospace,monospace;overflow:hidden}
+  .rnd__tabs{display:flex;flex:0 0 auto;border-bottom:1px solid var(--xr-border,#22324f)}
+  .rnd__tab{flex:1;padding:10px 4px;border:0;background:transparent;color:var(--xr-text,#e7f0ff);font-family:inherit;font-size:.78rem;cursor:pointer;opacity:.5;transition:opacity .15s,border-bottom .15s;border-bottom:2px solid transparent}
+  .rnd__tab.is-active{opacity:1;border-bottom:2px solid var(--xr-accent,#3fe0d0);color:var(--xr-accent,#3fe0d0)}
+  .rnd__panels{flex:1;overflow:hidden;position:relative}
+  .rnd__panel{position:absolute;inset:0;padding:18px 16px;overflow-y:auto;display:none;flex-direction:column;gap:14px}
+  .rnd__panel.is-active{display:flex}
+
+  /* Shared widgets */
+  .rnd__label{font-size:.72rem;opacity:.55;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+  .rnd__btn{border:1px solid var(--xr-accent,#3fe0d0);background:rgba(63,224,208,.08);color:var(--xr-accent,#3fe0d0);font-family:inherit;font-size:1rem;padding:9px 20px;cursor:pointer;border-radius:4px;transition:background .12s}
+  .rnd__btn:hover{background:rgba(63,224,208,.18)}
+  .rnd__btn--ghost{border-color:var(--xr-border,#22324f);color:var(--xr-text,#e7f0ff);background:transparent}
+  .rnd__btn--ghost:hover{background:rgba(255,255,255,.05)}
+  .rnd__input{background:rgba(255,255,255,.04);border:1px solid var(--xr-border,#22324f);color:var(--xr-text,#e7f0ff);font-family:inherit;font-size:.95rem;padding:7px 10px;border-radius:4px;width:100%;box-sizing:border-box}
+  .rnd__input:focus{outline:none;border-color:var(--xr-accent,#3fe0d0)}
+  .rnd__result{font-size:2.6rem;font-weight:700;color:#fff;text-align:center;padding:14px 0 8px;letter-spacing:.04em;min-height:3.5rem;transition:color .2s}
+  .rnd__sub{font-size:.8rem;opacity:.45;text-align:center;min-height:1.1rem}
+  .rnd__row{display:flex;gap:8px;align-items:flex-end}
+  .rnd__row .rnd__input{flex:1}
+  .rnd__sep{height:1px;background:var(--xr-border,#22324f);flex:0 0 auto}
+
+  /* Dés */
+  .rnd__dice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .rnd__die{border:1px solid var(--xr-border,#22324f);background:rgba(255,255,255,.03);color:var(--xr-text,#e7f0ff);font-family:inherit;font-size:.85rem;padding:8px 4px;cursor:pointer;border-radius:4px;transition:background .12s,border-color .12s;text-align:center}
+  .rnd__die.is-sel{border-color:var(--xr-accent,#3fe0d0);background:rgba(63,224,208,.1);color:var(--xr-accent,#3fe0d0)}
+  .rnd__die:hover:not(.is-sel){background:rgba(255,255,255,.06)}
+  .rnd__count-row{display:flex;gap:8px;align-items:center}
+  .rnd__count-lbl{font-size:.8rem;opacity:.55;white-space:nowrap}
+  .rnd__count-btn{width:32px;height:32px;border:1px solid var(--xr-border,#22324f);background:transparent;color:var(--xr-text,#e7f0ff);font-family:inherit;font-size:1.1rem;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:background .1s}
+  .rnd__count-btn:hover{background:rgba(255,255,255,.07)}
+  .rnd__count-val{font-size:1rem;min-width:24px;text-align:center}
+  .rnd__dice-breakdown{font-size:.78rem;opacity:.4;text-align:center;word-break:break-all;min-height:1.1rem}
+
+  /* Pile/face */
+  .rnd__coin{width:90px;height:90px;margin:0 auto;position:relative;perspective:300px}
+  .rnd__coin-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  .rnd__coin-face,.rnd__coin-back{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;backface-visibility:hidden;border:2px solid var(--xr-accent,#3fe0d0)}
+  .rnd__coin-face{background:rgba(63,224,208,.12)}
+  .rnd__coin-back{background:rgba(63,224,208,.06);transform:rotateY(180deg)}
+  .rnd__coin-inner.flip-heads{transform:rotateY(0deg)}
+  .rnd__coin-inner.flip-tails{transform:rotateY(180deg)}
+  .rnd__coin-inner.animating{animation:rnd-flip .6s ease}
+  @keyframes rnd-flip{0%{transform:rotateY(0deg)}50%{transform:rotateY(900deg)}100%{transform:rotateY(var(--rnd-end-rot,0deg))}}
+
+  /* Tirage */
+  .rnd__textarea{background:rgba(255,255,255,.04);border:1px solid var(--xr-border,#22324f);color:var(--xr-text,#e7f0ff);font-family:inherit;font-size:.9rem;padding:9px 10px;border-radius:4px;width:100%;box-sizing:border-box;resize:vertical;min-height:100px}
+  .rnd__textarea:focus{outline:none;border-color:var(--xr-accent,#3fe0d0)}
+  .rnd__winner{font-size:1.6rem;color:var(--xr-accent,#3fe0d0);text-align:center;padding:10px 0 4px;word-break:break-word;min-height:2.2rem}
+  .rnd__winner-rank{font-size:.78rem;opacity:.45;text-align:center;min-height:1.1rem}
+  .rnd__multi-row{display:flex;gap:8px;align-items:center;margin-top:2px}
+  .rnd__multi-lbl{font-size:.8rem;opacity:.55;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="rnd" tabindex="0">
+  <div class="rnd__tabs">
+    <button class="rnd__tab is-active" data-tab="des">🎲 Dés</button>
+    <button class="rnd__tab" data-tab="pile">🪙 Pile/Face</button>
+    <button class="rnd__tab" data-tab="nombre">🔢 Nombre</button>
+    <button class="rnd__tab" data-tab="tirage">🎯 Tirage</button>
+  </div>
+  <div class="rnd__panels">
+    <!-- DÉS -->
+    <div class="rnd__panel is-active" data-panel="des">
+      <div class="rnd__label">Choisir un dé</div>
+      <div class="rnd__dice-grid">
+        <button class="rnd__die" data-faces="4">d4</button>
+        <button class="rnd__die is-sel" data-faces="6">d6</button>
+        <button class="rnd__die" data-faces="8">d8</button>
+        <button class="rnd__die" data-faces="10">d10</button>
+        <button class="rnd__die" data-faces="12">d12</button>
+        <button class="rnd__die" data-faces="20">d20</button>
+      </div>
+      <div class="rnd__count-row">
+        <span class="rnd__count-lbl">Nombre de dés</span>
+        <button class="rnd__count-btn" data-action="dec">−</button>
+        <span class="rnd__count-val" data-dice-count>1</span>
+        <button class="rnd__count-btn" data-action="inc">+</button>
+      </div>
+      <div class="rnd__result" data-des-result>—</div>
+      <div class="rnd__dice-breakdown" data-des-breakdown></div>
+      <button class="rnd__btn" data-roll-btn>Lancer</button>
+    </div>
+    <!-- PILE/FACE -->
+    <div class="rnd__panel" data-panel="pile">
+      <div class="rnd__coin" data-coin-wrap>
+        <div class="rnd__coin-inner flip-heads" data-coin-inner>
+          <div class="rnd__coin-face">☀️</div>
+          <div class="rnd__coin-back">🌙</div>
+        </div>
+      </div>
+      <div class="rnd__result" data-coin-result style="font-size:1.4rem">—</div>
+      <div class="rnd__sub" data-coin-sub></div>
+      <button class="rnd__btn" data-flip-btn style="margin-top:auto">Lancer la pièce</button>
+    </div>
+    <!-- NOMBRE -->
+    <div class="rnd__panel" data-panel="nombre">
+      <div>
+        <div class="rnd__label">Minimum</div>
+        <input class="rnd__input" type="number" data-nb-min value="1">
+      </div>
+      <div>
+        <div class="rnd__label">Maximum</div>
+        <input class="rnd__input" type="number" data-nb-max value="100">
+      </div>
+      <div class="rnd__result" data-nb-result>—</div>
+      <div class="rnd__sub" data-nb-sub></div>
+      <button class="rnd__btn" data-nb-btn>Générer</button>
+    </div>
+    <!-- TIRAGE -->
+    <div class="rnd__panel" data-panel="tirage">
+      <div>
+        <div class="rnd__label">Liste (un item par ligne)</div>
+        <textarea class="rnd__textarea" data-list-input placeholder="Alice&#10;Bob&#10;Charlie&#10;..."></textarea>
+      </div>
+      <div class="rnd__multi-row">
+        <span class="rnd__multi-lbl">Tirer</span>
+        <button class="rnd__count-btn" data-action="dec-multi">−</button>
+        <span class="rnd__count-val" data-multi-count>1</span>
+        <button class="rnd__count-btn" data-action="inc-multi">+</button>
+        <span class="rnd__multi-lbl">gagnant(s)</span>
+      </div>
+      <div class="rnd__winner" data-winner>—</div>
+      <div class="rnd__winner-rank" data-winner-rank></div>
+      <button class="rnd__btn" data-draw-btn>Tirer au sort</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  /* ---- helpers ---- */
+  function rnd(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function shuffle(arr){
+    var a=arr.slice();
+    for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; }
+    return a;
+  }
+
+  var root = document.querySelector('.rnd');
+
+  /* ---- DROIT AU SILENCE : registre des timers ---- */
+  var flipTimer = 0;
+
+  /* ---- TAB SWITCHING ---- */
+  var tabs = root.querySelectorAll('.rnd__tab');
+  var panels = root.querySelectorAll('.rnd__panel');
+  function switchTab(name){
+    tabs.forEach(function(t){ t.classList.toggle('is-active', t.getAttribute('data-tab')===name); });
+    panels.forEach(function(p){ p.classList.toggle('is-active', p.getAttribute('data-panel')===name); });
+  }
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ switchTab(t.getAttribute('data-tab')); });
+  });
+
+  /* ===== DÉS ===== */
+  var selFaces = 6;
+  var diceCount = 1;
+  var diceCountEl = root.querySelector('[data-dice-count]');
+  var desResult = root.querySelector('[data-des-result]');
+  var desBreakdown = root.querySelector('[data-des-breakdown]');
+
+  root.querySelectorAll('.rnd__die').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      root.querySelectorAll('.rnd__die').forEach(function(b){ b.classList.remove('is-sel'); });
+      btn.classList.add('is-sel');
+      selFaces = parseInt(btn.getAttribute('data-faces'), 10);
+    });
+  });
+
+  root.querySelector('[data-action="dec"]').addEventListener('click', function(){
+    if(diceCount > 1){ diceCount--; diceCountEl.textContent = diceCount; }
+  });
+  root.querySelector('[data-action="inc"]').addEventListener('click', function(){
+    if(diceCount < 20){ diceCount++; diceCountEl.textContent = diceCount; }
+  });
+
+  root.querySelector('[data-roll-btn]').addEventListener('click', function(){
+    var rolls = [];
+    for(var i=0;i<diceCount;i++) rolls.push(rnd(1, selFaces));
+    var total = rolls.reduce(function(a,b){ return a+b; }, 0);
+    desResult.textContent = diceCount > 1 ? total : rolls[0];
+    desBreakdown.textContent = diceCount > 1 ? rolls.join(' + ') + ' = ' + total : diceCount + 'd' + selFaces;
+  });
+
+  /* ===== PILE/FACE ===== */
+  var coinInner = root.querySelector('[data-coin-inner]');
+  var coinResult = root.querySelector('[data-coin-result]');
+  var coinSub = root.querySelector('[data-coin-sub]');
+  var coinFlipping = false;
+
+  root.querySelector('[data-flip-btn]').addEventListener('click', function(){
+    if(coinFlipping) return;
+    coinFlipping = true;
+    var isHeads = Math.random() < 0.5;
+    var endRot = isHeads ? 0 : 180;
+    coinInner.style.setProperty('--rnd-end-rot', endRot + 'deg');
+    coinInner.classList.remove('flip-heads','flip-tails','animating');
+    void coinInner.offsetWidth; // reflow
+    coinInner.classList.add('animating');
+    coinResult.textContent = '…';
+    coinSub.textContent = '';
+    clearTimeout(flipTimer);
+    flipTimer = setTimeout(function(){
+      coinInner.classList.remove('animating');
+      coinInner.classList.add(isHeads ? 'flip-heads' : 'flip-tails');
+      coinResult.textContent = isHeads ? '☀️  PILE' : '🌙  FACE';
+      coinSub.textContent = isHeads ? 'Pile' : 'Face';
+      coinFlipping = false;
+    }, 650);
+  });
+
+  /* ===== NOMBRE ===== */
+  var nbMin = root.querySelector('[data-nb-min]');
+  var nbMax = root.querySelector('[data-nb-max]');
+  var nbResult = root.querySelector('[data-nb-result]');
+  var nbSub = root.querySelector('[data-nb-sub]');
+
+  root.querySelector('[data-nb-btn]').addEventListener('click', function(){
+    var mn = parseInt(nbMin.value, 10);
+    var mx = parseInt(nbMax.value, 10);
+    if(isNaN(mn)||isNaN(mx)){ nbResult.textContent='?'; nbSub.textContent='Valeurs invalides'; return; }
+    if(mn > mx){ var tmp=mn;mn=mx;mx=tmp; }
+    var val = rnd(mn, mx);
+    nbResult.textContent = val;
+    nbSub.textContent = 'Entre ' + mn + ' et ' + mx;
+  });
+
+  /* ===== TIRAGE ===== */
+  var multiCount = 1;
+  var multiCountEl = root.querySelector('[data-multi-count]');
+  var listInput = root.querySelector('[data-list-input]');
+  var winnerEl = root.querySelector('[data-winner]');
+  var winnerRank = root.querySelector('[data-winner-rank]');
+
+  root.querySelector('[data-action="dec-multi"]').addEventListener('click', function(){
+    if(multiCount > 1){ multiCount--; multiCountEl.textContent = multiCount; }
+  });
+  root.querySelector('[data-action="inc-multi"]').addEventListener('click', function(){
+    multiCount++; multiCountEl.textContent = multiCount;
+  });
+
+  root.querySelector('[data-draw-btn]').addEventListener('click', function(){
+    var raw = listInput.value.split('\n');
+    var items = [];
+    raw.forEach(function(l){ var t=l.trim(); if(t) items.push(t); });
+    if(!items.length){ winnerEl.textContent='?'; winnerRank.textContent='Liste vide'; return; }
+    var n = Math.min(multiCount, items.length);
+    var drawn = shuffle(items).slice(0, n);
+    if(n === 1){
+      winnerEl.style.fontSize='1.6rem';
+      winnerEl.textContent = '🏆 ' + drawn[0];
+      winnerRank.textContent = items.length + ' participant' + (items.length>1?'s':'');
+    } else {
+      winnerEl.style.fontSize='1rem';
+      winnerEl.innerHTML = drawn.map(function(d,i){
+        var medal = ['🥇','🥈','🥉'][i] || '  ';
+        return '<div style="margin:2px 0">'+medal+' '+d+'</div>';
+      }).join('');
+      winnerRank.textContent = n + ' tirés parmi ' + items.length;
+    }
+  });
+
+  /* ===== DROIT AU SILENCE ===== */
+  function silence(){
+    clearTimeout(flipTimer);
+    coinInner.classList.remove('animating');
+    coinFlipping = false;
+  }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

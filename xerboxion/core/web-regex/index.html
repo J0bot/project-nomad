@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · regex</title>
+<style>
+  /* Racine sombre cohérente xerboxion. Le blade attendait des var --xr-* fournies
+     par l'hôte Laravel ; ici la page EST le ploxion, on les pose nous-mêmes.
+     Fond #070a0f imposé par le contrat de migration. */
+  :root{
+    --xr-bg:#070a0f;
+    --xr-text:#e7f0ff;
+    --xr-muted:rgba(231,240,255,.45);
+    --xr-accent:#3fe0d0;
+    --xr-border:#22324f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:var(--xr-bg);color:var(--xr-text);font-family:ui-monospace,'Share Tech Mono',monospace;overflow:hidden;}
+
+  /* La page EST le ploxion : .prgx remplit tout l'écran. */
+  .prgx{display:flex;flex-direction:column;height:100%;background:var(--xr-bg);color:var(--xr-text);font-family:ui-monospace,'Share Tech Mono',monospace;box-sizing:border-box}
+  .prgx *{box-sizing:border-box}
+
+  /* Header pattern row */
+  .prgx__header{flex:0 0 auto;padding:12px 14px 8px;border-bottom:1px solid var(--xr-border)}
+  .prgx__pattern-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .prgx__label{font-size:.7rem;letter-spacing:.08em;color:var(--xr-muted);text-transform:uppercase;white-space:nowrap}
+  .prgx__sep{font-size:1.3rem;color:var(--xr-accent);opacity:.5;user-select:none}
+  .prgx__pattern{flex:1;min-width:120px;background:rgba(63,224,208,.07);border:1px solid var(--xr-border);border-radius:4px;color:var(--xr-text);font-family:inherit;font-size:.95rem;padding:6px 10px;outline:none;transition:border-color .15s}
+  .prgx__pattern:focus{border-color:var(--xr-accent)}
+  .prgx__pattern.prgx--err{border-color:#ff5566!important;color:#ff8899}
+  .prgx__flags{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+  .prgx__flag{display:flex;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;border:1px solid var(--xr-border);border-radius:3px;font-size:.8rem;color:var(--xr-muted);transition:all .12s;user-select:none;background:transparent}
+  .prgx__flag:hover{border-color:rgba(63,224,208,.4);color:var(--xr-text)}
+  .prgx__flag input{width:0;height:0;opacity:0;position:absolute}
+  .prgx__flag.prgx--active{border-color:var(--xr-accent);color:var(--xr-accent);background:rgba(63,224,208,.08)}
+
+  /* Toolbar: tabs + library/cheatsheet toggles */
+  .prgx__toolbar{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .prgx__tab{cursor:pointer;padding:4px 12px;border:1px solid var(--xr-border);border-radius:3px;font-size:.78rem;color:var(--xr-muted);background:transparent;font-family:inherit;transition:all .12s}
+  .prgx__tab:hover{border-color:rgba(63,224,208,.4);color:var(--xr-text)}
+  .prgx__tab.prgx--on{border-color:var(--xr-accent);color:var(--xr-accent);background:rgba(63,224,208,.08)}
+  .prgx__spacer{flex:1}
+
+  /* Replace row */
+  .prgx__replace-row{display:none;align-items:center;gap:8px;margin-top:8px}
+  .prgx__replace-row.prgx--show{display:flex}
+  .prgx__replace{flex:1;min-width:100px;background:rgba(63,224,208,.07);border:1px solid var(--xr-border);border-radius:4px;color:var(--xr-text);font-family:inherit;font-size:.9rem;padding:6px 10px;outline:none}
+  .prgx__replace:focus{border-color:var(--xr-accent)}
+
+  /* Error bar */
+  .prgx__error{display:none;padding:5px 14px;background:rgba(255,85,102,.12);border-bottom:1px solid rgba(255,85,102,.3);color:#ff8899;font-size:.8rem}
+  .prgx__error.prgx--visible{display:block}
+
+  /* Stats bar */
+  .prgx__stats{flex:0 0 auto;padding:5px 14px;font-size:.75rem;color:var(--xr-muted);border-bottom:1px solid var(--xr-border);min-height:24px}
+  .prgx__stats span{color:var(--xr-accent)}
+
+  /* Panels (library / cheatsheet) */
+  .prgx__panel{display:none;flex:0 0 auto;max-height:34%;overflow-y:auto;padding:8px 14px;border-bottom:1px solid var(--xr-border);background:rgba(63,224,208,.03)}
+  .prgx__panel.prgx--show{display:block}
+  .prgx__panel-title{font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--xr-muted);margin-bottom:6px}
+  .prgx__lib{display:flex;flex-wrap:wrap;gap:6px}
+  .prgx__lib-item{cursor:pointer;padding:4px 10px;border:1px solid var(--xr-border);border-radius:14px;font-size:.76rem;color:var(--xr-text);background:rgba(63,224,208,.06);transition:all .12s}
+  .prgx__lib-item:hover{border-color:var(--xr-accent);background:rgba(63,224,208,.14)}
+  .prgx__lib-item small{color:var(--xr-muted);margin-left:5px}
+  .prgx__cheat{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:3px 14px}
+  .prgx__cheat-row{display:flex;gap:7px;font-size:.74rem;padding:1px 0}
+  .prgx__cheat-row code{color:var(--xr-accent);background:rgba(63,224,208,.08);border-radius:2px;padding:0 4px;white-space:nowrap;flex:0 0 auto}
+  .prgx__cheat-row span{color:var(--xr-muted)}
+
+  /* Body: text + matches side by side */
+  .prgx__body{flex:1;display:flex;min-height:0;gap:0}
+
+  /* Left: test textarea + highlighted overlay */
+  .prgx__left{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--xr-border)}
+  .prgx__zone-label{flex:0 0 auto;padding:5px 12px;font-size:.68rem;color:var(--xr-muted);letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--xr-border);display:flex;justify-content:space-between;align-items:center}
+  .prgx__zone-label b{color:var(--xr-accent);font-weight:normal}
+  .prgx__textarea-wrap{flex:1;position:relative;min-height:0}
+  .prgx__overlay,.prgx__textarea,.prgx__preview{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:10px 12px;font-family:ui-monospace,'Share Tech Mono',monospace;font-size:.88rem;line-height:1.55;border:0;outline:none;resize:none;tab-size:4;white-space:pre-wrap;word-wrap:break-word;overflow:auto}
+  .prgx__textarea{background:transparent;color:var(--xr-text);caret-color:var(--xr-accent);z-index:2}
+  .prgx__overlay{background:var(--xr-bg);color:transparent;pointer-events:none;z-index:1;overflow:hidden}
+  .prgx__overlay mark{background:rgba(63,224,208,.28);color:transparent;border-radius:2px;border-bottom:2px solid var(--xr-accent)}
+  .prgx__overlay mark.prgx--first{background:rgba(63,224,208,.45);border-bottom-color:#ffe066}
+  /* Preview pane (replace result) */
+  .prgx__preview{background:var(--xr-bg);color:var(--xr-text);z-index:3;display:none}
+  .prgx__preview.prgx--show{display:block}
+  .prgx__preview ins{background:rgba(120,255,150,.18);color:#aaffbb;text-decoration:none;border-radius:2px;border-bottom:2px solid #5fdd7f}
+
+  /* Right: matches list */
+  .prgx__right{flex:0 0 230px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  @media(max-width:560px){.prgx__body{flex-direction:column}.prgx__right{flex:0 0 150px;border-right:0;border-top:1px solid var(--xr-border)}}
+  .prgx__matches{flex:1;overflow-y:auto;padding:6px 0}
+  .prgx__match-item{padding:4px 10px;border-bottom:1px solid rgba(34,50,79,.5);font-size:.78rem}
+  .prgx__match-item:last-child{border-bottom:0}
+  .prgx__match-idx{color:rgba(63,224,208,.6);font-size:.68rem;margin-bottom:1px}
+  .prgx__match-val{color:var(--xr-text);word-break:break-all;background:rgba(63,224,208,.07);border-radius:2px;padding:1px 4px}
+  .prgx__match-pos{color:var(--xr-muted);font-size:.68rem;margin-top:1px}
+  .prgx__match-groups{margin-top:3px;padding-left:8px;border-left:2px solid rgba(63,224,208,.2)}
+  .prgx__match-group{font-size:.73rem;color:var(--xr-muted)}
+  .prgx__match-group b{color:rgba(63,224,208,.75)}
+  .prgx__match-group i{color:rgba(231,240,255,.3)}
+  .prgx__empty{padding:14px 10px;text-align:center;color:rgba(231,240,255,.2);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="prgx">
+  <div class="prgx__header">
+    <div class="prgx__pattern-row">
+      <span class="prgx__label">Pattern</span>
+      <span class="prgx__sep">/</span>
+      <input class="prgx__pattern" type="text" placeholder="expression régulière…" spellcheck="false" autocomplete="off" data-rgx-pattern>
+      <span class="prgx__sep">/</span>
+      <div class="prgx__flags">
+        <label class="prgx__flag" title="Global — toutes les occurrences"><input type="checkbox" data-flag="g" checked><span>g</span></label>
+        <label class="prgx__flag" title="Insensible à la casse"><input type="checkbox" data-flag="i"><span>i</span></label>
+        <label class="prgx__flag" title="Multiligne (^ et $ sur chaque ligne)"><input type="checkbox" data-flag="m"><span>m</span></label>
+        <label class="prgx__flag" title="Dot-all (. matche \n aussi)"><input type="checkbox" data-flag="s"><span>s</span></label>
+        <label class="prgx__flag" title="Unicode"><input type="checkbox" data-flag="u"><span>u</span></label>
+        <label class="prgx__flag" title="Sticky (ancré à lastIndex)"><input type="checkbox" data-flag="y"><span>y</span></label>
+      </div>
+    </div>
+    <div class="prgx__toolbar">
+      <button type="button" class="prgx__tab" data-rgx-tab="replace">↹ Remplacer</button>
+      <button type="button" class="prgx__tab" data-rgx-tab="library">📚 Bibliothèque</button>
+      <button type="button" class="prgx__tab" data-rgx-tab="cheat">？ Aide-mémoire</button>
+    </div>
+    <div class="prgx__replace-row" data-rgx-replace-row>
+      <span class="prgx__label">Remplacer</span>
+      <input class="prgx__replace" type="text" placeholder="ex. [$1] ou $<name> …" spellcheck="false" autocomplete="off" data-rgx-replace>
+    </div>
+  </div>
+  <div class="prgx__panel" data-rgx-panel="library">
+    <div class="prgx__panel-title">Patterns courants — clic pour charger</div>
+    <div class="prgx__lib" data-rgx-lib></div>
+  </div>
+  <div class="prgx__panel" data-rgx-panel="cheat">
+    <div class="prgx__panel-title">Aide-mémoire des tokens</div>
+    <div class="prgx__cheat" data-rgx-cheat></div>
+  </div>
+  <div class="prgx__error" data-rgx-error></div>
+  <div class="prgx__stats" data-rgx-stats>Aucun pattern</div>
+  <div class="prgx__body">
+    <div class="prgx__left">
+      <div class="prgx__zone-label"><span>Texte de test</span><b data-rgx-mode></b></div>
+      <div class="prgx__textarea-wrap">
+        <div class="prgx__overlay" data-rgx-overlay aria-hidden="true"></div>
+        <div class="prgx__preview" data-rgx-preview aria-hidden="true"></div>
+        <textarea class="prgx__textarea" data-rgx-text placeholder="Colle ton texte ici…" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="prgx__right">
+      <div class="prgx__zone-label"><span>Correspondances</span></div>
+      <div class="prgx__matches" data-rgx-matches></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+    'use strict';
+
+    /* Clés de persistance — préfixe xb: imposé par la migration xerboxion.
+       (Le blade Laravel d'origine ne persistait rien ; on ajoute un état léger
+       pour que pattern/texte/flags/remplacement survivent à un reload.) */
+    var LS_PATTERN='xb:regex:pattern';
+    var LS_TEXT='xb:regex:text';
+    var LS_FLAGS='xb:regex:flags';
+    var LS_REPLACE='xb:regex:replace';
+    var LS_REPLACE_MODE='xb:regex:replaceMode';
+
+    function lsGet(k,def){ try{ var v=localStorage.getItem(k); return v===null?def:v; }catch(e){ return def; } }
+    function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+    /* Escape HTML to prevent XSS in overlay/preview/lists */
+    function esc(s){
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* Build highlighted HTML from text + array of {start,end,first} ranges */
+    function buildOverlay(text, ranges){
+        if(!ranges.length) return esc(text);
+        var sorted=ranges.slice().sort(function(a,b){return a.start-b.start||b.end-a.end;});
+        var merged=[];
+        sorted.forEach(function(r){
+            if(!merged.length||r.start>=merged[merged.length-1].end){
+                merged.push({start:r.start,end:r.end,first:r.first});
+            } else {
+                var last=merged[merged.length-1];
+                if(r.end>last.end) last.end=r.end;
+            }
+        });
+        var html='',pos=0;
+        merged.forEach(function(r){
+            if(r.start>pos) html+=esc(text.slice(pos,r.start));
+            html+='<mark'+(r.first?' class="prgx--first"':'')+'>';
+            html+=esc(text.slice(r.start,r.end));
+            html+='</mark>';
+            pos=r.end;
+        });
+        if(pos<text.length) html+=esc(text.slice(pos));
+        return html;
+    }
+
+    /* Common patterns library */
+    var LIBRARY=[
+        {name:'Email',       pat:'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', flags:'gi', sample:'Contact: jose@j0bot.ch ou admin@example.org'},
+        {name:'URL',         pat:'https?:\\/\\/[^\\s/$.?#].[^\\s]*', flags:'gi', sample:'Voir https://j0bot.ch et http://example.com/path?x=1'},
+        {name:'IPv4',        pat:'\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b', flags:'g', sample:'Serveur 192.168.1.42, passerelle 10.0.0.1'},
+        {name:'Date ISO',    pat:'\\b(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})\\b', flags:'g', sample:'Le 2026-06-20 puis 2025-12-31'},
+        {name:'Téléphone',   pat:'(?:\\+\\d{1,3}[\\s.-]?)?(?:\\(\\d+\\)[\\s.-]?)?\\d[\\d\\s.-]{6,}\\d', flags:'g', sample:'Appelle +41 79 123 45 67 ou 021 555 00 00'},
+        {name:'Couleur hex', pat:'#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\b', flags:'g', sample:'bg #070b12, accent #3fe0d0, court #fff'},
+        {name:'Mot de passe fort', pat:'(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\w\\s]).{8,}', flags:'gm', sample:'faible: abc123\nfort: Tsoin-2026!Xerb0'},
+        {name:'Hashtag',     pat:'#\\w+', flags:'g', sample:'#xerboxion #tsoin #ploxion ça avance'},
+        {name:'Mention',     pat:'@\\w+', flags:'g', sample:'cc @jose et @claude sur le coord'},
+        {name:'Nombre',      pat:'-?\\d+(?:[.,]\\d+)?', flags:'g', sample:'prix 12,50 / qte 3 / delta -7.25'},
+        {name:'Mot entier',  pat:'\\b\\w+\\b', flags:'g', sample:'Le xerboxion est une machine à tsoin'},
+        {name:'Slug',        pat:'[a-z0-9]+(?:-[a-z0-9]+)*', flags:'g', sample:'mon-super-slug / autre_truc / abc'},
+        {name:'Balise HTML', pat:'<\\/?([a-zA-Z][\\w-]*)(?:[^>]*)>', flags:'g', sample:'<div class="x"><b>hi</b></div>'},
+        {name:'UUID',        pat:'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', flags:'gi', sample:'id: 550e8400-e29b-41d4-a716-446655440000'}
+    ];
+
+    /* Cheatsheet tokens */
+    var CHEAT=[
+        ['.', 'tout caractère sauf \\n'],
+        ['\\d \\D', 'chiffre / non-chiffre'],
+        ['\\w \\W', 'mot / non-mot'],
+        ['\\s \\S', 'espace / non-espace'],
+        ['\\b \\B', 'frontière de mot'],
+        ['^ $', 'début / fin (ligne si m)'],
+        ['[abc]', 'a, b ou c'],
+        ['[^abc]', 'sauf a, b, c'],
+        ['[a-z]', 'plage de a à z'],
+        ['a|b', 'a ou b (alternance)'],
+        ['(…)', 'groupe capturant'],
+        ['(?:…)', 'groupe non-capturant'],
+        ['(?<n>…)', 'groupe nommé n'],
+        ['\\1 \\k<n>', 'back-reference'],
+        ['*', '0 ou plus'],
+        ['+', '1 ou plus'],
+        ['?', '0 ou 1 (optionnel)'],
+        ['{n} {n,m}', 'quantité exacte / borne'],
+        ['*? +?', 'quantif. paresseux'],
+        ['(?=…)', 'lookahead positif'],
+        ['(?!…)', 'lookahead négatif'],
+        ['(?<=…)', 'lookbehind positif'],
+        ['(?<!…)', 'lookbehind négatif'],
+        ['\\. \\\\ \\/', 'caractères échappés'],
+        ['$1 $<n>', 'remplacement par groupe']
+    ];
+
+    function mount(container, ctx){
+        /* ---- refs (la page rend déjà le DOM, on le récupère) ---- */
+        var patternEl=container.querySelector('[data-rgx-pattern]');
+        var replaceEl=container.querySelector('[data-rgx-replace]');
+        var replaceRow=container.querySelector('[data-rgx-replace-row]');
+        var errorEl=container.querySelector('[data-rgx-error]');
+        var statsEl=container.querySelector('[data-rgx-stats]');
+        var overlayEl=container.querySelector('[data-rgx-overlay]');
+        var previewEl=container.querySelector('[data-rgx-preview]');
+        var textEl=container.querySelector('[data-rgx-text]');
+        var matchesEl=container.querySelector('[data-rgx-matches]');
+        var modeEl=container.querySelector('[data-rgx-mode]');
+        var flagEls=container.querySelectorAll('[data-flag]');
+        var tabEls=container.querySelectorAll('[data-rgx-tab]');
+        var libEl=container.querySelector('[data-rgx-lib]');
+        var cheatEl=container.querySelector('[data-rgx-cheat]');
+        var panels={
+            library:container.querySelector('[data-rgx-panel="library"]'),
+            cheat:container.querySelector('[data-rgx-panel="cheat"]')
+        };
+
+        var replaceMode=false;
+
+        /* ---- restore persisted state (xb:) ---- */
+        var savedPattern=lsGet(LS_PATTERN,'');
+        var savedText=lsGet(LS_TEXT,'');
+        var savedReplace=lsGet(LS_REPLACE,'');
+        var savedFlags=lsGet(LS_FLAGS,null);
+        if(savedPattern) patternEl.value=savedPattern;
+        if(savedText) textEl.value=savedText;
+        if(savedReplace) replaceEl.value=savedReplace;
+        if(savedFlags!==null){
+            flagEls.forEach(function(inp){
+                inp.checked=savedFlags.indexOf(inp.getAttribute('data-flag'))>=0;
+            });
+        }
+
+        /* ---- populate library ---- */
+        libEl.innerHTML=LIBRARY.map(function(p,i){
+            return '<div class="prgx__lib-item" data-lib="'+i+'">'+esc(p.name)+'</div>';
+        }).join('');
+        libEl.addEventListener('click',function(e){
+            var item=e.target.closest('[data-lib]');
+            if(!item) return;
+            var p=LIBRARY[+item.getAttribute('data-lib')];
+            patternEl.value=p.pat;
+            /* set flags from preset */
+            flagEls.forEach(function(inp){
+                inp.checked=p.flags.indexOf(inp.getAttribute('data-flag'))>=0;
+            });
+            /* load sample only if the test area is empty, to not clobber user text */
+            if(!textEl.value.trim()) textEl.value=p.sample;
+            syncFlagUI();
+            run();
+            patternEl.focus();
+        });
+
+        /* ---- populate cheatsheet ---- */
+        cheatEl.innerHTML=CHEAT.map(function(row){
+            return '<div class="prgx__cheat-row"><code>'+esc(row[0])+'</code><span>'+esc(row[1])+'</span></div>';
+        }).join('');
+
+        /* ---- tabs (replace toggle + panels) ---- */
+        function closePanels(){
+            Object.keys(panels).forEach(function(k){panels[k].classList.remove('prgx--show');});
+        }
+        function setReplaceMode(on){
+            replaceMode=on;
+            var btn=container.querySelector('[data-rgx-tab="replace"]');
+            if(btn) btn.classList.toggle('prgx--on',replaceMode);
+            replaceRow.classList.toggle('prgx--show',replaceMode);
+            previewEl.classList.toggle('prgx--show',replaceMode);
+            modeEl.textContent=replaceMode?'aperçu remplacement':'';
+            lsSet(LS_REPLACE_MODE,replaceMode?'1':'0');
+        }
+        tabEls.forEach(function(btn){
+            btn.addEventListener('click',function(){
+                var tab=btn.getAttribute('data-rgx-tab');
+                if(tab==='replace'){
+                    setReplaceMode(!replaceMode);
+                    if(replaceMode) setTimeout(function(){replaceEl.focus();},0);
+                    run();
+                } else {
+                    var panel=panels[tab];
+                    var willShow=!panel.classList.contains('prgx--show');
+                    closePanels();
+                    panel.classList.toggle('prgx--show',willShow);
+                    tabEls.forEach(function(b){
+                        if(b.getAttribute('data-rgx-tab')!=='replace')
+                            b.classList.toggle('prgx--on',b===btn&&willShow);
+                    });
+                }
+            });
+        });
+
+        /* ---- sync flag active state visually ---- */
+        function syncFlagUI(){
+            flagEls.forEach(function(inp){
+                var label=inp.closest('.prgx__flag');
+                if(inp.checked) label.classList.add('prgx--active');
+                else label.classList.remove('prgx--active');
+            });
+        }
+        flagEls.forEach(function(inp){
+            inp.addEventListener('change',function(){syncFlagUI();run();});
+        });
+        syncFlagUI();
+
+        /* ---- core engine ---- */
+        function getFlags(){
+            var f='';
+            flagEls.forEach(function(inp){if(inp.checked) f+=inp.getAttribute('data-flag');});
+            return f;
+        }
+
+        /* persist current inputs under xb: keys */
+        function persist(){
+            lsSet(LS_PATTERN,patternEl.value);
+            lsSet(LS_TEXT,textEl.value);
+            lsSet(LS_REPLACE,replaceEl.value);
+            lsSet(LS_FLAGS,getFlags());
+        }
+
+        function run(){
+            var pattern=patternEl.value;
+            var text=textEl.value;
+            var flags=getFlags();
+
+            persist();
+
+            /* clear error */
+            errorEl.textContent='';
+            errorEl.classList.remove('prgx--visible');
+            patternEl.classList.remove('prgx--err');
+            previewEl.innerHTML='';
+
+            if(!pattern){
+                overlayEl.innerHTML=esc(text);
+                statsEl.innerHTML='Aucun pattern';
+                matchesEl.innerHTML='<div class="prgx__empty">Entrez un pattern ci-dessus</div>';
+                if(replaceMode) previewEl.innerHTML=esc(text);
+                return;
+            }
+
+            /* build regex — native engine only, never eval. 'd' for indices when supported. */
+            var re;
+            try{
+                try{ re=new RegExp(pattern, flags+'d'); }
+                catch(e2){ re=new RegExp(pattern, flags); }
+            }catch(e){
+                patternEl.classList.add('prgx--err');
+                errorEl.textContent='Regex invalide : '+e.message;
+                errorEl.classList.add('prgx--visible');
+                overlayEl.innerHTML=esc(text);
+                statsEl.innerHTML='Erreur de pattern';
+                matchesEl.innerHTML='<div class="prgx__empty">Pattern invalide</div>';
+                if(replaceMode) previewEl.innerHTML=esc(text);
+                return;
+            }
+
+            /* collect all matches manually for cross-browser compat */
+            var matches=[];
+            var hasGlobal=flags.indexOf('g')>=0;
+            var hasSticky=flags.indexOf('y')>=0;
+            var m;
+            re.lastIndex=0;
+            if(hasGlobal||hasSticky){
+                while((m=re.exec(text))!==null){
+                    matches.push(m);
+                    if(m[0].length===0) re.lastIndex++;
+                    if(hasSticky && !hasGlobal){
+                        /* sticky alone: exec advances lastIndex; stop if no progress handled above */
+                    }
+                }
+            } else {
+                m=re.exec(text);
+                if(m) matches.push(m);
+            }
+
+            /* build ranges for overlay */
+            var ranges=matches.map(function(m,i){
+                var start, end;
+                if(m.indices && m.indices[0]){
+                    start=m.indices[0][0]; end=m.indices[0][1];
+                } else {
+                    start=m.index; end=m.index+m[0].length;
+                }
+                return {start:start, end:end, first:(i===0)};
+            });
+
+            overlayEl.innerHTML=buildOverlay(text, ranges);
+
+            /* stats */
+            statsEl.innerHTML='<span>'+matches.length+'</span> correspondance'+(matches.length>1?'s':'');
+
+            /* replacement preview */
+            if(replaceMode){
+                buildPreview(re, text, replaceEl.value);
+            }
+
+            /* matches list */
+            if(matches.length===0){
+                matchesEl.innerHTML='<div class="prgx__empty">Aucune correspondance</div>';
+                return;
+            }
+            var html='';
+            matches.forEach(function(m,i){
+                var val=m[0];
+                var start=m.index;
+                var end=start+val.length;
+                html+='<div class="prgx__match-item">';
+                html+='<div class="prgx__match-idx">#'+(i+1)+'</div>';
+                html+='<div class="prgx__match-val">'+esc(val===''?'(vide)':val)+'</div>';
+                html+='<div class="prgx__match-pos">pos '+start+'–'+end+'</div>';
+                /* named groups */
+                if(m.groups){
+                    var gkeys=Object.keys(m.groups);
+                    if(gkeys.length){
+                        html+='<div class="prgx__match-groups">';
+                        gkeys.forEach(function(k){
+                            var gv=m.groups[k];
+                            html+='<div class="prgx__match-group"><b>&lt;'+esc(k)+'&gt;</b>: '+(gv===undefined?'<i>non capturé</i>':esc(gv))+'</div>';
+                        });
+                        html+='</div>';
+                    }
+                }
+                /* numbered groups */
+                if(m.length>1){
+                    html+='<div class="prgx__match-groups">';
+                    for(var g=1;g<m.length;g++){
+                        var gv=m[g];
+                        html+='<div class="prgx__match-group"><b>$'+g+'</b>: '+(gv===undefined?'<i>non capturé</i>':esc(gv))+'</div>';
+                    }
+                    html+='</div>';
+                }
+                html+='</div>';
+            });
+            matchesEl.innerHTML=html;
+        }
+
+        /* Build the replacement preview: native String.replace with the live regex,
+           but wrap replaced spans in <ins> so the user sees what changed. We tokenize
+           by running a fresh global regex over the text and substituting per match. */
+        function buildPreview(re, text, replacement){
+            /* Use a global+indices clone so we can locate spans regardless of original flags */
+            var gflags=re.flags.replace(/[gy]/g,'')+'g';
+            var cloneD, clone;
+            try{ cloneD=new RegExp(re.source, gflags+'d'); }
+            catch(e){ cloneD=null; }
+            try{ clone=new RegExp(re.source, gflags); }
+            catch(e){ previewEl.innerHTML=esc(text); return; }
+
+            var locator=cloneD||clone;
+            var html='', pos=0, m, guard=0;
+            locator.lastIndex=0;
+            while((m=locator.exec(text))!==null){
+                if(++guard>100000) break;
+                var s,e;
+                if(m.indices && m.indices[0]){ s=m.indices[0][0]; e=m.indices[0][1]; }
+                else { s=m.index; e=m.index+m[0].length; }
+                /* text before match */
+                if(s>pos) html+=esc(text.slice(pos,s));
+                /* compute replaced string for THIS match via a single-shot replace on m[0]
+                   using a non-global regex so $1/$<name> resolve against this match.
+                   We rebuild from the matched substring to honor groups correctly. */
+                var rep;
+                try{
+                    var single=new RegExp(re.source, re.flags.replace(/[gy]/g,''));
+                    rep=m[0].replace(single, replacement);
+                }catch(err){
+                    rep=replacement;
+                }
+                html+='<ins>'+esc(rep)+'</ins>';
+                pos=e;
+                if(m[0].length===0) locator.lastIndex++;
+            }
+            if(pos<text.length) html+=esc(text.slice(pos));
+            previewEl.innerHTML=html;
+        }
+
+        /* ---- sync overlay/preview scroll with textarea ---- */
+        function onScroll(){
+            overlayEl.scrollTop=textEl.scrollTop;
+            overlayEl.scrollLeft=textEl.scrollLeft;
+            previewEl.scrollTop=textEl.scrollTop;
+            previewEl.scrollLeft=textEl.scrollLeft;
+        }
+        textEl.addEventListener('scroll',onScroll);
+
+        /* ---- events ---- */
+        patternEl.addEventListener('input', run);
+        textEl.addEventListener('input', run);
+        replaceEl.addEventListener('input', run);
+
+        /* restore replace mode if it was on */
+        if(lsGet(LS_REPLACE_MODE,'0')==='1') setReplaceMode(true);
+
+        /* initial render */
+        run();
+        setTimeout(function(){ patternEl.focus(); }, 0);
+
+        return {
+            unmount: function(){
+                textEl.removeEventListener('scroll',onScroll);
+                patternEl.removeEventListener('input', run);
+                textEl.removeEventListener('input', run);
+                replaceEl.removeEventListener('input', run);
+            }
+        };
+    }
+
+    /* ── BOOT ──
+       La page EST le ploxion : on monte directement sur le .prgx déjà présent
+       dans le body (le mount() Laravel rendait dans un container fourni par
+       l'hôte ; ici le DOM est statique et mount() ne fait que le câbler). */
+    var app=mount(document.querySelector('.prgx'));
+
+    /* ── DROIT AU SILENCE ──
+       Ce ploxion n'a ni timer, ni media, ni EventSource, ni Blob URL, et le blade
+       d'origine ne parlait pas au bus : la seule chose à faire à la fermeture est
+       de retirer les écouteurs et de couper le boucle de calcul. On persiste une
+       dernière fois pour ne rien perdre. */
+    function silence(){
+        if(app && app.unmount){ try{app.unmount();}catch(e){} app=null; }
+    }
+    window.addEventListener('pagehide',silence);
+    window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

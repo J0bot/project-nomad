@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chrono ⏱</title>
+<style>
+  html,body{margin:0;height:100%;background:#070a0f;-webkit-text-size-adjust:100%}
+  *{box-sizing:border-box}
+  .chr{display:flex;flex-direction:column;min-height:100vh;background:radial-gradient(circle at 50% 25%,#08121a,#070a0f);color:#e7f0ff;font-family:ui-sans-serif,system-ui,sans-serif;user-select:none}
+  .chr__face{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;padding:34px 16px 18px}
+  .chr__display{font-family:ui-monospace,'Share Tech Mono',monospace;font-size:3.4rem;letter-spacing:.04em;color:#3fe0d0;text-shadow:0 0 24px rgba(63,224,208,.35);line-height:1}
+  .chr__ms{font-size:1.5rem;opacity:.7}
+  .chr__btns{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+  .chr__btn{padding:9px 22px;border-radius:8px;border:1px solid #22324f;background:transparent;color:#e7f0ff;font-size:.92rem;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+  .chr__btn:hover{background:rgba(63,224,208,.1);border-color:#3fe0d0}
+  .chr__btn--primary{background:#3fe0d0;color:#070b12;border-color:#3fe0d0;font-weight:600}
+  .chr__btn--primary:hover{background:rgba(63,224,208,.8)}
+  .chr__btn--danger{border-color:#e05050;color:#e08080}
+  .chr__btn--danger:hover{background:rgba(224,80,80,.12);border-color:#e05050;color:#e09090}
+  .chr__btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+  .chr__laps{flex:1;overflow-y:auto;padding:8px 14px 24px;max-width:520px;width:100%;margin:0 auto}
+  .chr__laps-head{display:flex;justify-content:space-between;font-size:.72rem;color:#e7f0ff;opacity:.45;padding:4px 10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+  .chr__lap{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;border:1px solid #22324f;margin-bottom:5px;font-family:ui-monospace,'Share Tech Mono',monospace;font-size:.88rem}
+  .chr__lap-n{width:28px;text-align:right;color:#3fe0d0;opacity:.6;font-size:.78rem}
+  .chr__lap-delta{flex:1;color:#e7f0ff;opacity:.9}
+  .chr__lap-total{color:#e7f0ff;opacity:.5;font-size:.8rem}
+  .chr__empty{text-align:center;padding:32px 0;font-size:.82rem;opacity:.35}
+</style>
+</head>
+<body>
+<div class="chr">
+  <div class="chr__face">
+    <div class="chr__display" data-display>00:00.<span class="chr__ms">00</span></div>
+    <div class="chr__btns">
+      <button class="chr__btn chr__btn--primary" data-start>Démarrer</button>
+      <button class="chr__btn" data-lap disabled>Tour</button>
+      <button class="chr__btn chr__btn--danger" data-reset disabled>Reset</button>
+    </div>
+  </div>
+  <div class="chr__laps">
+    <div class="chr__laps-head"><span>Tour</span><span>Delta</span><span>Total</span></div>
+    <div data-laplist><div class="chr__empty">Aucun tour enregistré</div></div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var doc=document;
+  var LK='xb:chrono:laps';
+
+  function pad2(n){ return n<10?'0'+n:''+n; }
+  function fmtMs(ms){ ms=Math.max(0,ms); var cs=Math.floor(ms/10)%100,s=Math.floor(ms/1000)%60,m=Math.floor(ms/60000); return pad2(m)+':'+pad2(s)+'.<span class="chr__ms">'+pad2(cs)+'</span>'; }
+  function fmtPlain(ms){ ms=Math.max(0,ms); var cs=Math.floor(ms/10)%100,s=Math.floor(ms/1000)%60,m=Math.floor(ms/60000); return pad2(m)+':'+pad2(s)+'.'+pad2(cs); }
+
+  var running=false, startAt=0, accumulated=0, laps=[], iv=null;
+
+  var display=doc.querySelector('[data-display]');
+  var btnStart=doc.querySelector('[data-start]');
+  var btnLap=doc.querySelector('[data-lap]');
+  var btnReset=doc.querySelector('[data-reset]');
+  var lapList=doc.querySelector('[data-laplist]');
+
+  // Restaure les tours d'une session précédente (le chrono lui-même repart de 0).
+  try{ var saved=JSON.parse(localStorage.getItem(LK)||'[]'); if(Array.isArray(saved)) laps=saved; }catch(e){ laps=[]; }
+  function persist(){ try{ localStorage.setItem(LK,JSON.stringify(laps)); }catch(e){} }
+
+  function elapsed(){ return running ? accumulated+(performance.now()-startAt) : accumulated; }
+  function tick(){ display.innerHTML=fmtMs(elapsed()); }
+
+  function renderLaps(){
+    if(laps.length===0){ lapList.innerHTML='<div class="chr__empty">Aucun tour enregistré</div>'; return; }
+    var html='';
+    for(var i=laps.length-1;i>=0;i--){
+      html+='<div class="chr__lap"><span class="chr__lap-n">#'+(i+1)+'</span>'+
+            '<span class="chr__lap-delta">'+fmtPlain(laps[i].delta)+'</span>'+
+            '<span class="chr__lap-total">'+fmtPlain(laps[i].total)+'</span></div>';
+    }
+    lapList.innerHTML=html;
+  }
+  if(laps.length){ btnReset.disabled=false; renderLaps(); }
+
+  btnStart.addEventListener('click',function(){
+    if(!running){
+      startAt=performance.now(); running=true;
+      iv=setInterval(tick,16);
+      btnStart.textContent='Pause';
+      btnStart.classList.remove('chr__btn--primary');
+      btnStart.style.borderColor='#3fe0d0';
+      btnStart.style.color='#3fe0d0';
+      btnLap.disabled=false; btnReset.disabled=false;
+    } else {
+      accumulated+=performance.now()-startAt; running=false;
+      clearInterval(iv); iv=null; tick();
+      btnStart.textContent='Reprendre';
+      btnStart.classList.add('chr__btn--primary');
+      btnStart.style.borderColor=''; btnStart.style.color='';
+      btnLap.disabled=true;
+    }
+  });
+
+  btnLap.addEventListener('click',function(){
+    if(!running) return;
+    var total=elapsed();
+    var prev=laps.length>0?laps[laps.length-1].total:0;
+    laps.push({total:total,delta:total-prev});
+    persist(); renderLaps();
+  });
+
+  btnReset.addEventListener('click',function(){
+    running=false; clearInterval(iv); iv=null;
+    accumulated=0; startAt=0; laps=[];
+    display.innerHTML='00:00.<span class="chr__ms">00</span>';
+    btnStart.textContent='Démarrer';
+    btnStart.classList.add('chr__btn--primary');
+    btnStart.style.borderColor=''; btnStart.style.color='';
+    btnLap.disabled=true; btnReset.disabled=true;
+    persist(); renderLaps();
+  });
+
+  // Droit au silence : à la fermeture/masquage, on coupe l'intervalle.
+  function silence(){ if(iv){ clearInterval(iv); iv=null; } running=false; }
+  window.addEventListener('pagehide',silence);
+  window.addEventListener('beforeunload',silence);
+})();
+</script>
+</body>
+</html>

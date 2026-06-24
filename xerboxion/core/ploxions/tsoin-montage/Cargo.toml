@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-tsoin-montage"
+description = "WASM ploxion: MONTAGE de tsoins. Combine deux tsoins (ou une liste) en un nouveau tsoin content-adresse + grave. Plusieurs operateurs (seq/xor/weave/fold/mask) = les 'plusieurs resultats possibles' du plan (combinaison de deux tsoins)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

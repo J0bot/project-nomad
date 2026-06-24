@@ -1,0 +1,28 @@
+# xi0n.j0bot.ch — l'instance xion de Jose (xi0n avec un ZERO ; distinct de xion.j0bot.ch = le bus).
+# PAS de login : le backend se garde lui-meme par un LIEN-CAPABILITY prive (XI0N_TOKEN ; le
+# lien EST la cle = le monde GPG de Jose). Sans le bon lien/cookie -> 403. Donc aucun
+# middleware d'auth Traefik ici : juste le routage + TLS. Le backend reste bind 10.0.0.1 (prive).
+# Noms prefixes xi0n- -> ZERO collision avec xion.j0bot.ch.
+http:
+  routers:
+    xi0n-http:
+      rule: "Host(`xi0n.j0bot.ch`)"
+      entryPoints: [http]
+      service: xi0n
+      middlewares: [xi0n-redirect-https]
+    xi0n-https:
+      rule: "Host(`xi0n.j0bot.ch`)"
+      entryPoints: [https]
+      service: xi0n
+      tls:
+        certResolver: letsencrypt
+  services:
+    xi0n:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8733"
+  middlewares:
+    xi0n-redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  maison · Home Assistant dans le xer (José : « préparer tout le terrain pour la partie home assistant »).
+  Se connecte à TON instance HA (URL + jeton longue-durée, stockés localStorage) → liste tes entités
+  (lumières/prises/capteurs/climat) groupées par domaine, allume/éteint, affiche les capteurs, refresh.
+  Browser-side (depuis ton réseau) ; HA doit autoriser l'origine (http.cors_allowed_origins). Le pont
+  domotique du xerboxion — se marie avec le ploxion boxion (hardware) + les device-bions. Mobile-first.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>maison</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem} .top .sp{flex:1} .top .st{font-size:.64rem;color:var(--dim)}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:4px}.live.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .ic{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-size:.95rem}
+  .body{flex:1;min-height:0;overflow:auto;padding:12px}
+  .grp{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:14px 0 7px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+  .ent{border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:var(--surf);display:flex;flex-direction:column;gap:5px;min-height:74px}
+  .ent .nm{font-size:.82rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ent .vl{font-size:1.1rem;font-weight:800} .ent .vl small{font-size:.62rem;color:var(--dim);font-weight:500}
+  .ent.tog{cursor:pointer} .ent.on{border-color:rgba(231,198,106,.5);box-shadow:0 0 18px rgba(231,198,106,.1)}
+  .ent .pill{align-self:flex-start;font-size:.6rem;padding:2px 9px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .ent.on .pill{color:var(--warn);border-color:rgba(231,198,106,.5)}
+  .setup{max-width:440px;margin:30px auto;text-align:center;padding:0 16px}
+  .setup h2{font-size:1.3rem} .setup p{color:var(--dim);font-size:.8rem;line-height:1.6}
+  input.f{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:10px 12px;font-size:.86rem;outline:none;margin-top:9px;min-height:40px}
+  input.f:focus{border-color:var(--acc)}
+  .btn{margin-top:13px;width:100%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
+  .err{color:var(--warn);font-size:.74rem;margin-top:10px;min-height:1em}
+  .hint{font-size:.66rem;color:var(--dim);margin-top:12px;line-height:1.5;text-align:left;background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+</style></head>
+<body>
+  <div class="top"><b>🏠 Maison</b><span class="st"><span class="live" id="live"></span><span id="status">—</span></span><span class="sp"></span><button class="ic" id="cfgBtn" title="connexion HA">⚙️</button></div>
+  <div class="body" id="body"></div>
+<script>
+"use strict";
+var K='xer.ha';
+function cfg(){ try{ return JSON.parse(localStorage.getItem(K))||{}; }catch(e){ return {}; } }
+function saveCfg(c){ try{ localStorage.setItem(K,JSON.stringify(c)); }catch(e){} }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+var S={ states:[], timer:null };
+
+function api(path,opt){ var c=cfg(); opt=opt||{}; opt.headers=Object.assign({'Authorization':'Bearer '+(c.token||''),'Content-Type':'application/json'},opt.headers||{});
+  return fetch((c.url||'').replace(/\/$/,'')+path, opt); }
+
+async function refresh(){
+  var c=cfg(); if(!c.url||!c.token){ renderSetup(); return; }
+  document.getElementById('status').textContent='maj…';
+  try{
+    var r=await api('/api/states'); if(!r.ok) throw new Error(r.status===401?'jeton refusé':'HTTP '+r.status);
+    S.states=await r.json();
+    document.getElementById('live').classList.add('on'); document.getElementById('status').textContent=S.states.length+' entités';
+    renderEntities();
+  }catch(e){ document.getElementById('live').classList.remove('on');
+    document.getElementById('status').textContent='hors-ligne';
+    renderSetup(String(e.message||e)+' — vérifie l\'URL, le jeton, et que HA autorise cette origine (cors_allowed_origins).'); }
+}
+
+function domainOf(id){ return (id||'').split('.')[0]; }
+var TOGGLE={light:1,switch:1,input_boolean:1,fan:1,automation:1,script:1};
+var ICON={light:'💡',switch:'🔌',sensor:'📊',binary_sensor:'⚫',climate:'🌡️',fan:'🌀',cover:'🪟',media_player:'🎵',person:'👤',weather:'⛅',lock:'🔒',camera:'📷'};
+function fname(e){ return (e.attributes&&e.attributes.friendly_name)||e.entity_id; }
+
+function renderEntities(){
+  var b=document.getElementById('body'); var byDom={};
+  S.states.forEach(function(e){ var d=domainOf(e.entity_id); if(d==='persistent_notification'||d==='zone'||d==='sun')return; (byDom[d]=byDom[d]||[]).push(e); });
+  var order=['light','switch','fan','cover','climate','lock','media_player','binary_sensor','sensor'];
+  var doms=Object.keys(byDom).sort(function(a,b){ var ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b); });
+  var h='';
+  doms.forEach(function(d){
+    h+='<div class="grp">'+(ICON[d]||'•')+' '+d+' · '+byDom[d].length+'</div><div class="grid">';
+    byDom[d].forEach(function(e){
+      var on=e.state==='on'||e.state==='open'||e.state==='unlocked'||e.state==='playing';
+      var tog=TOGGLE[d];
+      var unit=(e.attributes&&e.attributes.unit_of_measurement)||'';
+      if(tog){ h+='<div class="ent tog'+(on?' on':'')+'" data-id="'+esc(e.entity_id)+'" data-dom="'+d+'"><div class="nm">'+esc(fname(e))+'</div><span class="pill">'+esc(e.state)+'</span></div>'; }
+      else { h+='<div class="ent"><div class="nm">'+esc(fname(e))+'</div><div class="vl">'+esc(e.state)+(unit?' <small>'+esc(unit)+'</small>':'')+'</div></div>'; }
+    });
+    h+='</div>';
+  });
+  b.innerHTML=h||'<div class="setup"><p>aucune entité.</p></div>';
+  b.querySelectorAll('.ent.tog').forEach(function(el){ el.onclick=function(){ toggle(el.getAttribute('data-dom'),el.getAttribute('data-id')); }; });
+}
+async function toggle(dom,id){
+  try{ await api('/api/services/'+dom+'/toggle',{method:'POST',body:JSON.stringify({entity_id:id})}); setTimeout(refresh,400); }catch(e){}
+}
+
+function renderSetup(err){
+  var c=cfg();
+  document.getElementById('body').innerHTML='<div class="setup"><h2>🏠 Connecter Home Assistant</h2>'+
+    '<p>Branche ton instance HA pour piloter ta maison depuis le xer.</p>'+
+    '<input class="f" id="haUrl" placeholder="http://homeassistant.local:8123" value="'+esc(c.url||'')+'">'+
+    '<input class="f" id="haTok" placeholder="jeton d\'accès longue durée" value="'+esc(c.token||'')+'">'+
+    '<button class="btn" id="haSave">connecter</button><div class="err">'+esc(err||'')+'</div>'+
+    '<div class="hint">Le jeton se crée dans HA : <b>profil → jetons d\'accès longue durée → créer</b>. Et autorise cette origine côté HA : dans <code>configuration.yaml</code> → <code>http: cors_allowed_origins: ["'+location.origin+'"]</code>, puis redémarre HA.</div></div>';
+  var b=document.getElementById('haSave'); if(b) b.onclick=function(){ saveCfg({ url:document.getElementById('haUrl').value.trim(), token:document.getElementById('haTok').value.trim() }); refresh(); };
+}
+document.getElementById('cfgBtn').onclick=function(){ renderSetup(); };
+refresh(); setInterval(refresh, 6000);
+</script>
+</body></html>

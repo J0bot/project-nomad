@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>📌 Post-it</title>
+<style>
+    html, body { margin:0; height:100%; }
+    body { background:#070a0f; }
+    .pit { position:fixed; inset:0; height:100%; overflow:hidden; background:
+        radial-gradient(circle at 20% 15%, rgba(30,44,66,.5), #06090d 70%);
+        font-family:ui-sans-serif,system-ui,sans-serif; }
+    .pit__bar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; gap:8px;
+        padding:7px 11px; background:rgba(6,9,13,.7); border-bottom:1px solid rgba(120,160,230,.18); backdrop-filter:blur(4px); }
+    .pit__t { font-weight:700; letter-spacing:.04em; color:rgba(160,195,255,.95); font-size:.82rem; }
+    .pit__sp { flex:1; }
+    .pit__btn { cursor:pointer; padding:3px 10px; border-radius:6px; border:1px solid rgba(120,160,230,.3);
+        background:none; color:rgba(160,195,255,.85); font-size:.74rem; }
+    .pit__btn:hover { background:rgba(120,160,230,.12); color:#fff; }
+    .pit__board { position:absolute; inset:0; top:38px; }
+    .pit__n { position:absolute; width:180px; min-height:120px; border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,.4);
+        display:flex; flex-direction:column; transform:rotate(var(--r,0deg)); }
+    .pit__nh { height:26px; cursor:grab; display:flex; align-items:center; gap:5px; padding:0 6px;
+        border-radius:4px 4px 0 0; background:rgba(0,0,0,.14); touch-action:none; }
+    .pit__nh:active { cursor:grabbing; }
+    .pit__dot { width:11px; height:11px; border-radius:50%; cursor:pointer; border:1px solid rgba(0,0,0,.25); }
+    .pit__x { margin-left:auto; cursor:pointer; color:rgba(0,0,0,.5); font-size:.85rem; line-height:1; border:0; background:none; }
+    .pit__x:hover { color:#000; }
+    .pit__ta { flex:1; border:0; background:none; resize:none; outline:none; padding:7px 8px; font-size:.8rem;
+        line-height:1.35; color:rgba(20,20,25,.92); font-family:inherit; }
+    .pit__ta::placeholder { color:rgba(0,0,0,.32); }
+    .pit__hint { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(190,212,228,.4);
+        font-size:.82rem; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="pit">
+    <div class="pit__bar"><span class="pit__t">📌 Post-it</span><span class="pit__sp"></span>
+        <button class="pit__btn" data-add>+ post-it</button>
+        <button class="pit__btn" data-clear>tout vider</button></div>
+    <div class="pit__board"></div>
+    <div class="pit__hint">clique « + post-it » et déverse</div>
+</div>
+<script>
+(function () {
+    var KEY = 'xb:post-it';
+    var COLORS = ['#ffe27a','#ffb3ba','#baffc9','#b3d9ff','#e0baff','#ffd9a0'];
+
+    function load() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } }
+    function save(n) { try { localStorage.setItem(KEY, JSON.stringify(n)); } catch (e) {} }
+    function uid() { return 'p' + Date.now().toString(36) + Math.floor(performance.now()).toString(36); }
+
+    var notes = load();
+    var root  = document.querySelector('.pit');
+    var board = document.querySelector('.pit__board');
+    var hint  = document.querySelector('.pit__hint');
+
+    function persist() { save(notes); }
+    function refreshHint() { hint.style.display = notes.length ? 'none' : 'block'; }
+
+    function render(n) {
+        var el = document.createElement('div');
+        el.className = 'pit__n';
+        el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
+        el.style.background = n.color; el.style.setProperty('--r', (n.rot || 0) + 'deg');
+        el.dataset.id = n.id;
+        el.innerHTML =
+            '<div class="pit__nh"><span class="pit__dot" title="couleur"></span>'
+          + '<button class="pit__x" title="supprimer">✕</button></div>'
+          + '<textarea class="pit__ta" placeholder="…"></textarea>';
+        var ta = el.querySelector('.pit__ta'); ta.value = n.text || '';
+        ta.addEventListener('input', function () { n.text = ta.value; persist(); });
+        el.querySelector('.pit__dot').addEventListener('click', function () {
+            n.color = COLORS[(COLORS.indexOf(n.color) + 1) % COLORS.length];
+            el.style.background = n.color; persist();
+        });
+        el.querySelector('.pit__x').addEventListener('click', function () {
+            notes = notes.filter(function (m) { return m.id !== n.id; });
+            el.remove(); persist(); refreshHint();
+        });
+        // drag par l'en-tête (pointer capture -> pas de listener document)
+        var h = el.querySelector('.pit__nh'), drag = null;
+        h.addEventListener('pointerdown', function (e) {
+            if (e.target.classList.contains('pit__dot') || e.target.classList.contains('pit__x')) return;
+            drag = { dx: e.clientX - n.x, dy: e.clientY - n.y }; h.setPointerCapture(e.pointerId);
+            el.style.zIndex = 50;
+        });
+        h.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            n.x = Math.max(0, e.clientX - drag.dx); n.y = Math.max(0, e.clientY - drag.dy);
+            el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
+        });
+        h.addEventListener('pointerup', function (e) {
+            if (!drag) return; drag = null; el.style.zIndex = ''; h.releasePointerCapture(e.pointerId); persist();
+        });
+        board.appendChild(el);
+        return el;
+    }
+
+    notes.forEach(render);
+    refreshHint();
+
+    root.querySelector('[data-add]').addEventListener('click', function () {
+        var bw = board.clientWidth || 600, bh = board.clientHeight || 400;
+        var n = { id: uid(), x: 30 + Math.floor((bw - 240) * (notes.length % 5) / 5),
+                  y: 24 + (notes.length % 4) * 30, color: COLORS[notes.length % COLORS.length],
+                  rot: (notes.length % 5 - 2), text: '' };
+        notes.push(n); persist(); refreshHint();
+        render(n).querySelector('.pit__ta').focus();
+    });
+    root.querySelector('[data-clear]').addEventListener('click', function () {
+        if (!notes.length || !confirm('Vider tous les post-it ?')) return;
+        notes = []; persist(); board.innerHTML = ''; refreshHint();
+    });
+})();
+</script>
+</body>
+</html>

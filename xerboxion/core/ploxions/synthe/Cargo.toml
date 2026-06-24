@@ -1,0 +1,13 @@
+[package]
+name = "ploxion-synthe"
+description = "WASM ploxion: un node-instrument (oscillateur). synth.play -> genere un PCM deterministe + synth.result (un son = un tsoin)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }
+libm = "0.2"

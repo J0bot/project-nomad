@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<!--
+  web-xi0n/index.html — le ploxion xi0n, servi par le core a /px/xi0n/. José :
+  « un ploxion pour ouvrir des instances de xi0n + générer un lien à partager ; toutes les comms en
+  GPG ; un seul gros compte mais plein d'identités, chaque identité sa clé GPG ; des degrés de
+  partage d'informations. » Choix tranchés : vraie GPG (OpenPGP.js, vendorisé même-origine) ; degrés
+  O/I/N/X sur LES TROIS dimensions à la fois (détail × set de ploxions × confiance du destinataire).
+  Modèle xi0n-hub : « le lien EST la clé » — la capability voyage dans le FRAGMENT (#) du lien, qui
+  n'est jamais envoyé au serveur. Signé par l'identité émettrice ; chiffré au destinataire si donné.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>xi0n · identités & partage</title>
+<script src="/px/xi0n/openpgp.min.js"></script>
+<style>
+  :root{--bg:#070a0f;--ink:rgba(222,234,244,.92);--dim:rgba(150,178,210,.62);--line:rgba(120,160,230,.16);
+    --acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--panel:rgba(14,20,30,.86);}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(900px 500px at 80% -10%,rgba(80,60,150,.18),transparent 60%),var(--bg);
+    color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:.85rem;}
+  header{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  header b{color:#fff;letter-spacing:.06em} header small{color:var(--dim)}
+  .tabs{display:flex;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .tab{padding:5px 13px;border-radius:20px;border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:.78rem}
+  .tab.on{color:#fff;border-color:var(--acc);background:rgba(40,70,120,.3)}
+  main{padding:14px;max-width:680px;margin:0 auto}
+  .pane{display:none} .pane.on{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px;margin-bottom:11px}
+  .lab{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin:9px 0 4px}
+  input,textarea,select{width:100%;background:rgba(8,12,18,.7);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:8px 11px;font-size:.8rem;outline:none;font-family:inherit}
+  input:focus,textarea:focus{border-color:var(--acc)}
+  textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:.7rem}
+  .btn{font-size:.76rem;padding:7px 13px;border-radius:9px;border:1px solid var(--line);background:rgba(30,42,66,.6);
+    color:var(--ink);cursor:pointer;margin-top:6px}
+  .btn:hover{border-color:var(--acc);color:#fff}
+  .btn.go{border-color:rgba(184,141,255,.5);background:rgba(70,44,110,.4);color:rgba(216,182,255,.95)}
+  .btn.sm{padding:3px 9px;font-size:.68rem;margin:0}
+  .idn{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+  .idn.act{border-color:var(--ok);background:rgba(30,60,40,.25)}
+  .idn .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:.9rem;
+    background:radial-gradient(circle at 35% 30%,rgba(120,90,220,.5),rgba(40,30,80,.5))}
+  .idn .nm{font-weight:700;color:#fff} .idn .fp{font-family:ui-monospace,monospace;font-size:.6rem;color:var(--dim)}
+  .idn .sp{flex:1}
+  .deg{display:flex;gap:7px;margin:4px 0}
+  .degb{flex:1;text-align:center;padding:8px 4px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
+  .degb.on{border-color:var(--acc2);background:rgba(70,44,110,.35);color:#fff}
+  .degb b{display:block;font-size:1.1rem} .degb span{font-size:.58rem;color:var(--dim)}
+  .out{font-family:ui-monospace,monospace;font-size:.68rem;word-break:break-all;background:rgba(8,12,18,.6);
+    border:1px solid var(--line);border-radius:9px;padding:9px;margin-top:7px;line-height:1.5}
+  .muted{color:var(--dim);font-size:.72rem} .ok{color:var(--ok)} .warn{color:var(--warn)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+  .chip{font-size:.66rem;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--dim);cursor:pointer}
+  .chip.on{color:var(--ok);border-color:rgba(92,224,140,.4);background:rgba(30,60,40,.2)}
+</style>
+</head>
+<body>
+  <header><b>xi0n</b><small id="hsub">identités GPG · partage gradué · le lien est la clé</small></header>
+  <div class="tabs">
+    <div class="tab on" data-pane="ids">Identités</div>
+    <div class="tab" data-pane="share">Partager</div>
+    <div class="tab" data-pane="recv">Recevoir</div>
+  </div>
+  <main>
+    <!-- IDENTITÉS -->
+    <section class="pane on" id="ids">
+      <div class="card">
+        <div class="lab">tes identités (un compte, plein d'identités)</div>
+        <div id="idlist"><div class="muted">aucune identité — crée-en une ↓</div></div>
+      </div>
+      <div class="card">
+        <div class="lab">nouvelle identité (= une vraie paire de clés GPG)</div>
+        <input id="newname" placeholder="nom de l'identité (ex : josion, lorion, public…)">
+        <div class="lab">passphrase (protège la clé privée — ne quitte jamais ce navigateur)</div>
+        <input id="newpass" type="password" placeholder="passphrase">
+        <button class="btn go" id="genid">⚷ générer l'identité GPG</button>
+        <div class="muted" id="genmsg" style="margin-top:6px"></div>
+      </div>
+    </section>
+
+    <!-- PARTAGER -->
+    <section class="pane" id="share">
+      <div class="card">
+        <div class="lab">identité émettrice</div>
+        <select id="fromid"></select>
+        <div class="lab">degré de partage (détail × ploxions × confiance)</div>
+        <div class="deg" id="degs">
+          <div class="degb" data-deg="O"><b>O</b><span>présence</span></div>
+          <div class="degb" data-deg="I"><b>I</b><span>surface</span></div>
+          <div class="degb on" data-deg="N"><b>N</b><span>normal</span></div>
+          <div class="degb" data-deg="X"><b>X</b><span>tout</span></div>
+        </div>
+        <div class="muted" id="degdesc"></div>
+        <div class="lab">ploxions partagés à ce degré</div>
+        <div class="chips" id="scopechips"></div>
+        <div class="lab">destinataire (clé publique GPG — optionnel ; vide = le lien est la clé pour tous)</div>
+        <textarea id="topub" rows="2" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK----- … (colle la clé publique de la personne)"></textarea>
+        <div class="lab">message (chiffré si un destinataire est donné)</div>
+        <textarea id="msg" rows="2" placeholder="un mot à partager…"></textarea>
+        <button class="btn go" id="gen">🔗 générer le lien-capability</button>
+        <div class="muted" id="sharemsg" style="margin-top:6px"></div>
+        <div class="out" id="linkout" style="display:none"></div>
+        <button class="btn sm" id="copylink" style="display:none">copier le lien</button>
+      </div>
+    </section>
+
+    <!-- RECEVOIR -->
+    <section class="pane" id="recv">
+      <div class="card">
+        <div class="lab">lien-capability reçu (ou déjà dans l'URL)</div>
+        <textarea id="caplink" rows="2" placeholder="colle le lien xi0n reçu…"></textarea>
+        <button class="btn go" id="open">⥁ ouvrir l'instance</button>
+        <div class="muted" id="recvmsg" style="margin-top:6px"></div>
+        <div id="capview" style="display:none;margin-top:9px"></div>
+      </div>
+    </section>
+  </main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const LS = { ids:'xi0n:identities', act:'xi0n:active' };
+const PASS = new Map(); // passphrases déchiffrées en mémoire (session uniquement), par fingerprint
+let DEG = 'N';
+
+// --- degrés O/I/N/X : les TROIS dimensions (José) ---------------------------
+const DEGREES = {
+  O:{ label:'présence', detail:'présence seule (qui/quand, rien du contenu)', trust:'inconnu' },
+  I:{ label:'surface',  detail:'surface : titres, métadonnées, aperçus', trust:'invité' },
+  N:{ label:'normal',   detail:'contenu normal (lecture pleine)', trust:'proche' },
+  X:{ label:'tout',     detail:'tout : brut + tsoins + clés de rejouabilité', trust:'soi/confiance totale' },
+};
+// set de ploxions par degré (modifiable ; coché = inclus). Auto-découvert depuis /px.
+const DEFAULT_SCOPE = { O:[], I:['post-it','citations'], N:['post-it','citations','braindump','minuteur','calculatrice','horloge'], X:'*' };
+let ALL_PX = [];
+let SCOPE = new Set();
+
+// --- stockage identités ------------------------------------------------------
+function loadIds(){ try{ return JSON.parse(localStorage.getItem(LS.ids)||'[]'); }catch(e){ return []; } }
+function saveIds(a){ try{ localStorage.setItem(LS.ids, JSON.stringify(a)); }catch(e){} }
+function activeId(){ const a=loadIds(); const f=localStorage.getItem(LS.act); return a.find(i=>i.fp===f)||a[0]||null; }
+
+async function fpOf(armoredPub){ const k=await openpgp.readKey({armoredKey:armoredPub}); return k.getFingerprint().slice(-16).toUpperCase(); }
+
+// --- générer une identité (vraie clé GPG) -----------------------------------
+$('#genid').onclick = async () => {
+  const name=$('#newname').value.trim(), pass=$('#newpass').value;
+  if(!name){ $('#genmsg').textContent='donne un nom.'; return; }
+  if(!pass || pass.length<4){ $('#genmsg').textContent='passphrase ≥ 4 caractères.'; return; }
+  $('#genmsg').textContent='génération des clés (curve25519)…';
+  try{
+    const { privateKey, publicKey } = await openpgp.generateKey({
+      type:'ecc', curve:'curve25519',
+      userIDs:[{ name, email:name.replace(/[^a-z0-9]/gi,'').toLowerCase()+'@xi0n' }],
+      passphrase: pass,
+    });
+    const fp = await fpOf(publicKey);
+    const ids = loadIds();
+    ids.push({ name, fp, pub:publicKey, priv:privateKey, created:new Date().toISOString() });
+    saveIds(ids); localStorage.setItem(LS.act, fp); PASS.set(fp, pass);
+    $('#newname').value=''; $('#newpass').value='';
+    $('#genmsg').innerHTML='<span class="ok">identité créée ✓ fp '+fp+'</span>';
+    renderIds(); fillFrom();
+  }catch(e){ $('#genmsg').textContent='erreur : '+e.message; }
+};
+
+function renderIds(){
+  const ids=loadIds(); const act=activeId();
+  const el=$('#idlist');
+  if(!ids.length){ el.innerHTML='<div class="muted">aucune identité — crée-en une ↓</div>'; return; }
+  el.innerHTML='';
+  ids.forEach(i=>{ const d=document.createElement('div'); d.className='idn'+(act&&act.fp===i.fp?' act':'');
+    d.innerHTML='<div class="av">'+(i.name[0]||'?').toUpperCase()+'</div><div><div class="nm">'+esc(i.name)+'</div>'
+      +'<div class="fp">'+i.fp+'</div></div><div class="sp"></div>';
+    const b1=document.createElement('button'); b1.className='btn sm'; b1.textContent=act&&act.fp===i.fp?'active':'activer';
+    b1.onclick=()=>{ localStorage.setItem(LS.act,i.fp); renderIds(); fillFrom(); };
+    const b2=document.createElement('button'); b2.className='btn sm'; b2.textContent='clé pub';
+    b2.onclick=()=>{ navigator.clipboard.writeText(i.pub).then(()=>{b2.textContent='copiée ✓';setTimeout(()=>b2.textContent='clé pub',1200);}); };
+    d.appendChild(b1); d.appendChild(b2); el.appendChild(d);
+  });
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+
+// --- déverrouiller une clé privée (passphrase en mémoire de session) --------
+async function unlock(id){
+  let pass=PASS.get(id.fp);
+  if(pass===undefined){ pass=prompt('passphrase de l\'identité « '+id.name+' »'); if(pass==null) throw new Error('annulé'); PASS.set(id.fp,pass); }
+  const pk=await openpgp.readPrivateKey({armoredKey:id.priv});
+  try{ return await openpgp.decryptKey({ privateKey:pk, passphrase:pass }); }
+  catch(e){ PASS.delete(id.fp); throw new Error('passphrase incorrecte'); }
+}
+
+// --- PARTAGER : générer le lien-capability ----------------------------------
+function fillFrom(){ const ids=loadIds(); const act=activeId(); const s=$('#fromid'); s.innerHTML='';
+  ids.forEach(i=>{ const o=document.createElement('option'); o.value=i.fp; o.textContent=i.name+' · '+i.fp; if(act&&act.fp===i.fp)o.selected=true; s.appendChild(o); }); }
+
+function renderScope(){ const chips=$('#scopechips'); chips.innerHTML='';
+  const def=DEFAULT_SCOPE[DEG];
+  if(def==='*'){ SCOPE=new Set(ALL_PX); const c=document.createElement('span'); c.className='chip on'; c.textContent='tout ('+ALL_PX.length+')'; chips.appendChild(c); return; }
+  SCOPE=new Set(def);
+  ALL_PX.forEach(id=>{ const c=document.createElement('span'); c.className='chip'+(SCOPE.has(id)?' on':''); c.textContent=id;
+    c.onclick=()=>{ if(SCOPE.has(id))SCOPE.delete(id); else SCOPE.add(id); c.classList.toggle('on'); }; chips.appendChild(c); });
+}
+$('#degs').onclick = e => { const b=e.target.closest('.degb'); if(!b)return;
+  document.querySelectorAll('.degb').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  DEG=b.dataset.deg; $('#degdesc').textContent=DEGREES[DEG].detail+' · confiance : '+DEGREES[DEG].trust; renderScope(); };
+
+$('#gen').onclick = async () => {
+  const ids=loadIds(); const from=ids.find(i=>i.fp===$('#fromid').value); if(!from){ $('#sharemsg').textContent='choisis une identité.'; return; }
+  $('#sharemsg').textContent='signature…';
+  try{
+    const priv=await unlock(from);
+    const cap={ v:1, from:{ name:from.name, fp:from.fp }, degree:DEG,
+      scope:[...SCOPE], detail:DEGREES[DEG].detail, iss:new Date().toISOString(), pub:from.pub };
+    const toPub=$('#topub').value.trim(); const msg=$('#msg').value.trim();
+    if(msg){
+      if(toPub){ // chiffré au destinataire
+        const rk=await openpgp.readKey({armoredKey:toPub});
+        cap.to=rk.getFingerprint().slice(-16).toUpperCase();
+        cap.enc=await openpgp.encrypt({ message:await openpgp.createMessage({text:msg}), encryptionKeys:rk, signingKeys:priv });
+      } else { // signé en clair (le lien est la clé pour tous)
+        cap.signed=await openpgp.sign({ message:await openpgp.createCleartextMessage({text:msg}), signingKeys:priv });
+      }
+    } else {
+      cap.signed=await openpgp.sign({ message:await openpgp.createCleartextMessage({text:'capability '+DEG+' de '+from.name}), signingKeys:priv });
+    }
+    const token=btoa(unescape(encodeURIComponent(JSON.stringify(cap)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const link=location.origin+'/px/xi0n/#cap='+token;
+    $('#linkout').style.display='block'; $('#linkout').textContent=link;
+    $('#copylink').style.display='inline-block';
+    $('#copylink').onclick=()=>navigator.clipboard.writeText(link).then(()=>{$('#copylink').textContent='copié ✓';});
+    $('#sharemsg').innerHTML='<span class="ok">lien généré ✓ degré '+DEG+(toPub?' · chiffré au destinataire':' · signé (lien=clé)')+'</span>';
+  }catch(e){ $('#sharemsg').textContent='erreur : '+e.message; }
+};
+
+// --- RECEVOIR : ouvrir un lien-capability -----------------------------------
+async function openCap(token){
+  $('#recvmsg').textContent='lecture…'; $('#capview').style.display='none';
+  try{
+    const json=decodeURIComponent(escape(atob(token.replace(/-/g,'+').replace(/_/g,'/'))));
+    const cap=JSON.parse(json);
+    let body='', verif='';
+    if(cap.enc){
+      const act=activeId(); if(!act){ throw new Error('message chiffré — crée/active une identité pour le déchiffrer'); }
+      const priv=await unlock(act);
+      const r=await openpgp.decrypt({ message:await openpgp.readMessage({armoredMessage:cap.enc}),
+        decryptionKeys:priv, verificationKeys:await openpgp.readKey({armoredKey:cap.pub}) });
+      body=r.data;
+      try{ await r.signatures[0].verified; verif='<span class="ok">signature vérifiée ✓ ('+esc(cap.from.name)+')</span>'; }
+      catch(e){ verif='<span class="warn">signature NON vérifiée</span>'; }
+    } else if(cap.signed){
+      const r=await openpgp.verify({ message:await openpgp.readCleartextMessage({cleartextMessage:cap.signed}),
+        verificationKeys:await openpgp.readKey({armoredKey:cap.pub}) });
+      body=r.data;
+      try{ await r.signatures[0].verified; verif='<span class="ok">signature vérifiée ✓ ('+esc(cap.from.name)+')</span>'; }
+      catch(e){ verif='<span class="warn">signature NON vérifiée</span>'; }
+    }
+    const v=$('#capview'); v.style.display='block';
+    v.innerHTML='<div class="card"><div class="lab">capability reçue</div>'
+      +'<div>de <b>'+esc(cap.from.name)+'</b> · fp '+esc(cap.from.fp)+'</div>'
+      +'<div class="muted">'+verif+'</div>'
+      +'<div class="lab">degré</div><div><b>'+esc(cap.degree)+'</b> — '+esc(cap.detail||'')+'</div>'
+      +'<div class="lab">ploxions accordés ('+(cap.scope?cap.scope.length:0)+')</div>'
+      +'<div class="chips">'+(cap.scope||[]).map(p=>'<span class="chip on">'+esc(p)+'</span>').join('')+'</div>'
+      +(body?'<div class="lab">message</div><div class="out">'+esc(body)+'</div>':'')
+      +'<button class="btn go" id="enter">entrer dans l\'instance ('+esc(cap.degree)+')</button></div>';
+    $('#recvmsg').innerHTML='<span class="ok">capability ouverte ✓</span>';
+    $('#enter').onclick=()=>{ // ouvre le labo-xer au scope accordé (les ploxions du degré)
+      const px=(cap.scope&&cap.scope.length)?('?px='+encodeURIComponent(cap.scope.join(','))):'';
+      location.href=location.origin+'/xer'+px;
+    };
+  }catch(e){ $('#recvmsg').textContent='erreur : '+e.message; }
+}
+$('#open').onclick=()=>{ let t=$('#caplink').value.trim(); const m=t.match(/#cap=([\w\-]+)/); if(m)t=m[1]; if(!t){ $('#recvmsg').textContent='colle un lien.'; return; } openCap(t); };
+
+// --- onglets + boot ----------------------------------------------------------
+document.querySelector('.tabs').onclick=e=>{ const t=e.target.closest('.tab'); if(!t)return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on')); $('#'+t.dataset.pane).classList.add('on'); };
+
+async function boot(){
+  if(typeof openpgp==='undefined'){ $('#hsub').innerHTML='<span class="warn">OpenPGP.js non chargé</span>'; }
+  try{ const r=await fetch('/px'); if(r.ok){ const d=await r.json(); ALL_PX=(d.ploxions||[]).filter(x=>x!=='xi0n'); } }catch(e){}
+  renderIds(); fillFrom();
+  $('#degdesc').textContent=DEGREES[DEG].detail+' · confiance : '+DEGREES[DEG].trust; renderScope();
+  // capability déjà dans l'URL ? -> onglet Recevoir
+  const m=location.hash.match(/cap=([\w\-]+)/);
+  if(m){ document.querySelector('.tab[data-pane="recv"]').click(); openCap(m[1]); }
+}
+boot();
+</script>
+</body>
+</html>

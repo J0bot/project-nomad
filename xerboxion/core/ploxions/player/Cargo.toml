@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-player"
+description = "WASM ploxion: le PLAYER — le DEROULAGE d'une SEQUENCE de tsoins DANS LE TEMPS (ferme la boucle record->store->REPLAY ; sans lui un tsoin est un instantane mort, avec lui on REJOUE une journee). requires player.load {tsoins:[{t,addr}]} (une sequence ordonnee a rejouer, chaque tsoin a son temps logique t) + player.play {speed?|pause|loop} + ECOUTE clock.now {t} (l'horloge gated de clock-coherence) -> provides player.tick {t,addr} cadence + RE-EMET tsoin.get {addr} a chaque pas (tsoin-store ressort le tsoin, generator le rejoue). MECANIQUE: un CURSEUR (SeqCursor) sur la sequence triee par (t,addr) ; quand clock.now atteint/depasse le t du prochain tsoin et que play est actif, le bion schedule deroule tous les items dus, on emet player.tick + tsoin.get(addr), on avance le curseur ; pause fige ; loop reboucle ; player.seek {t} = scrub. DETERMINISTE: meme sequence + meme suite de clock.now -> memes player.tick. Nouveaux bions SDK: SeqCursor (curseur peek/advance/seek/reset/due_count sur liste triee de (t,addr)) + schedule (quels items sont dus a un t)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

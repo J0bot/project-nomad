@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connexion j0bot…</title><meta name="robots" content="noindex,nofollow">
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#070a0f;color:#cfe9ff;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;display:grid;place-items:center;text-align:center}
+  .c{padding:24px;max-width:340px}
+  .dot{width:34px;height:34px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 30%,#b88dff,#6ad0ff);box-shadow:0 0 24px rgba(106,208,255,.6);animation:p 1.4s ease-in-out infinite}
+  @keyframes p{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+  b{color:#b88dff}
+</style></head>
+<body><div class="c">
+  <div class="dot"></div>
+  <div id="m">Connexion à <b>j0bot</b>…</div>
+</div>
+<script>
+// PONT SSO du xer (MÊME ORIGINE que le xer). L'IdP api.j0bot.ch nous redirige ici après
+// authorize avec ?code=…&state=…  (ou ?error=…). On relaie le CODE à l'opener (le xer) par
+// postMessage même-origine — le xer fera l'échange PKCE avec son verifier (jamais transmis ici)
+// — puis on se ferme. Le code seul est inutile sans le verifier détenu par l'opener.
+(function () {
+  function say(html){ var m=document.getElementById('m'); if(m) m.innerHTML=html; }
+  var q = new URLSearchParams(location.search || '');
+  var code = q.get('code'), state = q.get('state'), err = q.get('error');
+  // nettoie l'URL (retire le code de la barre d'adresse)
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  if (err) { say('Connexion refusée : ' + (err.replace(/[<>&]/g,'') ) + '.<br>Tu peux fermer cette fenêtre.'); return; }
+  if (!code) { say('Code manquant. Tu peux fermer cette fenêtre.'); return; }
+  try {
+    if (window.opener && window.opener !== window) {
+      window.opener.postMessage({ source: 'xer-sso', code: code, state: state }, location.origin);
+      say('Connecté ✓ — retour au xer…');
+      setTimeout(function () { try { window.close(); } catch (e) {} }, 400);
+      return;
+    }
+  } catch (e) {}
+  // pas d'opener (onglet plein) : on stocke le code et on renvoie vers le xer qui finira l'échange
+  try { sessionStorage.setItem('xer.sso.code', code); sessionStorage.setItem('xer.sso.state', state||''); } catch (e) {}
+  say('Connecté ✓ — <a href="/" style="color:#6ad0ff">revenir au xer</a>');
+})();
+</script>
+</body></html>

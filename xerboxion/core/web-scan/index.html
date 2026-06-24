@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+  scan · MakeLab — le pont physique↔inventaire. Caméra → QR/code-barres (BarcodeDetector API, fallback
+  saisie manuelle) → résout l'article (par qr_code / id / sku) → fiche + ajustement rapide (+/-, crée
+  un mouvement + maj qty). Une vue du cœur inventaire (store du cœur). HTTPS requis (caméra). Mobile-first.
+-->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>scan</title>
+<style>
+  :root{--bg:#070a0f;--surf:#0c1320;--ink:#e7f0ff;--dim:#8aa0bc;--line:rgba(120,160,230,.16);--acc:#6ad0ff;--acc2:#b88dff;--ok:#5ce08c;--warn:#e7c66a;--r:#ff7a8a}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+  .top{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .top b{font-size:.98rem} .top .sp{flex:1}
+  .ic{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-size:.95rem}
+  .ic.tok.on{border-color:var(--ok);color:var(--ok)}
+  .cam{flex:1;min-height:0;position:relative;background:#04060a;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  video{width:100%;height:100%;object-fit:cover}
+  .frame{position:absolute;width:64vmin;height:64vmin;max-width:300px;max-height:300px;border:2px solid rgba(106,208,255,.7);border-radius:18px;box-shadow:0 0 0 100vmax rgba(4,6,10,.45)}
+  .frame::after{content:"";position:absolute;left:6%;right:6%;top:50%;height:2px;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:scan 2.2s ease-in-out infinite}
+  @keyframes scan{0%,100%{top:14%}50%{top:86%}}
+  .hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:.74rem;color:var(--dim);text-shadow:0 1px 4px #000}
+  .start{padding:13px 22px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;font-weight:800;font-size:.92rem;cursor:pointer}
+  .manual{flex:0 0 auto;display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--surf)}
+  .manual input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:.84rem;outline:none}
+  .manual input:focus{border-color:var(--acc)} .manual button{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:0 14px;cursor:pointer;font-weight:700}
+  /* fiche résultat */
+  .res{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(4,7,11,.7);padding:16px}
+  .res.on{display:flex}
+  .rc{width:min(440px,100%);background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+  .rc h2{margin:0 0 3px;font-size:1.25rem} .rc .sub{font-size:.7rem;color:var(--dim);font-family:ui-monospace,monospace;margin-bottom:12px}
+  .rc .bigq{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums} .rc .bigq.low{color:var(--r)} .rc .bigq small{font-size:.7rem;color:var(--dim);font-weight:500}
+  .rc .qrow{display:flex;gap:8px;margin:14px 0}
+  .rc .qrow button{flex:1;padding:13px 0;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:800;font-size:1rem;cursor:pointer}
+  .rc .qrow button.minus{color:var(--r);border-color:rgba(255,122,138,.3)} .rc .qrow button.plus{color:var(--ok);border-color:rgba(92,224,140,.3)}
+  .rc .close{margin-top:6px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.8rem}
+  .rc.unknown h2{color:var(--warn)}
+  .note{font-size:.7rem;color:var(--warn);min-height:1em;margin-top:6px}
+  .sheet{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(4,7,11,.6);padding:14px}
+  .sheet.on{display:flex} .scard{width:min(420px,100%);background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:15px}
+  .scard input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:.86rem;outline:none;min-height:38px}
+  .scard button{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#08111b;border:none;border-radius:10px;padding:11px;font-weight:800;cursor:pointer;width:100%;margin-top:10px}
+</style></head>
+<body>
+  <div class="top"><b>📷 Scan</b><span class="sp"></span><button class="ic tok" id="tokBtn" title="token fablab">🔑</button></div>
+  <div class="cam" id="cam"><button class="start" id="startBtn">▶︎ démarrer la caméra</button></div>
+  <div class="manual"><input id="manIn" placeholder="ou saisis un code / sku…" autocomplete="off"><button id="manGo">↵</button></div>
+
+  <div class="res" id="res"><div class="rc" id="rc"></div></div>
+  <div class="sheet" id="sheet"><div class="scard" id="scard"></div></div>
+<script>
+"use strict";
+var BASE='/store/inventaire', TOK='xer.fablab.token';
+var S={ items:[], stream:null, detector:null, scanning:false, cur:null, lastCode:'', lastAt:0 };
+function token(){ try{return localStorage.getItem(TOK)||'';}catch(e){return '';} }
+function hasToken(){ return !!token(); }
+function num(v){ v=parseFloat(v); return isFinite(v)?v:0; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+async function dbList(coll){ try{ var r=await fetch(BASE+'/'+coll,{cache:'no-store'}); return r.ok?await r.json():[]; }catch(e){ return []; } }
+async function dbWrite(method,url,doc){
+  var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json','X-Xer-Token':token()},body:doc?JSON.stringify(doc):undefined});
+  if(r.status===401){ var e=new Error('auth'); e.auth=true; throw e; }
+  if(!r.ok) throw new Error('HTTP '+r.status); return r.json().catch(function(){return null;});
+}
+async function loadItems(){ S.items=await dbList('items'); }
+
+function resolve(code){
+  code=(code||'').trim(); var lc=code.toLowerCase();
+  // par qr_code, puis id, puis sku, puis nom exact
+  return S.items.filter(function(i){
+    return (i.qr_code&&i.qr_code===code)||(i.id===code)||(i.sku&&i.sku.toLowerCase()===lc)||(i.name&&i.name.toLowerCase()===lc);
+  })[0]||null;
+}
+
+function showResult(code){
+  var it=resolve(code); S.cur=it;
+  var rc=document.getElementById('rc');
+  if(!it){
+    rc.className='rc unknown';
+    rc.innerHTML='<h2>code inconnu</h2><div class="sub">'+esc(code)+'</div><div style="font-size:.8rem;color:var(--dim)">aucun article ne correspond.</div><button class="close" onclick="closeRes()">fermer</button>';
+  } else {
+    var low=num(it.min_stock)>0 && num(it.quantity)<=num(it.min_stock);
+    rc.className='rc';
+    rc.innerHTML='<h2>'+esc(it.name)+'</h2><div class="sub">'+esc(it.sku||it.id)+(it.location?' · '+esc(it.location):'')+'</div>'+
+      '<div class="bigq'+(low?' low':'')+'" id="bq">'+num(it.quantity)+' <small>'+esc(it.unit||'pcs')+'</small></div>'+
+      '<div class="qrow"><button class="minus" data-d="-1">−1</button><button class="minus" data-d="-5">−5</button><button class="plus" data-d="5">+5</button><button class="plus" data-d="1">+1</button></div>'+
+      '<div class="note" id="rnote"></div><button class="close" onclick="closeRes()">✓ terminé</button>';
+    rc.querySelectorAll('.qrow button').forEach(function(b){ b.onclick=function(){ adjust(num(b.getAttribute('data-d'))); }; });
+  }
+  document.getElementById('res').classList.add('on');
+}
+function closeRes(){ document.getElementById('res').classList.remove('on'); S.cur=null; }
+document.getElementById('res').onclick=function(e){ if(e.target.id==='res') closeRes(); };
+
+async function adjust(delta){
+  if(!S.cur) return; if(!hasToken()){ tokenSheet(); return; }
+  var it=S.cur, note=document.getElementById('rnote'); if(note) note.textContent='…';
+  var newq=num(it.quantity)+delta;
+  try{
+    await dbWrite('POST',BASE+'/movements',{ item_id:it.id, item_name:it.name, delta:delta, reason:delta<0?'check_out':'check_in', at:new Date().toISOString() });
+    await dbWrite('PUT',BASE+'/items/'+encodeURIComponent(it.id), Object.assign({},it,{quantity:newq}));
+    it.quantity=newq; var bq=document.getElementById('bq'); if(bq) bq.firstChild.textContent=newq+' ';
+    if(note) note.textContent='✓ '+(delta>0?'+':'')+delta;
+    await loadItems(); S.cur=S.items.filter(function(i){return i.id===it.id;})[0]||it;
+  }catch(e){ if(note) note.textContent=e&&e.auth?'token refusé (🔑)':'échec'; }
+}
+
+// ---- caméra + BarcodeDetector ----
+async function startCam(){
+  var cam=document.getElementById('cam');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ cam.innerHTML='<div class="hint">caméra non dispo — utilise la saisie manuelle en bas.</div>'; return; }
+  try{
+    S.stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
+    cam.innerHTML='<video id="v" playsinline muted></video><div class="frame"></div><div class="hint" id="camHint">vise un QR / code-barres</div>';
+    var v=document.getElementById('v'); v.srcObject=S.stream; await v.play();
+    if('BarcodeDetector' in window){
+      try{ var fmts=await window.BarcodeDetector.getSupportedFormats(); S.detector=new window.BarcodeDetector({ formats:fmts }); }catch(e){ S.detector=new window.BarcodeDetector(); }
+      S.scanning=true; loopDetect(v);
+    } else {
+      document.getElementById('camHint').textContent='détecteur non supporté — saisie manuelle (en bas)';
+    }
+  }catch(e){ cam.innerHTML='<div class="hint">caméra refusée — saisie manuelle en bas.</div>'; }
+}
+async function loopDetect(v){
+  if(!S.scanning) return;
+  try{ var codes=await S.detector.detect(v);
+    if(codes&&codes.length){ var code=codes[0].rawValue; var now=Date.now();
+      if(code && (code!==S.lastCode || now-S.lastAt>2500)){ S.lastCode=code; S.lastAt=now;
+        if(navigator.vibrate) navigator.vibrate(40); showResult(code); }
+    }
+  }catch(e){}
+  requestAnimationFrame(function(){ setTimeout(function(){ loopDetect(v); }, 350); });
+}
+document.getElementById('startBtn')&&(document.getElementById('startBtn').onclick=startCam);
+document.getElementById('startBtn').onclick=startCam;
+document.getElementById('manGo').onclick=function(){ var c=document.getElementById('manIn').value.trim(); if(c) showResult(c); };
+document.getElementById('manIn').addEventListener('keydown',function(e){ if(e.key==='Enter'){ var c=e.target.value.trim(); if(c) showResult(c); } });
+
+function tokenSheet(){
+  var c=document.getElementById('scard');
+  c.innerHTML='<h3 style="margin:0 0 9px">🔑 Token fablab</h3><div style="font-size:.74rem;color:var(--dim);margin-bottom:9px">Nécessaire pour modifier le stock.</div><input id="tokIn" placeholder="fablab-…" value="'+esc(token())+'"><button id="tokSave">enregistrer</button>';
+  c.querySelector('#tokSave').onclick=function(){ try{ localStorage.setItem(TOK,c.querySelector('#tokIn').value.trim()); }catch(e){} document.getElementById('sheet').classList.remove('on'); document.getElementById('tokBtn').classList.toggle('on',hasToken()); };
+  document.getElementById('sheet').classList.add('on');
+}
+document.getElementById('tokBtn').onclick=tokenSheet;
+document.getElementById('sheet').onclick=function(e){ if(e.target.id==='sheet') e.currentTarget.classList.remove('on'); };
+document.getElementById('tokBtn').classList.toggle('on',hasToken());
+loadItems();
+</script>
+</body></html>

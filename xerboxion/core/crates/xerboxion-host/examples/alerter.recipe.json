@@ -1,0 +1,8 @@
+{
+  "ploxion": "alerter",
+  "blocks": [
+    { "kind": "quand",  "label": "a service reports health", "ref": "service.health" },
+    { "kind": "si",     "label": "only when it is down",      "param": "up == false" },
+    { "kind": "action", "label": "notify",                    "ref": "alert.notify", "param": "{id} is DOWN (code {code})" }
+  ]
+}

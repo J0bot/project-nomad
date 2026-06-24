@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#120308">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://xion.j0bot.ch http://10.0.0.1:8730 http://localhost:8730; base-uri 'none'; form-action 'none'">
+<title>❤️ — le bion cœur · /warp</title>
+<style>
+  :root{ --bg:#120308; --bg2:#1d0610; --ink:#ffe7ee; --dim:#b27c8e; --rose:#ff4d7a; --rose2:#ff85a8; --them:#5ad1ff; --them2:#a7e7ff; --line:#3a1422; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; background:
+      radial-gradient(120% 80% at 50% -10%, #2a0816 0%, var(--bg) 60%); color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    overscroll-behavior:none; }
+  #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
+  /* --- ecran de verrou --- */
+  #lock{ position:absolute; inset:0; z-index:30; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px; padding:28px;
+    background:radial-gradient(120% 80% at 50% 20%, #2a0816, var(--bg)); text-align:center; overflow-y:auto; }
+  #heart{ font-size:62px; filter:drop-shadow(0 0 22px rgba(255,77,122,.6)); animation:beat 2.4s ease-in-out infinite; }
+  @keyframes beat{ 0%,100%{transform:scale(1)} 12%{transform:scale(1.14)} 24%{transform:scale(1)} 36%{transform:scale(1.08)} }
+  #lock h1{ font-size:19px; margin:0; font-weight:700; }
+  #lock p{ color:var(--dim); max-width:320px; margin:0; font-size:13px; }
+  input[type=password],input[type=text]{ width:min(320px,82vw); background:#220a14; color:var(--ink);
+    border:1px solid var(--line); border-radius:14px; padding:14px 16px; font:inherit; text-align:center; }
+  .btn{ appearance:none; border:none; border-radius:14px; padding:14px 22px; font:700 15px/1 inherit;
+    color:#fff; background:linear-gradient(180deg,var(--rose2),var(--rose)); box-shadow:0 8px 24px rgba(255,77,122,.35); }
+  .btn:active{ transform:translateY(1px); }
+  .ghost{ background:#220a14; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
+  /* --- entete --- */
+  header{ display:flex; align-items:center; gap:10px; padding:max(10px,env(safe-area-inset-top)) 14px 10px;
+    border-bottom:1px solid var(--line); background:rgba(18,3,8,.7); backdrop-filter:blur(10px); }
+  header .h{ font-size:22px; }
+  header .meta{ flex:1; min-width:0; }
+  header .meta b{ font-size:14px; }
+  header .meta small{ display:block; color:var(--dim); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rec{ display:flex; align-items:center; gap:6px; color:var(--rose2); font-size:11px; font-variant-numeric:tabular-nums; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--rose); animation:blink 1.4s infinite; }
+  .dot.live{ background:var(--them); }
+  .dot.off{ background:#664; animation:none; }
+  @keyframes blink{ 50%{opacity:.25} }
+  .iconbtn{ background:#220a14; border:1px solid var(--line); color:var(--ink); border-radius:11px; padding:8px 10px; font-size:13px; }
+  /* --- fil --- */
+  #thread{ flex:1; overflow-y:auto; padding:16px 14px 8px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch; }
+  .note{ align-self:flex-end; max-width:84%; background:linear-gradient(180deg,#3a1020,#2a0a16);
+    border:1px solid var(--line); padding:10px 13px; border-radius:16px 16px 4px 16px; white-space:pre-wrap; word-wrap:break-word;
+    animation:rise .25s ease; }
+  .note.them{ align-self:flex-start; border-radius:16px 16px 16px 4px; background:#06151d; border-color:#123a48; }
+  .note img{ max-width:100%; border-radius:10px; display:block; }
+  .note .ts{ display:block; margin-top:4px; color:var(--dim); font-size:10px; }
+  @keyframes rise{ from{opacity:0; transform:translateY(8px)} }
+  .day{ align-self:center; color:var(--dim); font-size:11px; margin:6px 0; }
+  /* --- saisie --- */
+  #bar{ display:flex; gap:8px; align-items:flex-end; padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:rgba(18,3,8,.85); backdrop-filter:blur(10px); }
+  #plus{ font-size:20px; width:42px; height:42px; flex:0 0 auto; border-radius:50%; }
+  #draft{ flex:1; resize:none; max-height:120px; min-height:42px; background:#220a14; color:var(--ink);
+    border:1px solid var(--line); border-radius:21px; padding:11px 15px; font:inherit; }
+  #send{ width:42px; height:42px; flex:0 0 auto; border-radius:50%; font-size:18px; padding:0; }
+  /* --- ripple de clic (rejoue les clics) --- */
+  .ripple{ position:fixed; z-index:20; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
+    border:2px solid var(--rose2); pointer-events:none; animation:rip .6s ease-out forwards; }
+  .ripple.them{ border-color:var(--them2); }
+  @keyframes rip{ from{opacity:.9; transform:scale(.4)} to{opacity:0; transform:scale(3.2)} }
+  /* --- rejeu --- */
+  #replay{ position:absolute; left:0; right:0; bottom:0; z-index:25; padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    background:rgba(18,3,8,.94); border-top:1px solid var(--line); display:none; gap:10px; align-items:center; }
+  #replay.on{ display:flex; }
+  #scrub{ flex:1; accent-color:var(--rose); }
+  #replay .t{ font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; min-width:78px; text-align:center; }
+  .pill{ background:#220a14; border:1px solid var(--line); color:var(--ink); border-radius:11px; padding:8px 11px; font-size:12px; }
+  #toast{ position:fixed; left:50%; bottom:84px; transform:translateX(-50%); z-index:40; background:#2a0a16;
+    border:1px solid var(--line); border-radius:12px; padding:9px 14px; font-size:13px; opacity:0; transition:opacity .3s; max-width:88%; text-align:center; }
+  #toast.show{ opacity:1; }
+  .hidden{ display:none !important; }
+  /* --- panneau warp --- */
+  #sheet{ position:absolute; inset:0; z-index:35; display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:28px; background:rgba(8,2,5,.92); backdrop-filter:blur(6px); text-align:center; overflow-y:auto; }
+  #sheet.on{ display:flex; }
+  #sheet h2{ margin:0; font-size:18px; }
+  #sheet .lbl{ color:var(--dim); font-size:12px; max-width:320px; }
+  #sheet textarea{ width:min(340px,86vw); height:84px; background:#220a14; color:var(--ink); border:1px solid var(--line);
+    border-radius:12px; padding:10px 12px; font:12px/1.4 ui-monospace,Menlo,monospace; resize:none; word-break:break-all; }
+  #sheet .row{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  #qr{ background:#fff; padding:8px; border-radius:10px; display:none; }
+  #qr.on{ display:block; }
+  .sas{ font:700 18px/1.3 ui-monospace,Menlo,monospace; color:var(--them2); letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="h">❤️</div>
+    <div class="meta"><b id="who">le bion cœur</b><small id="addr">tsoin —</small></div>
+    <div class="rec" id="recw"><span class="dot off" id="livedot"></span><span id="fid">0 instants</span></div>
+    <button class="iconbtn" id="bWarp" title="ouvrir un /warp">/warp</button>
+    <button class="iconbtn" id="bReplay" title="relire le tsoin">⟲</button>
+    <button class="iconbtn" id="bMore" title="plus">⋯</button>
+  </header>
+
+  <div id="thread"></div>
+
+  <div id="bar">
+    <button class="btn ghost" id="plus" title="ajouter">＋</button>
+    <textarea id="draft" rows="1" placeholder="écris… (chaque instant est gardé)"></textarea>
+    <button class="btn" id="send">➤</button>
+  </div>
+
+  <div id="replay">
+    <button class="pill" id="rPlay">▶</button>
+    <input type="range" id="scrub" min="0" max="1000" value="0">
+    <span class="t" id="rT">0:00 / 0:00</span>
+    <button class="pill" id="rSpeed">1×</button>
+    <button class="pill" id="rClose">✕</button>
+  </div>
+</div>
+
+<!-- ecran de creation/identite -ion (asymetrique, remplace l'ancien verrou symetrique) -->
+<div id="lock">
+  <div id="heart">❤️</div>
+  <h1>le bion cœur</h1>
+  <p>Le premier bion du <i>xer</i>. Ton <b>-ion</b> naît ici : une paire de clés à toi. La clé <b>privée</b> ne quitte jamais ce téléphone. Seule ta clé <b>publique</b> voyage — pour ouvrir un <b>/warp</b> avec quelqu'un.</p>
+  <input type="text" id="ionName" placeholder="le nom de ton -ion (ex : Josion)" autocomplete="off" maxlength="24">
+  <input type="password" id="pass" placeholder="phrase de verrou (optionnel)" autocomplete="off">
+  <button class="btn" id="enter">faire naître mon -ion</button>
+  <p style="font-size:11px">Tout ce qui se passe ici est enregistré en entier — chaque mot, chaque clic, la vitesse. Le <i>giga-tsoin</i>. Tu pourras le relire en entier. Un <b>/warp</b> fusionne ton tsoin avec celui de l'autre, chiffré de bout en bout.</p>
+</div>
+
+<!-- panneau /warp : inviter / coller le retour / SAS -->
+<div id="sheet">
+  <h2 id="sheetTitle">/warp avec quelqu'un</h2>
+  <div class="lbl" id="sheetLbl">Envoie ce lien à l'autre -ion (Signal, AirDrop, QR). Il ne contient que ta clé PUBLIQUE.</div>
+  <textarea id="sheetLink" readonly></textarea>
+  <div class="row">
+    <button class="btn ghost pill" id="wCopy">copier le lien</button>
+    <button class="btn ghost pill" id="wQR">QR</button>
+    <button class="btn ghost pill" id="wRelay">relais…</button>
+  </div>
+  <canvas id="qr"></canvas>
+  <div class="lbl" id="sasBox" style="display:none">empreinte du /warp — comparez-la de vive voix, vous DEUX, AVANT de vous écrire :<div class="sas" id="sasVal">— — —</div><button class="btn pill" id="sasOk" style="margin-top:8px;display:none">✓ les empreintes correspondent</button></div>
+  <div class="lbl">Pas de relais ? Colle ici le <b>lien-retour</b> que l'autre t'a renvoyé :</div>
+  <textarea id="sheetBack" placeholder="#warpback=1&..." spellcheck="false"></textarea>
+  <div class="row">
+    <button class="btn" id="wBack">ouvrir le warp</button>
+    <button class="btn ghost" id="wClose">fermer</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<input type="file" id="file" accept="image/*" class="hidden">
+<input type="file" id="imp" accept=".heart,.tsoin,application/json" class="hidden">
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const enc=new TextEncoder(), dec=new TextDecoder();
+const now=()=>performance.now();
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>e.classList.remove('show'),2600); }
+
+// ===== helpers encodage =====
+function bytesToB64(u8){ let s=''; for(let i=0;i<u8.length;i++) s+=String.fromCharCode(u8[i]); return btoa(s); }
+function b64ToBytes(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+function b64url(u8){ return bytesToB64(u8).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return b64ToBytes(s); }
+// FNV-1a 64 sur des octets OU une chaine
+function fnv64hexBytes(u8){ let h=0xcbf29ce484222325n; const M=0x100000001b3n, MASK=(1n<<64n)-1n;
+  for(let i=0;i<u8.length;i++){ h=((h ^ BigInt(u8[i])) * M) & MASK; } return h.toString(16).padStart(16,'0'); }
+// adresse de contenu du tsoin (FNV-1a 64 sur le flux JSON) — inchangé, certitude = empreinte
+function addr64(events){ return fnv64hexBytes(enc.encode(JSON.stringify(events))); }
+async function sha256(u8){ return new Uint8Array(await crypto.subtle.digest('SHA-256', u8)); }
+function concatBytes(...arrs){ let n=0; for(const a of arrs)n+=a.length; const o=new Uint8Array(n); let p=0; for(const a of arrs){ o.set(a,p); p+=a.length; } return o; }
+
+// ===== etat =====
+let DK=null;                         // device-key AES-GCM (chiffre at-rest local)
+let ION=null;                        // {name, pub(b64url), pubBytes, fp, priv(CryptoKey non-extractable), created}
+let T0=0;
+let S = { id:'', t0:Date.now(), events:[], notes:[] };   // MON tsoin local (flux + notes)
+let replaying=false, rSpeed=1, rPlaying=false, rT=0, rDur=0, rRAF=0;
+
+// ===== contexte /warp (vide tant qu'on n'a pas warpé) =====
+let WARP=null;   // {roomId, roomKey(CryptoKey), peerPub(b64url), peerFp, peerName, sas, role, es, seq, lastSeen:{}, ORIGIN}
+let REMOTE = { events:[], notes:[] };   // le flux de l'AUTRE -ion, reconstruit localement
+let pendingHash=null;                   // invitation entrante en attente (avant naissance de l'-ion)
+
+// ===== relais (configurable, defaut local) =====
+function relayBase(){ return localStorage.getItem('warp.relay') || 'http://10.0.0.1:8730'; }
+function emitURL(){ return relayBase().replace(/\/$/,'') + '/emit'; }
+function eventsURL(){ return relayBase().replace(/\/$/,'') + '/events'; }
+
+// ===== device-key (chiffre la privee at-rest ; PBKDF2 si phrase, sinon secret aleatoire local) =====
+async function deriveDeviceKey(pass){
+  let salt=localStorage.getItem('ion.dk.salt');
+  let saltB = salt ? b64ToBytes(salt) : crypto.getRandomValues(new Uint8Array(16));
+  if(!salt) localStorage.setItem('ion.dk.salt', bytesToB64(saltB));
+  if(pass && pass.length>=3){
+    const base=await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2', salt:saltB, iterations:150000, hash:'SHA-256'},
+      base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  }
+  // pas de phrase : secret d'appareil aleatoire (chiffrement-at-rest symbolique, garde la privee hors export/bus)
+  let dk=localStorage.getItem('ion.dk');
+  let dkB = dk ? b64ToBytes(dk) : crypto.getRandomValues(new Uint8Array(32));
+  if(!dk) localStorage.setItem('ion.dk', bytesToB64(dkB));
+  return crypto.subtle.importKey('raw', dkB, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function dkSeal(key, u8){ const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, u8)); return bytesToB64(concatBytes(iv,ct)); }
+async function dkOpen(key, b64){ const blob=b64ToBytes(b64); const iv=blob.slice(0,12), ct=blob.slice(12);
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct)); }
+
+// ===== identite -ion : keypair ECDH P-256, privee chiffree localement, JAMAIS exportee vers reseau/UI =====
+async function ionGenerate(name){
+  const kp=await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveKey','deriveBits']);
+  const pubBytes=new Uint8Array(await crypto.subtle.exportKey('spki', kp.publicKey));
+  const pkcs8=new Uint8Array(await crypto.subtle.exportKey('pkcs8', kp.privateKey));  // touche UNIQUEMENT le wrap local
+  const wrapped=await dkSeal(DK, pkcs8);
+  pkcs8.fill(0);
+  const meta={ name, pub:b64url(pubBytes), fp:fnv64hexBytes(pubBytes).slice(0,16), created:Date.now() };
+  localStorage.setItem('ion.v1', JSON.stringify(meta));
+  localStorage.setItem('ion.priv', wrapped);
+  return ionLoad();   // recharge proprement (unwrap -> privee NON-extractable en memoire)
+}
+async function ionLoad(){
+  const metaRaw=localStorage.getItem('ion.v1'); if(!metaRaw) return null;
+  const meta=JSON.parse(metaRaw);
+  const pkcs8=await dkOpen(DK, localStorage.getItem('ion.priv'));
+  const priv=await crypto.subtle.importKey('pkcs8', pkcs8, {name:'ECDH', namedCurve:'P-256'}, false, ['deriveKey','deriveBits']);
+  pkcs8.fill(0);
+  return { name:meta.name, pub:meta.pub, pubBytes:b64urlToBytes(meta.pub), fp:meta.fp, priv, created:meta.created };
+}
+
+// ===== persistance du tsoin (chiffré par la device-key, comme le .heart d'avant mais asymetrique-friendly) =====
+async function tsoinSeal(obj){ return dkSeal(DK, enc.encode(JSON.stringify(obj))); }
+async function tsoinOpen(b64){ return JSON.parse(dec.decode(await dkOpen(DK, b64))); }
+async function save(){
+  S.id = addr64(S.events);
+  localStorage.setItem('heart.v1', await tsoinSeal(S));
+  $('#addr').textContent='tsoin '+S.id.slice(0,12)+(WARP?(' · /warp '+WARP.peerName):'');
+}
+let saveT=0; function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(save, 600); }
+
+// ===== INVARIANT (I1) : aucune privee/pkcs8 ne part jamais en seal-reseau =====
+function assertNoPriv(obj){ const s=JSON.stringify(obj); if(/pkcs8|"priv"|ion\.priv/i.test(s)) throw new Error('GARDE: privée détectée dans un payload'); return obj; }
+
+// ===== enregistrement du giga-tsoin (pleine bande) =====
+function ev(k, d){ if(replaying) return;
+  const e=Object.assign({t:Math.round(now()-T0), k, author:ION?ION.fp:'me'}, d||{});
+  S.events.push(e); $('#fid').textContent=totalInstants()+' instants'; saveSoon();
+  if(WARP){ broadcastEvent(e); }
+}
+function totalInstants(){ return S.events.length + REMOTE.events.length; }
+
+// ===== rendu du fil (fusionne moi + l'autre) =====
+function fmtClock(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function mergedNotes(){
+  // chaque note tagee them=true si elle vient de REMOTE ; trie par t commun (ts si dispo, sinon t local)
+  const mine=S.notes.map(n=>({...n, them:false, _o:(n.ts!=null?n.ts:n.t)}));
+  const his =REMOTE.notes.map(n=>({...n, them:true,  _o:(n.ts!=null?n.ts:n.t)}));
+  return [...mine,...his].sort((a,b)=> a._o-b._o || (a.them?1:-1));
+}
+function renderThread(notes, draft, draftThem){
+  const th=$('#thread'); th.innerHTML='';
+  let lastDay='';
+  for(const n of notes){
+    const baseT = (n.ts!=null) ? n.ts : (S.t0 + n.t);
+    const d=new Date(baseT); const day=d.toLocaleDateString('fr-CH',{weekday:'long', day:'numeric', month:'long'});
+    if(day!==lastDay){ const e=document.createElement('div'); e.className='day'; e.textContent=day; th.appendChild(e); lastDay=day; }
+    const e=document.createElement('div'); e.className='note'+(n.them?' them':'');
+    if(n.kind==='photo'){ const img=document.createElement('img'); img.src=n.data; e.appendChild(img); }
+    else e.appendChild(document.createTextNode(n.text||''));
+    const ts=document.createElement('span'); ts.className='ts';
+    ts.textContent=d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}); e.appendChild(ts);
+    th.appendChild(e);
+  }
+  if(draftThem){ const e=document.createElement('div'); e.className='note them'; e.style.opacity='.75';
+    e.appendChild(document.createTextNode(draftThem)); const cur=document.createElement('span');
+    cur.textContent='▋'; cur.style.color='var(--them2)'; cur.style.animation='blink 1s infinite'; e.appendChild(cur); th.appendChild(e); }
+  if(draft){ const e=document.createElement('div'); e.className='note'; e.style.opacity='.75';
+    e.appendChild(document.createTextNode(draft)); const cur=document.createElement('span');
+    cur.textContent='▋'; cur.style.color='var(--rose2)'; cur.style.animation='blink 1s infinite'; e.appendChild(cur); th.appendChild(e); }
+  th.scrollTop=th.scrollHeight;
+}
+function paint(){ renderThread(mergedNotes()); }
+
+// ===== actions =====
+function commit(){
+  const t=$('#draft'); const text=t.value.trim(); if(!text) return;
+  const n={t:Math.round(now()-T0), ts:Date.now(), kind:'note', text, author:ION?ION.fp:'me'};
+  S.notes.push(n); ev('send',{len:text.length});
+  if(WARP) broadcastNote(n);
+  t.value=''; t.style.height='42px'; paint();
+}
+function addPhoto(dataURL){ const n={t:Math.round(now()-T0), ts:Date.now(), kind:'photo', data:dataURL, author:ION?ION.fp:'me'};
+  S.notes.push(n); ev('add',{kind:'photo'}); if(WARP) broadcastNote(n); paint(); }
+
+// ===== rejeu : reconstruire l'etat a l'instant T (notes + frappe en cours, MOI + L'AUTRE) =====
+// On fusionne les deux flux en ordre commun (ts-ORIGIN) tout en gardant les deltas locaux pour la vitesse de frappe.
+function commonOrigin(){
+  let mn=Infinity;
+  for(const n of S.notes) if(n.ts!=null) mn=Math.min(mn,n.ts);
+  for(const e of S.events) if(e.ts!=null) mn=Math.min(mn,e.ts);
+  for(const n of REMOTE.notes) if(n.ts!=null) mn=Math.min(mn,n.ts);
+  for(const e of REMOTE.events) if(e.ts!=null) mn=Math.min(mn,e.ts);
+  if(mn===Infinity) mn=S.t0;
+  return mn;
+}
+function mergedEvents(){
+  const ORIGIN=commonOrigin();
+  const tag=(arr,them)=>arr.map(e=>({...e, them, _o:(e.ts!=null? e.ts-ORIGIN : e.t)}));
+  return [...tag(S.events,false), ...tag(REMOTE.events,true)].sort((a,b)=> a._o-b._o || (a.them?1:-1) || ((a.seq||0)-(b.seq||0)));
+}
+function mergedNotesByCommon(){
+  const ORIGIN=commonOrigin();
+  const tag=(arr,them)=>arr.map(n=>({...n, them, _o:(n.ts!=null? n.ts-ORIGIN : n.t)}));
+  return [...tag(S.notes,false), ...tag(REMOTE.notes,true)].sort((a,b)=> a._o-b._o);
+}
+function stateAt(T){
+  const allEv=mergedEvents();
+  const notes=mergedNotesByCommon().filter(n=>n._o<=T);
+  // dernier "send" par auteur -> brouillon en cours par auteur
+  let lastSendMine=0, lastSendThem=0;
+  for(const e of allEv){ if(e._o>T) break; if(e.k==='send'){ if(e.them) lastSendThem=e._o; else lastSendMine=e._o; } }
+  let draft='', draftThem='';
+  for(const e of allEv){ if(e._o>T) break; if(e.k!=='key') continue;
+    if(!e.them){ if(e._o<lastSendMine) continue; const c=e.c; if(c==='[Backspace]') draft=draft.slice(0,-1); else if(c && c.length===1) draft+=c; }
+    else { if(e._o<lastSendThem) continue; const c=e.c; if(c==='[Backspace]') draftThem=draftThem.slice(0,-1); else if(c && c.length===1) draftThem+=c; }
+  }
+  return {notes, draft, draftThem, allEv};
+}
+function applyReplay(T){
+  const st=stateAt(T); renderThread(st.notes, st.draft, st.draftThem);
+  for(const e of st.allEv){ if(e.k==='click' && Math.abs(e._o-T)<120){ ripple(e.x, e.y, e.them); } }
+  $('#scrub').value=Math.round(rDur? (T/rDur*1000):0);
+  $('#rT').textContent=fmtClock(T)+' / '+fmtClock(rDur);
+}
+function ripple(x,y,them){ const r=document.createElement('div'); r.className='ripple'+(them?' them':''); r.style.left=x+'px'; r.style.top=y+'px'; document.body.appendChild(r); setTimeout(()=>r.remove(),600); }
+function replayTick(){ if(!rPlaying) return;
+  rT+=16*rSpeed; if(rT>=rDur){ rT=rDur; rPlaying=false; $('#rPlay').textContent='▶'; }
+  applyReplay(rT); rRAF=requestAnimationFrame(replayTick);
+}
+function enterReplay(){
+  if(!totalInstants() && !S.notes.length && !REMOTE.notes.length){ toast('rien à relire encore'); return; }
+  closeSheet();
+  replaying=true;
+  const allEv=mergedEvents(), allN=mergedNotesByCommon();
+  rDur=Math.max(allEv.length?allEv[allEv.length-1]._o:0, allN.length?allN[allN.length-1]._o:0)+800;
+  rT=0; rPlaying=false; $('#replay').classList.add('on'); $('#bar').classList.add('hidden'); applyReplay(0);
+  toast('relecture du tsoin'+(WARP?' commun':'')+' — '+S.id.slice(0,8));
+}
+function exitReplay(){ replaying=false; rPlaying=false; cancelAnimationFrame(rRAF); $('#replay').classList.remove('on'); $('#bar').classList.remove('hidden'); paint(); }
+
+// ============================================================
+//  /warp — handshake ECDH par echange de PUBLIQUES uniquement
+// ============================================================
+async function importPeerPub(b64u){ return crypto.subtle.importKey('spki', b64urlToBytes(b64u), {name:'ECDH', namedCurve:'P-256'}, false, []); }
+
+// roomId = SHA-256("warp-room|v1"||pubMin||pubMax) trie -> opaque, identique des deux cotes
+async function deriveRoom(pubAb64, pubBb64){
+  const a=b64urlToBytes(pubAb64), b=b64urlToBytes(pubBb64);
+  const [lo,hi] = (pubAb64<pubBb64)?[a,b]:[b,a];
+  const room=await sha256(concatBytes(enc.encode('warp-room|v1|'), lo, hi));
+  return b64url(room).slice(0,22);
+}
+async function rdvId(pubAb64, secret){ const parts=[enc.encode('warp-rdv|v1|'), b64urlToBytes(pubAb64)]; if(secret){ parts.push(enc.encode('|sec|')); parts.push(typeof secret==='string'?b64urlToBytes(secret):secret); } const r=await sha256(concatBytes(...parts)); return b64url(r).slice(0,22); }
+
+// secret ECDH -> HKDF -> roomKey(AES-GCM) + SAS
+async function deriveRoomKey(peerPubKey, pubAb64, pubBb64, roomId){
+  const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'ECDH', public:peerPubKey}, ION.priv, 256));
+  const a=b64urlToBytes(pubAb64), b=b64urlToBytes(pubBb64);
+  const [lo,hi]=(pubAb64<pubBb64)?[a,b]:[b,a];
+  const salt=await sha256(concatBytes(lo,hi));
+  const ikm=await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey','deriveBits']);
+  const roomKey=await crypto.subtle.deriveKey(
+    {name:'HKDF', hash:'SHA-256', salt, info:enc.encode('warp|v1|aesgcm|'+roomId)},
+    ikm, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  const sasBits=new Uint8Array(await crypto.subtle.deriveBits(
+    {name:'HKDF', hash:'SHA-256', salt, info:enc.encode('warp|v1|sas')}, ikm, 64));
+  bits.fill(0);
+  return { roomKey, sas:sasWords(sasBits) };
+}
+const SASW=['arbre','lune','rose','fleuve','pierre','vent','sel','braise','aube','givre','onde','cèdre','iris','tonnerre','miel','écho','soleil','neige','forêt','sable','orage','perle','nuit','flamme','aurore','brume','vague','chêne','lys','éclair','sucre','voix','mer','terre','ciel','étoile','roche','feuille','or','argent','cuivre','ombre','lumière','source','ruche','corail','ambre','jade','loup','cerf','aigle','dauphin','colombe','renard','ours','lynx','héron','cygne','faucon','biche','hibou','paon','grue','phoque'];
+function sasWords(u8){ // 8 octets -> 6 mots + 4 chiffres (~49 bits ; non grindable en ligne)
+  const w=[]; for(let i=0;i<6;i++) w.push(SASW[u8[i]&63]);
+  const num=String(((u8[6]<<8)|u8[7])%10000).padStart(4,'0');
+  return w.join(' · ')+' · '+num;
+}
+
+// --- ouvrir un salon une fois les deux pubkeys connues ---
+async function openRoom(peerPubB64, peerName, role){
+  const peerKey=await importPeerPub(peerPubB64);
+  const roomId=await deriveRoom(ION.pub, peerPubB64);
+  const {roomKey, sas}=await deriveRoomKey(peerKey, ION.pub, peerPubB64, roomId);
+  WARP={ roomId, roomKey, peerPub:peerPubB64, peerFp:fnv64hexBytes(b64urlToBytes(peerPubB64)).slice(0,16),
+         peerName:peerName||'l’autre', sas, role, es:null, seq:0, lastSeen:{}, verified:false, quarantine:[] };
+  // cache chiffre du salon (reouverture sans re-handshake) — la privee n'y est PAS, juste la pubkey de l'autre
+  localStorage.setItem('warp.'+roomId, await dkSeal(DK, enc.encode(JSON.stringify({peerPub:peerPubB64, peerName:WARP.peerName, role}))));
+  localStorage.setItem('warp.last', roomId);
+  $('#who').textContent='❤️ '+ION.name+' ⟷ '+WARP.peerName;
+  $('#addr').textContent='/warp '+roomId.slice(0,10);
+  $('#sasVal').textContent=sas; $('#sasBox').style.display='block';
+  { const b=$('#sasOk'); if(b){ b.style.display='inline-block'; b.disabled=false; b.textContent='✓ les empreintes correspondent'; } }
+  connectRelay();
+  toast('/warp avec '+WARP.peerName+' — comparez l’empreinte ✓ AVANT de vous écrire');
+  paint();
+}
+
+// FIX-A : la verification d'empreinte (SAS) est BLOQUANTE — rien ne part ni n'est ingéré avant.
+function confirmVerified(){
+  if(!WARP || !WARP.roomId){ return; }
+  WARP.verified=true;
+  const b=$('#sasOk'); if(b){ b.textContent='✓ vérifié'; b.disabled=true; }
+  (WARP.quarantine||[]).slice().sort((a,b)=>a.seq-b.seq).forEach(ingestRemote);
+  WARP.quarantine=[];
+  $('#fid').textContent=totalInstants()+' instants';
+  toast('empreinte confirmée — le /warp est scellé, écrivez-vous ❤️');
+  closeSheet();
+}
+
+// --- transport : envoi enveloppe chiffree sur le bus ---
+async function sendEnv(kind, body){
+  if(!WARP || !WARP.roomId) return;
+  if(!WARP.verified) return;           // FIX-A : tant que l'empreinte n'est pas confirmee, rien ne part
+  WARP.seq++;
+  const plain={ v:1, room:WARP.roomId, author:ION.fp, seq:WARP.seq, ts:Date.now(),
+                t:Math.round(now()-T0), kind, body };
+  assertNoPriv(plain);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const aad=enc.encode(WARP.roomId+'|'+ION.fp+'|'+WARP.seq);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv, additionalData:aad}, WARP.roomKey, enc.encode(JSON.stringify(plain))));
+  const env={ room:WARP.roomId, author:ION.fp, seq:WARP.seq, ct:bytesToB64(concatBytes(iv,ct)) };
+  try{
+    await fetch(emitURL(), {method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({topic:'warp.msg', payload:JSON.stringify(env)})});
+  }catch(e){ /* offline-first : on continue en local, rediffusion au retour */ }
+}
+function broadcastEvent(e){ // par lots legers : on envoie l'event tel quel (deltas locaux preserves dans .t)
+  sendEnv('event', {k:e.k, c:e.c, x:e.x, y:e.y, t:e.t, len:e.len, kind:e.kind});
+}
+function broadcastNote(n){ sendEnv('note', {kind:n.kind, text:n.text, data:n.data, t:n.t, ts:n.ts}); }
+
+// --- reception SSE ---
+function connectRelay(){
+  if(!WARP) return;
+  if(WARP.es){ try{WARP.es.close();}catch(e){} WARP.es=null; }
+  let es;
+  try{ es=new EventSource(eventsURL()); }catch(e){ setLive(false); return; }
+  WARP.es=es;
+  es.onopen=()=>setLive(true);
+  es.onerror=()=>setLive(false);
+  es.onmessage=async (m)=>{
+    let data; try{ data=JSON.parse(m.data); }catch(e){ return; }
+    // le bus peut emettre {topic,payload} ou directement l'objet ; on normalise
+    let topic=data.topic, payload=data.payload;
+    if(topic===undefined && data.room) { topic='warp.msg'; payload=data; }
+    if(topic==='warp.hello'){ return onHello(typeof payload==='string'?JSON.parse(payload):payload); }
+    if(topic!=='warp.msg') return;
+    const env = typeof payload==='string'?JSON.parse(payload):payload;
+    if(!env || env.room!==WARP.roomId) return;
+    if(env.author===ION.fp) return;              // mes propres messages
+    if((WARP.lastSeen[env.author]||0) >= env.seq) return;  // anti-rejeu / doublon (seq strictement croissant)
+    try{
+      const blob=b64ToBytes(env.ct); const iv=blob.slice(0,12), ct=blob.slice(12);
+      const aad=enc.encode(env.room+'|'+env.author+'|'+env.seq);
+      const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv, additionalData:aad}, WARP.roomKey, ct);
+      const plain=JSON.parse(dec.decode(pt));
+      WARP.lastSeen[env.author]=env.seq;
+      if(!WARP.verified){ (WARP.quarantine=WARP.quarantine||[]).push(plain); }   // FIX-A : garde, n'ingère pas avant la verif
+      else ingestRemote(plain);
+    }catch(e){ /* msg d'un autre salon / cle differente : ignore */ }
+  };
+}
+function setLive(on){ const d=$('#livedot'); d.classList.toggle('live', !!on); d.classList.toggle('off', !on); }
+
+// --- handshake live : reception d'un HELLO sur le rdv (pubkeys EN CLAIR, c'est permis) ---
+async function onHello(h){
+  if(!h || !h.pub) return;
+  // je suis l'INITIATEUR en attente de pubB sur mon rdv
+  if(WARP && WARP.role==='init-wait' && h.rdv && h.rdv===WARP.rdv){
+    await openRoom(h.pub, h.name||'l’autre', 'init');
+    return;
+  }
+}
+
+// --- ingestion d'un message dechiffré de l'autre -ion ---
+function ingestRemote(plain){
+  if(plain.kind==='note'){
+    REMOTE.notes.push({t:plain.body.t, ts:plain.body.ts||plain.ts, kind:plain.body.kind, text:plain.body.text, data:plain.body.data, author:plain.author, seq:plain.seq});
+    paint();
+  } else if(plain.kind==='event'){
+    REMOTE.events.push({t:plain.body.t, ts:plain.ts, k:plain.body.k, c:plain.body.c, x:plain.body.x, y:plain.body.y, len:plain.body.len, kind:plain.body.kind, author:plain.author, seq:plain.seq});
+    if(plain.body.k==='click') ripple(plain.body.x, plain.body.y, true);
+    else paint();   // frappe en cours de l'autre -> on redessine le brouillon "them"
+  }
+  $('#fid').textContent=totalInstants()+' instants';
+}
+
+// ============================================================
+//  panneau /warp — inviter, retour, relais
+// ============================================================
+function openSheetInvite(){
+  if(!ION){ toast('ton -ion doit naître d’abord'); return; }
+  $('#sheetTitle').textContent='/warp — ton invitation';
+  $('#sheetLbl').textContent='Envoie ce lien à l’autre -ion (Signal, AirDrop, QR). Il ne contient que ta clé PUBLIQUE + un secret d’invitation à usage unique.';
+  const secret=b64url(crypto.getRandomValues(new Uint8Array(16)));   // FIX-B : secret ephemere, vit dans le # (jamais au serveur)
+  const link=location.origin+location.pathname+'#warp=1&from='+ION.fp+'&name='+encodeURIComponent(ION.name)+'&pub='+ION.pub+'&s='+secret+'&v=1';
+  $('#sheetLink').value=link;
+  // rdv derive de MA pubkey + le secret : un observateur du bus ne peut pas gagner la course
+  rdvId(ION.pub, secret).then(rdv=>{ if(!WARP || WARP.role!=='init') { WARP={ role:'init-wait', rdv, inviteSecret:secret, roomId:null, es:null, lastSeen:{} }; connectRelayBare(); } });
+  $('#qr').classList.remove('on');
+  $('#sheet').classList.add('on');
+}
+// abonnement SSE "nu" (avant d'avoir un roomId) pour capter le HELLO du rdv
+function connectRelayBare(){
+  let es; try{ es=new EventSource(eventsURL()); }catch(e){ setLive(false); return; }
+  WARP.es=es; es.onopen=()=>setLive(true); es.onerror=()=>setLive(false);
+  es.onmessage=(m)=>{ let data; try{data=JSON.parse(m.data);}catch(e){return;}
+    let topic=data.topic, payload=data.payload;
+    if(topic==='warp.hello') onHello(typeof payload==='string'?JSON.parse(payload):payload); };
+}
+function closeSheet(){ $('#sheet').classList.remove('on'); }
+function copyLink(){ const t=$('#sheetLink'); t.select(); try{ document.execCommand('copy'); }catch(e){}
+  if(navigator.clipboard) navigator.clipboard.writeText(t.value).catch(()=>{}); toast('lien copié — envoie-le à ton -ion'); }
+function chooseRelay(){ const r=prompt('URL du relais (bus xion). Vide = local par défaut.', relayBase());
+  if(r===null) return; if(r.trim()==='') localStorage.removeItem('warp.relay'); else localStorage.setItem('warp.relay', r.trim());
+  toast('relais: '+relayBase()); if(WARP&&WARP.roomId) connectRelay(); }
+
+// --- ouvrir une invitation entrante (#warp=...) : je deviens REPONDEUR ---
+async function consumeInvite(params){
+  const pubA=params.get('pub'), nameA=decodeURIComponent(params.get('name')||'l’autre');
+  const secret=params.get('s')||'';                 // FIX-B : le secret d'invitation (du #) referme la course au rdv
+  if(!pubA){ return; }
+  await openRoom(pubA, nameA, 'respond');           // calcule roomId + roomKey (j'ai les deux pubkeys)
+  // 1) voie LIVE : je poste mon HELLO (ma pubkey, en clair) sur le rdv derive de pubA + secret
+  const rdv=await rdvId(pubA, secret);
+  try{ await fetch(emitURL(), {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({topic:'warp.hello', payload:JSON.stringify({rdv, pub:ION.pub, fp:ION.fp, name:ION.name})})}); }catch(e){}
+  // 2) voie OFFLINE : je prepare un lien-retour a renvoyer a l'initiateur
+  const back=location.origin+location.pathname+'#warpback=1&from='+ION.fp+'&name='+encodeURIComponent(ION.name)+'&pub='+ION.pub+'&room='+WARP.roomId;
+  $('#sheetTitle').textContent='/warp avec '+nameA;
+  $('#sheetLbl').textContent='Salon ouvert. Si le relais ne passe pas, renvoie CE lien-retour à '+nameA+' :';
+  $('#sheetLink').value=back; $('#sheetBack').value=''; $('#qr').classList.remove('on');
+  $('#sheet').classList.add('on');
+  toast('warp avec '+nameA+' — empreinte: '+WARP.sas);
+}
+// --- l'initiateur ouvre le lien-retour (#warpback=...) OU le colle dans le champ ---
+async function consumeBack(params){
+  const pubB=params.get('pub'), nameB=decodeURIComponent(params.get('name')||'l’autre');
+  if(!pubB){ toast('lien-retour invalide'); return; }
+  await openRoom(pubB, nameB, 'init');
+  closeSheet();
+}
+function pasteBack(){
+  const raw=$('#sheetBack').value.trim(); if(!raw){ toast('colle le lien-retour'); return; }
+  const h=raw.includes('#')?raw.slice(raw.indexOf('#')+1):raw;
+  const params=new URLSearchParams(h);
+  if(params.get('warpback')) consumeBack(params);
+  else if(params.get('warp')) consumeInvite(params);   // tolerance : on accepte aussi une invitation collée
+  else toast('ce n’est pas un lien /warp');
+}
+
+// --- QR maison (sans dependance) : encode l'URL en QR via une grille canvas simple ---
+// Pour rester 100% autonome et leger, on dessine un "QR-like" ? Non : on fait un vrai mini-encodeur seulement si court.
+// Repli pragmatique : si l'URL est trop longue pour un QR trivial, on affiche le lien en gros + bouton copier.
+function showQR(){
+  const url=$('#sheetLink').value;
+  // QR robuste sans lib = lourd ; ici on rend le lien scannable via un data-URL d'image texte n'est pas un vrai QR.
+  // Choix honnete : on bascule l'affichage du lien en plus gros + on garde 'copier'. (QR reel = couche ulterieure.)
+  toast('lien prêt à copier — QR natif en couche ultérieure');
+  $('#sheetLink').style.fontSize='14px'; $('#sheetLink').style.height='120px';
+}
+
+// ===== naissance de l'-ion (remplace l'ancien unlock symetrique) =====
+async function birth(){
+  const name=($('#ionName').value.trim()||'Josion');
+  const pass=$('#pass').value;
+  DK=await deriveDeviceKey(pass);
+  // charge un -ion existant si present, sinon en genere un
+  let existing=null;
+  if(localStorage.getItem('ion.v1') && localStorage.getItem('ion.priv')){
+    try{ existing=await ionLoad(); }catch(e){ existing=null; }
+  }
+  if(existing){ ION=existing; if(name && name!==ION.name){ ION.name=name; const m=JSON.parse(localStorage.getItem('ion.v1')); m.name=name; localStorage.setItem('ion.v1', JSON.stringify(m)); } }
+  else { ION=await ionGenerate(name); }
+  // charge le tsoin local si present
+  const blob=localStorage.getItem('heart.v1');
+  if(blob){ try{ S=await tsoinOpen(blob); }catch(e){ /* device-key/phrase differente */ toast('tsoin existant illisible avec cette phrase'); } }
+  const lastT = S.events.length ? S.events[S.events.length-1].t : 0;
+  T0 = now() - lastT;
+  $('#lock').classList.add('hidden');
+  $('#who').textContent='❤️ '+ION.name;
+  $('#addr').textContent = S.id ? ('tsoin '+S.id.slice(0,12)) : 'tsoin neuf · '+ION.fp.slice(0,8);
+  $('#fid').textContent = totalInstants()+' instants';
+  paint(); $('#draft').focus();
+  ev('open',{}); save();
+  // si on est arrivé via une invitation /warp, on l'enchaine maintenant
+  if(pendingHash){ const p=pendingHash; pendingHash=null; routeHash(p); }
+}
+
+// ===== routage du fragment (#warp / #warpback) + anti referrer-leak =====
+function routeHash(rawHash){
+  const h=rawHash.replace(/^#/,''); if(!h) return false;
+  const params=new URLSearchParams(h);
+  // I4 : on EFFACE le fragment de l'URL/historique des le parse (la pubkey ne reste pas)
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  if(params.get('warp')){
+    if(!ION){ pendingHash='#'+h; return true; }    // attends la naissance de l'-ion
+    consumeInvite(params); return true;
+  }
+  if(params.get('warpback')){
+    if(!ION){ pendingHash='#'+h; return true; }
+    consumeBack(params); return true;
+  }
+  return false;
+}
+
+// ===== capture pleine-bande des interactions =====
+function wire(){
+  $('#enter').onclick=birth;
+  $('#sasOk').onclick=confirmVerified;
+  $('#ionName').addEventListener('keydown',e=>{ if(e.key==='Enter') birth(); });
+  $('#pass').addEventListener('keydown',e=>{ if(e.key==='Enter') birth(); });
+  $('#send').onclick=commit;
+  const d=$('#draft');
+  d.addEventListener('input',()=>{ d.style.height='42px'; d.style.height=Math.min(d.scrollHeight,120)+'px'; });
+  d.addEventListener('keydown',e=>{ ev('key',{c:e.key.length===1?e.key:('['+e.key+']')});
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); commit(); } });
+  document.addEventListener('click',e=>{ if(replaying) return;
+    if($('#lock').classList.contains('hidden') && !$('#sheet').classList.contains('on')) ev('click',{x:Math.round(e.clientX), y:Math.round(e.clientY)}); });
+  $('#thread').addEventListener('scroll',()=>{ if(!replaying) ev('scroll',{y:Math.round($('#thread').scrollTop)}); }, {passive:true});
+  $('#plus').onclick=()=>$('#file').click();
+  $('#file').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); const s=Math.min(1, 1100/Math.max(img.width,img.height));
+      c.width=img.width*s; c.height=img.height*s; c.getContext('2d').drawImage(img,0,0,c.width,c.height); addPhoto(c.toDataURL('image/jpeg',0.82)); };
+      img.src=r.result; }; r.readAsDataURL(f); e.target.value=''; };
+  $('#bWarp').onclick=openSheetInvite;
+  $('#wCopy').onclick=copyLink;
+  $('#wQR').onclick=showQR;
+  $('#wRelay').onclick=chooseRelay;
+  $('#wBack').onclick=pasteBack;
+  $('#wClose').onclick=closeSheet;
+  $('#bReplay').onclick=enterReplay;
+  $('#rClose').onclick=exitReplay;
+  $('#rPlay').onclick=()=>{ rPlaying=!rPlaying; $('#rPlay').textContent=rPlaying?'❚❚':'▶'; if(rPlaying){ if(rT>=rDur)rT=0; replayTick(); } };
+  $('#scrub').addEventListener('input',e=>{ rT=(e.target.value/1000)*rDur; applyReplay(rT); });
+  $('#rSpeed').onclick=()=>{ rSpeed = rSpeed>=4?0.5 : rSpeed*2; $('#rSpeed').textContent=rSpeed+'×'; };
+  $('#bMore').onclick=more;
+}
+function more(){
+  const m=[
+    ['⤓ exporter ce tsoin (chiffré local)', exportTsoin],
+    ['⤒ importer un tsoin', ()=>$('#imp').click()],
+    ['＋ ouvrir un /warp', openSheetInvite],
+    ['⟲ relire le tsoin commun', enterReplay],
+    ['⚙ relais (bus xion)', chooseRelay],
+    ['⌫ effacer ce tsoin (local)', ()=>{ if(confirm('Effacer le tsoin de CE téléphone ? (ton -ion et l’export restent)')){ localStorage.removeItem('heart.v1'); location.reload(); } }],
+  ];
+  const i=prompt('❤️  ·  '+m.map((x,k)=>(k+1)+') '+x[0]).join('\n')+'\n\nnuméro ?'); const k=parseInt(i,10)-1; if(m[k]) m[k][1]();
+}
+async function exportTsoin(){
+  await save(); const sealed=localStorage.getItem('heart.v1');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([sealed],{type:'text/plain'}));
+  a.download=S.id.slice(0,8)+'.heart'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('tsoin chiffré exporté (clé de cet appareil)');
+}
+$('#imp').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=async()=>{ try{ S=await tsoinOpen(r.result.trim()); paint();
+    $('#fid').textContent=totalInstants()+' instants'; $('#addr').textContent='tsoin '+addr64(S.events).slice(0,12);
+    save(); toast('tsoin importé'); }
+    catch(err){ toast('ce .heart n’est pas lisible sur cet appareil'); } };
+  r.readAsText(f); e.target.value=''; };
+
+wire();
+// si on arrive avec une invitation /warp, garde-la pour apres la naissance de l'-ion
+if(location.hash && (location.hash.includes('warp=')||location.hash.includes('warpback='))){
+  pendingHash=location.hash;
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  $('#ionName').placeholder='nomme ton -ion pour rejoindre le /warp';
+}
+// pre-remplit le nom si un -ion existe deja
+if(localStorage.getItem('ion.v1')){ try{ $('#ionName').value=JSON.parse(localStorage.getItem('ion.v1')).name||''; }catch(e){} }
+$('#ionName').focus();
+</script>
+</body>
+</html>

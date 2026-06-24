@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>xerboxion · mots de passe</title>
+<style>
+  /* Le ploxion impose son propre look violet (#0c0b10). On garde le fond sombre
+     cohérent xerboxion via le body, et la page EST le ploxion (plein écran). */
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:#070a0f;color:#ece8f4;font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden;}
+  .pw{display:flex;flex-direction:column;height:100%;background:#0c0b10;color:#ece8f4;font-family:ui-sans-serif,system-ui,sans-serif;gap:14px;padding:16px;align-items:center;justify-content:center;position:relative;}
+  .pw__out{width:100%;max-width:440px;display:flex;gap:8px;}
+  .pw__field{flex:1;min-width:0;background:rgba(0,0,0,.34);border:1px solid rgba(160,140,255,.3);border-radius:10px;color:#efeaff;
+      padding:13px 12px;font:1.05rem ui-monospace,monospace;word-break:break-all;min-height:1.3em;user-select:all;}
+  .pw__copy{cursor:pointer;flex:0 0 auto;border-radius:10px;border:0;background:#a78bfa;color:#1a1030;font-weight:800;padding:0 16px;}
+  .pw__copy:hover{filter:brightness(1.08);}
+  .pw__bar{width:100%;max-width:440px;height:7px;border-radius:4px;background:rgba(160,140,255,.15);overflow:hidden;}
+  .pw__bar i{display:block;height:100%;width:0;transition:width .2s, background .2s;}
+  .pw__strength{font-size:.72rem;color:rgba(210,200,235,.7);}
+  .pw__cfg{width:100%;max-width:440px;display:flex;flex-direction:column;gap:9px;}
+  .pw__len{display:flex;align-items:center;gap:10px;font-size:.8rem;color:rgba(210,200,235,.8);}
+  .pw__len input[type=range]{flex:1;accent-color:#a78bfa;}
+  .pw__opts{display:flex;gap:7px;flex-wrap:wrap;}
+  .pw__chip{cursor:pointer;font-size:.76rem;padding:6px 12px;border-radius:18px;border:1px solid rgba(160,140,255,.3);background:rgba(28,22,46,.5);color:rgba(220,210,245,.85);user-select:none;}
+  .pw__chip.on{background:rgba(120,90,230,.45);border-color:rgba(167,139,250,.7);color:#fff;}
+  .pw__gen{cursor:pointer;border-radius:10px;border:0;background:#7c5cff;color:#fff;font-weight:800;font-size:.95rem;padding:11px 26px;}
+  .pw__gen:hover{filter:brightness(1.08);}
+</style>
+</head>
+<body>
+<div class="pw" id="pw">
+  <div class="pw__out"><div class="pw__field" data-pw>—</div><button class="pw__copy" data-copy>copier</button></div>
+  <div class="pw__bar"><i data-bar></i></div><div class="pw__strength" data-strength></div>
+  <div class="pw__cfg">
+    <div class="pw__len">longueur <input type="range" min="6" max="48" data-len><b data-lenv>16</b></div>
+    <div class="pw__opts">
+      <span class="pw__chip" data-opt="maj">maj A-Z</span>
+      <span class="pw__chip" data-opt="min">min a-z</span>
+      <span class="pw__chip" data-opt="num">chiffres 0-9</span>
+      <span class="pw__chip" data-opt="sym">symboles</span>
+    </div>
+  </div>
+  <button class="pw__gen" data-gen>⟳ générer</button>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ── bions d'interface inlinés (ex-window.jOSb : store/copy/toast) ───────────
+     Aucune dépendance Laravel. Clés localStorage gardées telles quelles (xb:). */
+  function bStore(key) {
+    return {
+      get: function (def) { try { var v = localStorage.getItem(key); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
+      set: function (v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+    };
+  }
+  function bCopy(text) {
+    try { return navigator.clipboard.writeText(text); }
+    catch (e) {
+      try { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } catch (e2) {}
+      return Promise.resolve();
+    }
+  }
+  function bToast(host, msg, opts) {
+    if (!host) return; opts = opts || {};
+    try { if (getComputedStyle(host).position === 'static') host.style.position = 'relative'; } catch (e) {}
+    var t = document.createElement('div'); t.textContent = msg;
+    t.style.cssText = 'position:absolute;left:50%;' + (opts.bottom ? 'bottom:' + opts.bottom + 'px;' : 'top:46px;') + 'transform:translateX(-50%);z-index:40;'
+      + 'padding:6px 13px;border-radius:18px;font-size:.74rem;color:#fff;border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 22px rgba(0,0,0,.5);'
+      + 'background:' + (opts.bad ? 'rgba(120,40,40,.96)' : 'rgba(20,80,60,.96)');
+    host.appendChild(t);
+    var to1 = setTimeout(function () {
+      t.style.transition = 'opacity .4s'; t.style.opacity = '0';
+      var to2 = setTimeout(function () { t.remove(); timers.delete(to2); }, 400);
+      timers.add(to2); timers.delete(to1);
+    }, opts.ms || 1600);
+    timers.add(to1);
+  }
+
+  /* ── droit au silence : on suit les timers transitoires des toasts ───────── */
+  var timers = new Set();
+
+  /* ── aléa crypto (identique au ploxion source) ──────────────────────────── */
+  var SETS = { maj: 'ABCDEFGHJKLMNPQRSTUVWXYZ', min: 'abcdefghijkmnpqrstuvwxyz', num: '23456789', sym: '!@#$%^&*-_=+?' };
+  function rand(n) { var a = new Uint32Array(1); (window.crypto || window.msCrypto).getRandomValues(a); return a[0] % n; }
+
+  var container = document.getElementById('pw');
+  var store = bStore('xb:password');
+  var cfg = store.get({ len: 16, maj: true, min: true, num: true, sym: true }) || { len: 16, maj: true, min: true, num: true, sym: true };
+
+  var elPw = container.querySelector('[data-pw]'),
+      elBar = container.querySelector('[data-bar]'),
+      elStr = container.querySelector('[data-strength]'),
+      elLen = container.querySelector('[data-len]'),
+      elLenV = container.querySelector('[data-lenv]');
+  elLen.value = cfg.len; elLenV.textContent = cfg.len;
+  ['maj', 'min', 'num', 'sym'].forEach(function (k) { container.querySelector('[data-opt="' + k + '"]').classList.toggle('on', !!cfg[k]); });
+
+  function pool() { var p = ''; ['maj', 'min', 'num', 'sym'].forEach(function (k) { if (cfg[k]) p += SETS[k]; }); return p; }
+  function gen() {
+    var p = pool(); if (!p) { elPw.textContent = 'choisis au moins une classe'; return; }
+    var out = '', n = cfg.len;
+    // garantit au moins 1 de chaque classe active
+    var active = ['maj', 'min', 'num', 'sym'].filter(function (k) { return cfg[k]; });
+    active.forEach(function (k) { out += SETS[k][rand(SETS[k].length)]; });
+    for (var i = out.length; i < n; i++) out += p[rand(p.length)];
+    out = out.split('').sort(function () { return rand(3) - 1; }).slice(0, n).join('');
+    elPw.textContent = out; strength(out, p.length);
+  }
+  function strength(pw, poolSize) {
+    var bits = pw.length * Math.log2(poolSize || 2);
+    var pct = Math.max(6, Math.min(100, bits / 1.28));
+    var col = bits < 40 ? '#f87171' : bits < 70 ? '#fbbf24' : '#34d399';
+    var lab = bits < 40 ? 'faible' : bits < 70 ? 'correct' : bits < 100 ? 'fort' : 'béton';
+    elBar.style.width = pct + '%'; elBar.style.background = col;
+    elStr.textContent = Math.round(bits) + ' bits d\'entropie · ' + lab;
+  }
+  function save() { store.set(cfg); }
+
+  elLen.addEventListener('input', function () { cfg.len = +elLen.value; elLenV.textContent = cfg.len; save(); gen(); });
+  container.querySelectorAll('[data-opt]').forEach(function (c) {
+    c.addEventListener('click', function () {
+      var k = c.getAttribute('data-opt'); cfg[k] = !cfg[k]; c.classList.toggle('on', cfg[k]); save(); gen();
+    });
+  });
+  container.querySelector('[data-gen]').addEventListener('click', gen);
+  container.querySelector('[data-copy]').addEventListener('click', function () {
+    var v = elPw.textContent; if (!v || v.indexOf(' ') >= 0) return;
+    bCopy(v); bToast(container, '✓ copié (colle-le vite)');
+  });
+
+  gen();
+
+  /* ── droit au silence : à la fermeture/masquage, on coupe les timers ─────── */
+  function silence() { timers.forEach(function (id) { clearTimeout(id); }); timers.clear(); }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

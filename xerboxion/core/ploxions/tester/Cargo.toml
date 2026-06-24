@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-tester"
+description = "WASM ploxion: teste des ploxions. Drive une cible, capture sa reponse, grave le tsoin du comportement (test:ploxion:<id>)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

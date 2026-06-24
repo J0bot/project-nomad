@@ -1,0 +1,65 @@
+plugins {
+	id 'fabric-loom' version "${loom_version}"
+	id 'java'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+// Loom split source sets : src/main = commun + serveur, src/client = client only.
+// Une classe client ne doit JAMAIS etre referencee depuis le commun.
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"minecraft-os" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+repositories {
+	maven {
+		name = 'Henkel'
+		url = 'https://maven.maxhenkel.de/'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// Simple Voice Chat -- API SEULE, compileOnly : le mod boote SANS SVC.
+	modCompileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
+}
+
+processResources {
+	inputs.property 'version', project.version
+	inputs.property 'minecraft_version', project.minecraft_version
+	inputs.property 'loader_version', project.loader_version
+
+	filesMatching('fabric.mod.json') {
+		expand version: project.version,
+			minecraft_version: project.minecraft_version,
+			loader_version: project.loader_version
+	}
+}
+
+java {
+	withSourcesJar()
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = 'UTF-8'
+}

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pomodoro 🍅</title>
+<style>
+  html,body{margin:0;height:100%;background:#0c0a10;-webkit-text-size-adjust:100%}
+  *{box-sizing:border-box}
+  .pd{display:flex;flex-direction:column;min-height:100vh;align-items:center;justify-content:center;gap:16px;padding:18px;position:relative;
+    background:#0c0a10;color:#f0eaf6;font-family:ui-sans-serif,system-ui,sans-serif;transition:background .4s}
+  .pd.focus{background:radial-gradient(circle at 50% 30%,rgba(120,40,60,.25),#0c0a10 75%)}
+  .pd.brk{background:radial-gradient(circle at 50% 30%,rgba(30,90,70,.25),#0a0f0c 75%)}
+  .pd__phase{font-size:.74rem;text-transform:uppercase;letter-spacing:.18em;color:rgba(220,200,230,.7)}
+  .pd__time{font-size:clamp(64px,22vmin,140px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 30px rgba(255,255,255,.12)}
+  .pd__ring{display:flex;gap:7px}
+  .pd__dot{width:11px;height:11px;border-radius:50%;background:rgba(180,160,200,.25)}
+  .pd__dot.done{background:#f472b6;box-shadow:0 0 10px rgba(244,114,182,.7)}
+  .pd__row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .pd__b{cursor:pointer;border-radius:10px;border:1px solid rgba(244,114,182,.4);background:rgba(60,28,44,.4);color:#fdd5ec;font-size:.84rem;padding:9px 15px;font-weight:600}
+  .pd__b:hover{background:rgba(90,40,66,.5)}
+  .pd__b.main{background:#f472b6;color:#2a0a1c;border:0;font-weight:800;padding:11px 30px;font-size:.98rem}
+  .pd__b.sm{padding:6px 11px;font-size:.74rem}
+  .pd__cfg{font-size:.68rem;color:rgba(210,195,225,.6);display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .pd__cfg input{width:46px;background:rgba(0,0,0,.3);border:1px solid rgba(244,114,182,.3);border-radius:6px;color:#fde;padding:3px 5px;font:inherit;text-align:center}
+  .pd__count{font-size:.72rem;color:rgba(210,195,225,.65)}
+</style>
+</head>
+<body>
+<div class="pd focus" data-root>
+  <div class="pd__phase" data-phase>focus</div>
+  <div class="pd__time" data-time>25:00</div>
+  <div class="pd__ring" data-ring></div>
+  <div class="pd__row">
+    <button class="pd__b sm" data-reset>↺</button>
+    <button class="pd__b main" data-play>démarrer</button>
+    <button class="pd__b sm" data-skip>⏭</button>
+  </div>
+  <div class="pd__count" data-count></div>
+  <div class="pd__cfg">focus <input data-w type="number" min="1" max="90"> · pause <input data-b type="number" min="1" max="60"> · longue <input data-l type="number" min="1" max="60"> min</div>
+</div>
+<script>
+(function () {
+  'use strict';
+  var doc = document;
+
+  // ── bions inlinés (ex-window.jOSb : fmtTime ▢ / store ⛁ / beep ♪ / toast ◐) ──
+  function fmtTime(s) { if (!isFinite(s)) return '–:--'; s = Math.max(0, s | 0); return (s / 60 | 0) + ':' + ('0' + (s % 60)).slice(-2); }
+  function store(key) {
+    return {
+      get: function (def) { try { var v = localStorage.getItem(key); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
+      set: function (v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+    };
+  }
+  function beepTone(ac, o) {
+    if (!ac) return; o = o || {}; var when = o.when || ac.currentTime;
+    var osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = o.type || 'sine'; osc.frequency.value = o.freq || 880;
+    g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(o.vol || 0.4, when + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + (o.dur || 0.06));
+    osc.connect(g); g.connect(ac.destination); osc.start(when); osc.stop(when + (o.dur || 0.06) + 0.01);
+  }
+  function toast(host, msg, bad) {
+    if (!host) return;
+    var t = doc.createElement('div'); t.textContent = msg;
+    t.style.cssText = 'position:absolute;left:50%;top:46px;transform:translateX(-50%);z-index:40;'
+      + 'padding:6px 13px;border-radius:18px;font-size:.74rem;color:#fff;border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 22px rgba(0,0,0,.5);'
+      + 'background:' + (bad ? 'rgba(120,40,40,.96)' : 'rgba(20,80,60,.96)');
+    host.appendChild(t);
+    setTimeout(function () { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 400); }, 1600);
+  }
+
+  // ── bus xion (same-origin : la page est servie à /px/pomodoro/index.html) ──
+  function emit(topic, payload) {
+    try {
+      fetch('/emit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: topic, payload: payload }) }).catch(function () {});
+    } catch (e) {}
+  }
+  var es = null;
+  try {
+    es = new EventSource('/events');
+    es.onerror = function () {}; // le bus peut être absent : on n'insiste pas
+  } catch (e) { es = null; }
+
+  // ── état ──
+  var st = store('xb:pomodoro');
+  var cfg = st.get({ work: 25, brk: 5, long: 15, cycles: 4 }) || { work: 25, brk: 5, long: 15, cycles: 4 };
+  var phase = 'focus', left = cfg.work * 60, running = false, done = 0, raf = 0, ac = null, endAt = 0;
+
+  var root = doc.querySelector('[data-root]'), elTime = doc.querySelector('[data-time]'), elPhase = doc.querySelector('[data-phase]'),
+      elPlay = doc.querySelector('[data-play]'), elRing = doc.querySelector('[data-ring]'), elCount = doc.querySelector('[data-count]');
+  var iw = doc.querySelector('[data-w]'), ib = doc.querySelector('[data-b]'), il = doc.querySelector('[data-l]');
+  iw.value = cfg.work; ib.value = cfg.brk; il.value = cfg.long;
+
+  function dur(p) { return (p === 'focus' ? cfg.work : (p === 'long' ? cfg.long : cfg.brk)) * 60; }
+  function paint() {
+    elTime.textContent = fmtTime(Math.max(0, Math.ceil(left)));
+    elPhase.textContent = phase === 'focus' ? 'focus' : (phase === 'long' ? 'longue pause' : 'pause');
+    root.className = 'pd ' + (phase === 'focus' ? 'focus' : 'brk');
+    elCount.textContent = done + ' focus complétés';
+    var n = cfg.cycles; elRing.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var d = doc.createElement('div');
+      d.className = 'pd__dot' + ((done % n) > i || (done % n === 0 && done > 0 && i < n) ? ' done' : '');
+      elRing.appendChild(d);
+    }
+  }
+  function tick() {
+    if (!running) return;
+    left = (endAt - Date.now()) / 1000;
+    if (left <= 0) { left = 0; paint(); next(true); return; }
+    paint(); raf = requestAnimationFrame(tick);
+  }
+  function start() { if (running) return; running = true; endAt = Date.now() + left * 1000; elPlay.textContent = 'pause'; emit('pomodoro.start', { phase: phase, left: Math.ceil(left) }); tick(); }
+  function pause() { running = false; if (raf) cancelAnimationFrame(raf); left = Math.max(0, (endAt - Date.now()) / 1000); elPlay.textContent = 'reprendre'; emit('pomodoro.pause', { phase: phase, left: Math.ceil(left) }); paint(); }
+  function toggle() { running ? pause() : start(); }
+  function beep(times) {
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { return; }
+    for (var i = 0; i < (times || 1); i++) beepTone(ac, { freq: phase === 'focus' ? 660 : 880, vol: 0.4, when: ac.currentTime + i * 0.22, dur: 0.16, type: 'sine' });
+  }
+  function next(auto) {
+    if (running) { running = false; if (raf) cancelAnimationFrame(raf); }
+    if (phase === 'focus') {
+      done++; var longBreak = (done % cfg.cycles === 0); phase = longBreak ? 'long' : 'brk';
+      emit('pomodoro.phase', { phase: phase, done: done, auto: !!auto });
+      if (auto) { beep(2); toast(root, longBreak ? 'longue pause méritée 🌿' : 'pause ☕'); }
+    } else {
+      phase = 'focus';
+      emit('pomodoro.phase', { phase: phase, done: done, auto: !!auto });
+      if (auto) { beep(1); toast(root, 'focus 🔥'); }
+    }
+    left = dur(phase); elPlay.textContent = 'démarrer'; paint();
+    if (auto) start(); // enchaîne
+  }
+
+  elPlay.addEventListener('click', toggle);
+  doc.querySelector('[data-reset]').addEventListener('click', function () { if (raf) cancelAnimationFrame(raf); running = false; phase = 'focus'; left = dur('focus'); elPlay.textContent = 'démarrer'; emit('pomodoro.reset', {}); paint(); });
+  doc.querySelector('[data-skip]').addEventListener('click', function () { next(false); });
+  function saveCfg() { cfg.work = Math.max(1, +iw.value || 25); cfg.brk = Math.max(1, +ib.value || 5); cfg.long = Math.max(1, +il.value || 15); st.set(cfg); if (!running) { left = dur(phase); paint(); } }
+  [iw, ib, il].forEach(function (el) { el.addEventListener('change', saveCfg); });
+
+  paint();
+
+  // ── droit au silence : on coupe tout à la fermeture/au masquage ──
+  function silence() {
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (ac) { try { ac.close(); } catch (e) {} ac = null; }
+    if (es) { try { es.close(); } catch (e) {} es = null; }
+  }
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+})();
+</script>
+</body>
+</html>

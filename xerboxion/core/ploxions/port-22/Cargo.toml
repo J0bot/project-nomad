@@ -1,0 +1,12 @@
+[package]
+name = "ploxion-port-22"
+description = "WASM ploxion: le port 22 (ssh) en ploxion (port-bion). Residu PortDef + port_ploxion!. Reseau-en-ploxions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ploxion-sdk = { path = "../sdk" }

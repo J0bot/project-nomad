@@ -1,0 +1,357 @@
+{
+  "ts": "2026-06-21T18:48",
+  "runtime": {
+    "self": 36,
+    "total": 37,
+    "pct_self": 97.3,
+    "agent": [
+      "ultra-tsoin horaire (synthèse)"
+    ]
+  },
+  "growth": {
+    "self": 6,
+    "total": 10,
+    "pct_self": 60.0,
+    "estimate": true,
+    "agent": [
+      "écrire le code d'un ploxion NEUF",
+      "interpréter les idées de José → spec",
+      "décider la priorité / la direction",
+      "synthétiser l'ultra-tsoin"
+    ]
+  },
+  "ploxions_loaded": 33,
+  "commits": "140",
+  "xerbion": "loss 3.073 loss 2.965 loss 3.149 loss 2.999 loss 3.012 loss 2.775 loss 2.875 loss 3.084 loss 2.804 loss 3.056",
+  "components": [
+    {
+      "name": "ploxion:tsoin",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:science",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:synthe",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:xp",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:ultra-detector",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:tester",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:link",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:carte",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:kion",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:spectre",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:mc-adapter",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:xerbion",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:xerbion-bit",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:block-stone",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:block-water",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:tsoin-store",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:diff",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:generator",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:clock-coherence",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:player",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:house-brain-core",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:house-brain-mode",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-tcp",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-udp",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-dns",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-http",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-icmp",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-tls",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:proto-ntp",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:tsoin-montage",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:object",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:bion-accelerator",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "ploxion:forge",
+      "kind": "ploxion",
+      "autonomy": "self",
+      "running": true,
+      "note": "algo wasm déterministe, routé par le bus"
+    },
+    {
+      "name": "xion (bus PLC)",
+      "kind": "daemon",
+      "autonomy": "self",
+      "running": true,
+      "note": "héberge+route les ploxions, persiste les tsoins"
+    },
+    {
+      "name": "xerbion (apprentissage)",
+      "kind": "daemon",
+      "autonomy": "self",
+      "running": true,
+      "note": "tourne en continu, nice -19, sans LLM"
+    },
+    {
+      "name": "security-watch.timer",
+      "kind": "timer",
+      "autonomy": "self",
+      "running": true,
+      "note": "surveillance horaire systemd"
+    },
+    {
+      "name": "ultra-tsoin horaire (synthèse)",
+      "kind": "loop",
+      "autonomy": "agent",
+      "running": true,
+      "note": "la CAPTURE est déterministe mais la SYNTHÈSE = LLM (cloudion)"
+    },
+    {
+      "name": "forge (idée→objet+instructions)",
+      "autonomy": "self",
+      "note": "assemble des blocs EXISTANTS en objet+mode d'emploi, sans LLM",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "bion-accelerator (fusion/fission)",
+      "autonomy": "self",
+      "note": "découvre de nouveaux bions par un algo déterministe",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "object (cubions→objet)",
+      "autonomy": "self",
+      "note": "assemblage déterministe",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "tsoin-montage (combiner des tsoins)",
+      "autonomy": "self",
+      "note": "5 ops déterministes",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "bion-tester (mesurer/empreinte)",
+      "autonomy": "self",
+      "note": "test reproductible",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "build-ploxions.sh (compiler)",
+      "autonomy": "self",
+      "note": "pipeline déterministe",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "écrire le code d'un ploxion NEUF",
+      "autonomy": "agent",
+      "note": "tant qu'il n'existe pas de bion pour ce comportement, c'est l'agent qui l'écrit",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "interpréter les idées de José → spec",
+      "autonomy": "agent",
+      "note": "braindump → plan = LLM",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "décider la priorité / la direction",
+      "autonomy": "agent",
+      "note": "quoi construire ensuite",
+      "kind": "growth",
+      "running": null
+    },
+    {
+      "name": "synthétiser l'ultra-tsoin",
+      "autonomy": "agent",
+      "note": "résumer l'heure = LLM",
+      "kind": "growth",
+      "running": null
+    }
+  ]
+}
