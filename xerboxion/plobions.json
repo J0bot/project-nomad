@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "source": "project-nomad/service_seeder",
+  "plobions": [
+    {
+      "id": "nomad_kiwix_server",
+      "name": "Information Library",
+      "powered_by": "Kiwix",
+      "description": "Offline access to Wikipedia, medical references, how-to guides, and encyclopedias",
+      "icon": "IconBooks",
+      "image": "ghcr.io/kiwix/kiwix-serve:3.8.1",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_qdrant",
+      "name": "Qdrant Vector Database",
+      "powered_by": "null",
+      "description": "Vector database for storing and searching embeddings",
+      "icon": "IconRobot",
+      "image": "qdrant/qdrant:v1.16",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_ollama",
+      "name": "AI Assistant",
+      "powered_by": "Ollama",
+      "description": "Local AI chat that runs entirely on your hardware - no internet required",
+      "icon": "IconWand",
+      "image": "ollama/ollama:0.24.0",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_cyberchef",
+      "name": "Data Tools",
+      "powered_by": "CyberChef",
+      "description": "Swiss Army knife for data encoding, encryption, and analysis",
+      "icon": "IconChefHat",
+      "image": "ghcr.io/gchq/cyberchef:10.24.0",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_flatnotes",
+      "name": "Notes",
+      "powered_by": "FlatNotes",
+      "description": "Simple note-taking app with local storage",
+      "icon": "IconNotes",
+      "image": "dullage/flatnotes:v5.5.4",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_kolibri_2",
+      "name": "Education Platform (Gen 2)",
+      "powered_by": "Kolibri",
+      "description": "Interactive learning platform with video courses and exercises",
+      "icon": "IconSchool",
+      "image": "learningequality/kolibri:0.19.4",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_stirling_pdf",
+      "name": "Stirling PDF",
+      "powered_by": "Stirling-Tools",
+      "description": "Locally-hosted PDF manipulation tool — merge, split, compress, convert, and more",
+      "icon": "IconFileDescription",
+      "image": "ghcr.io/stirling-tools/s-pdf:2.13.1",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_filebrowser",
+      "name": "File Browser",
+      "powered_by": "FileBrowser",
+      "description": "Web-based file manager — browse, upload, download, and organize files on your device",
+      "icon": "IconFolderOpen",
+      "image": "filebrowser/filebrowser:v2",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_calibreweb",
+      "name": "Calibre Web",
+      "powered_by": "Calibre-Web",
+      "description": "Web-based e-book reader and library manager for your Calibre collection",
+      "icon": "IconBook",
+      "image": "linuxserver/calibre-web:0.6.26-ls386",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_it_tools",
+      "name": "IT Tools",
+      "powered_by": "IT-Tools",
+      "description": "Collection of handy utilities for developers — UUID, hash, encoding, formatters, and more",
+      "icon": "IconTool",
+      "image": "ghcr.io/corentinth/it-tools:2024.10.22-7ca5933",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_excalidraw",
+      "name": "Excalidraw",
+      "powered_by": "Excalidraw",
+      "description": "Virtual whiteboard for sketching hand-drawn-style diagrams — works fully offline",
+      "icon": "IconPencil",
+      "image": "excalidraw/excalidraw:sha-4bfc5bb",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_meshtastic_web",
+      "name": "Meshtastic Web",
+      "powered_by": "Meshtastic",
+      "description": "Browser-based client for managing Meshtastic mesh radio devices",
+      "icon": "IconWifi",
+      "image": "ghcr.io/meshtastic/web:2.7.1",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_meshcore_web",
+      "name": "MeshCore Web",
+      "powered_by": "MeshCore",
+      "description": "Browser-based client for MeshCore mesh radio devices",
+      "icon": "IconAntenna",
+      "image": "ghcr.io/axistem-dev/meshcore-web:v1.45.0",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_homebox",
+      "name": "Homebox",
+      "powered_by": "Homebox",
+      "description": "Home inventory and asset management — track everything you own",
+      "icon": "IconBox",
+      "image": "ghcr.io/sysadminsmedia/homebox:0.26.2",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_vaultwarden",
+      "name": "Vaultwarden",
+      "powered_by": "Vaultwarden",
+      "description": "Lightweight Bitwarden-compatible password manager server — secure your credentials offline",
+      "icon": "IconShieldLock",
+      "image": "vaultwarden/server:1.36.0",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    },
+    {
+      "id": "nomad_jellyfin",
+      "name": "Jellyfin",
+      "powered_by": "Jellyfin",
+      "description": "Open-source media server — stream your video, music, and photo libraries",
+      "icon": "IconMovie",
+      "image": "jellyfin/jellyfin:10.11.11",
+      "offline": true,
+      "kind": "plobion",
+      "source": "nomad"
+    }
+  ]
+}
