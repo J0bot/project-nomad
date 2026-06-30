@@ -1,0 +1,2011 @@
+{
+ "spec_version": "2026-06-30",
+ "collection": "civilization-papers",
+ "title": "Reconstruire une civilisation",
+ "source": "MDPI (open-access CC-BY) via Crossref",
+ "note": "Catalogue curé des papiers essentiels par domaine pour rebâtir une civilisation. Liens article + PDF (open-access).",
+ "counts": {
+  "domains": 15,
+  "papers": 150
+ },
+ "categories": [
+  {
+   "slug": "water",
+   "name": "Eau & assainissement",
+   "icon": "💧",
+   "query": "water purification sanitation filtration review",
+   "papers": [
+    {
+     "doi": "10.3390/separations10030194",
+     "title": "Conceptual Design of a Compact Water Purification Unit Using Reed Bed Filtration",
+     "authors": [
+      "Elias Farah",
+      "Maria Khalil",
+      "Manuella Richa"
+     ],
+     "journal": "Separations",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/separations10030194",
+     "pdf": "https://www.mdpi.com/2297-8739/10/3/194/pdf"
+    },
+    {
+     "doi": "10.3390/w17172634",
+     "title": "Water, Sanitation, and Hygiene in Urban Areas: A Review",
+     "authors": [
+      "Gabriela Souza",
+      "Cristina Santos",
+      "Érico Lisboa"
+     ],
+     "journal": "Water",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/w17172634",
+     "pdf": "https://www.mdpi.com/2073-4441/17/17/2634/pdf"
+    },
+    {
+     "doi": "10.3390/w14193153",
+     "title": "Assessing the Role of Water Resources Protection Practice for Sustainable Water Resources Management: A Review",
+     "authors": [
+      "Koleka Makanda",
+      "Stanley Nzama",
+      "Thokozani Kanyerere"
+     ],
+     "journal": "Water",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/w14193153",
+     "pdf": "https://www.mdpi.com/2073-4441/14/19/3153/pdf"
+    },
+    {
+     "doi": "10.3390/w10060756",
+     "title": "A Review of In-Situ and Remote Sensing Technologies to Monitor Water and Sanitation Interventions",
+     "authors": [
+      "Luis Andres",
+      "Kwasi Boateng",
+      "Christian Borja-Vega"
+     ],
+     "journal": "Water",
+     "year": 2018,
+     "url": "https://doi.org/10.3390/w10060756",
+     "pdf": "https://www.mdpi.com/2073-4441/10/6/756/pdf"
+    },
+    {
+     "doi": "10.3390/infrastructures6010009",
+     "title": "Financing the Water and Sanitation Sectors: A Hybrid Literature Review",
+     "authors": [
+      "Inês Machete",
+      "Rui Marques"
+     ],
+     "journal": "Infrastructures",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/infrastructures6010009",
+     "pdf": "https://www.mdpi.com/2412-3811/6/1/9/pdf"
+    },
+    {
+     "doi": "10.3390/w16213085",
+     "title": "A Review of Sanitation Options and Programming in Ghana, West Africa",
+     "authors": [
+      "Grace L. Baldwin Kan-uge",
+      "Elvis Kan-uge",
+      "Robert M. Stwalley"
+     ],
+     "journal": "Water",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/w16213085",
+     "pdf": "https://www.mdpi.com/2073-4441/16/21/3085/pdf"
+    },
+    {
+     "doi": "10.3390/su12020511",
+     "title": "Water Treatment Facilities as Civil Engineering Heritage from Guardian of Urban Sanitation to Symbol of Urban Colonial Modernity, in the Case of Ttukdo (Seoul) Water Purification Plant",
+     "authors": [
+      "Yeonkyung Lee"
+     ],
+     "journal": "Sustainability",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/su12020511",
+     "pdf": "https://www.mdpi.com/2071-1050/12/2/511/pdf"
+    },
+    {
+     "doi": "10.3390/w17081110",
+     "title": "Assessing Water Filtration and Purification Practices and Their Impact on Tap Water Mineral Levels in Jeddah City",
+     "authors": [
+      "Loai Wadea Hazzazi",
+      "Waleed Alharbi",
+      "Abeer Mahmoud"
+     ],
+     "journal": "Water",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/w17081110",
+     "pdf": "https://www.mdpi.com/2073-4441/17/8/1110/pdf"
+    },
+    {
+     "doi": "10.3390/membranes13070660",
+     "title": "Automated Liquid–Liquid Displacement Porometry (LLDP) for the Non-Destructive Characterization of Ultrapure Water Purification Filtration Devices",
+     "authors": [
+      "René I. Peinador",
+      "Daniel Darbouret",
+      "Christophe Paragot"
+     ],
+     "journal": "Membranes",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/membranes13070660",
+     "pdf": "https://www.mdpi.com/2077-0375/13/7/660/pdf"
+    },
+    {
+     "doi": "10.3390/w14203232",
+     "title": "Constructed Wetlands as a Solution for Sustainable Sanitation: A Comprehensive Review on Integrating Climate Change Resilience and Circular Economy",
+     "authors": [
+      "Ahmed M. N. Masoud",
+      "Amani Alfarra",
+      "Sabrina Sorlini"
+     ],
+     "journal": "Water",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/w14203232",
+     "pdf": "https://www.mdpi.com/2073-4441/14/20/3232/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "food",
+   "name": "Nourriture & agriculture",
+   "icon": "🌾",
+   "query": "sustainable agriculture crop yield food preservation review",
+   "papers": [
+    {
+     "doi": "10.3390/plants12234035",
+     "title": "Rootstock and Crop Load Effects on ‘Honeycrisp’ Photosynthetic Performance and Carbohydrate Accumulation",
+     "authors": [
+      "Claudia Baldassi",
+      "Anna Berim",
+      "Stefan Roeder"
+     ],
+     "journal": "Plants",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/plants12234035",
+     "pdf": "https://www.mdpi.com/2223-7747/12/23/4035/pdf"
+    },
+    {
+     "doi": "10.3390/agriculture13010176",
+     "title": "Probabilistic Assessment of Cereal Rye Cover Crop Impacts on Regional Crop Yield and Soil Carbon",
+     "authors": [
+      "Teerath Rai",
+      "Nicole Lee",
+      "Martin Williams"
+     ],
+     "journal": "Agriculture",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/agriculture13010176",
+     "pdf": "https://www.mdpi.com/2077-0472/13/1/176/pdf"
+    },
+    {
+     "doi": "10.3390/agriculture8010008",
+     "title": "Sustainable Agriculture—Enhancing Environmental Benefits, Food Nutritional Quality and Building Crop Resilience to Abiotic and Biotic Stresses",
+     "authors": [
+      "Daniel Roberts",
+      "Autar Mattoo"
+     ],
+     "journal": "Agriculture",
+     "year": 2018,
+     "url": "https://doi.org/10.3390/agriculture8010008",
+     "pdf": "https://www.mdpi.com/2077-0472/8/1/8/pdf"
+    },
+    {
+     "doi": "10.3390/agriculture16040417",
+     "title": "Satellite Remote Sensing for Crop Yield Prediction: A Review",
+     "authors": [
+      "Dorijan Radočaj",
+      "Mladen Jurišić",
+      "Ivan Plaščak"
+     ],
+     "journal": "Agriculture",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/agriculture16040417",
+     "pdf": "https://www.mdpi.com/2077-0472/16/4/417/pdf"
+    },
+    {
+     "doi": "10.3390/horticulturae8100888",
+     "title": "Effect of Grafting Compatibility on Fruit Yield and Quality of Cantaloupe in a Mediterranean-Type Climate",
+     "authors": [
+      "Srijana Shrestha",
+      "Chakradhar Mattupalli",
+      "Carol Miles"
+     ],
+     "journal": "Horticulturae",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/horticulturae8100888",
+     "pdf": "https://www.mdpi.com/2311-7524/8/10/888/pdf"
+    },
+    {
+     "doi": "10.3390/vaccines9020121",
+     "title": "Plant Immunity and Crop Yield: A Sustainable Approach in Agri-Food Systems",
+     "authors": [
+      "Marcello Iriti",
+      "Sara Vitalini"
+     ],
+     "journal": "Vaccines",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/vaccines9020121",
+     "pdf": "https://www.mdpi.com/2076-393X/9/2/121/pdf"
+    },
+    {
+     "doi": "10.3390/agriculture14040636",
+     "title": "Intercropping Industrial Hemp and Cowpea Enhances the Yield of Squash—A Pollinator-Dependent Crop",
+     "authors": [
+      "Beatrice N. Dingha",
+      "Gilbert N. Mukoko",
+      "Ikponmwosa N. Egbon"
+     ],
+     "journal": "Agriculture",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/agriculture14040636",
+     "pdf": "https://www.mdpi.com/2077-0472/14/4/636/pdf"
+    },
+    {
+     "doi": "10.3390/pr14071102",
+     "title": "Compost Amendments Enhance Crop Productivity and Yield for Sustainable Agriculture: A Global Meta-Analysis",
+     "authors": [
+      "Muhammad Abdullah Aziz",
+      "Mosaed A. Majrashi",
+      "Arif Husain"
+     ],
+     "journal": "Processes",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/pr14071102",
+     "pdf": "https://www.mdpi.com/2227-9717/14/7/1102/pdf"
+    },
+    {
+     "doi": "10.3390/agriculture2030211",
+     "title": "Nonstop Selection for High and Stable Crop Yield by Two Prognostic Equations to Reduce Yield Losses",
+     "authors": [
+      "Dionysia A. Fasoula"
+     ],
+     "journal": "Agriculture",
+     "year": 2012,
+     "url": "https://doi.org/10.3390/agriculture2030211",
+     "pdf": "https://www.mdpi.com/2077-0472/2/3/211/pdf"
+    },
+    {
+     "doi": "10.3390/su16177331",
+     "title": "Data Analytics in Agriculture: Enhancing Decision-Making for Crop Yield Optimization and Sustainable Practices",
+     "authors": [
+      "Dua Weraikat",
+      "Kristina Šorič",
+      "Martin Žagar"
+     ],
+     "journal": "Sustainability",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/su16177331",
+     "pdf": "https://www.mdpi.com/2071-1050/16/17/7331/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "energy",
+   "name": "Énergie & électricité",
+   "icon": "⚡",
+   "query": "renewable energy generator electricity storage review",
+   "papers": [
+    {
+     "doi": "10.3390/electricity6040069",
+     "title": "Review of Virtual Inertia Based on Synchronous Generator Characteristic Emulation in Renewable Energy-Dominated Power Systems",
+     "authors": [
+      "Fikri Waskito",
+      "F. Danang Wijaya",
+      "Eka Firmansyah"
+     ],
+     "journal": "Electricity",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/electricity6040069",
+     "pdf": "https://www.mdpi.com/2673-4826/6/4/69/pdf"
+    },
+    {
+     "doi": "10.3390/electricity6020022",
+     "title": "Robust Frequency Regulation Management System in a Renewable Hybrid Energy Network with Integrated Storage Solutions",
+     "authors": [
+      "Subhranshu Sekhar Pati",
+      "Umamani Subudhi",
+      "Sivkumar Mishra"
+     ],
+     "journal": "Electricity",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/electricity6020022",
+     "pdf": "https://www.mdpi.com/2673-4826/6/2/22/pdf"
+    },
+    {
+     "doi": "10.3390/pr12010130",
+     "title": "Energy Storage Deployment and Benefits in the Chinese Electricity Market Considering Renewable Energy Uncertainty and Energy Storage Life Cycle Costs",
+     "authors": [
+      "Yichao Meng",
+      "Ze Ye",
+      "Lei Chen"
+     ],
+     "journal": "Processes",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/pr12010130",
+     "pdf": "https://www.mdpi.com/2227-9717/12/1/130/pdf"
+    },
+    {
+     "doi": "10.3390/en17051084",
+     "title": "Techno-Economic Comparison of Electricity Storage Options in a Fully Renewable Energy System",
+     "authors": [
+      "Sebastiaan Mulder",
+      "Sikke Klein"
+     ],
+     "journal": "Energies",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/en17051084",
+     "pdf": "https://www.mdpi.com/1996-1073/17/5/1084/pdf"
+    },
+    {
+     "doi": "10.3390/pr10061070",
+     "title": "Bottom-Up Estimates of the Cost of Supplying High-Temperature Industrial Process Heat from Intermittent Renewable Electricity and Thermal Energy Storage in Australia",
+     "authors": [
+      "Andrea Profaiser",
+      "Woei Saw",
+      "Graham J. Nathan"
+     ],
+     "journal": "Processes",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/pr10061070",
+     "pdf": "https://www.mdpi.com/2227-9717/10/6/1070/pdf"
+    },
+    {
+     "doi": "10.3390/en13226076",
+     "title": "Pumped Hydroelectric Energy Storage as a Facilitator of Renewable Energy in Liberalized Electricity Market",
+     "authors": [
+      "Lazar Šćekić",
+      "Saša Mujović",
+      "Vladan Radulović"
+     ],
+     "journal": "Energies",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/en13226076",
+     "pdf": "https://www.mdpi.com/1996-1073/13/22/6076/pdf"
+    },
+    {
+     "doi": "10.3390/pr7120870",
+     "title": "Using Real-Time Electricity Prices to Leverage Electrical Energy Storage and Flexible Loads in a Smart Grid Environment Utilizing Machine Learning Techniques",
+     "authors": [
+      "Moataz Sheha",
+      "Kody Powell"
+     ],
+     "journal": "Processes",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/pr7120870",
+     "pdf": "https://www.mdpi.com/2227-9717/7/12/870/pdf"
+    },
+    {
+     "doi": "10.3390/en16248004",
+     "title": "Elevating the Practical Application of Sodium-Ion Batteries through Advanced Characterization Studies on Cathodes",
+     "authors": [
+      "Mengya Li"
+     ],
+     "journal": "Energies",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/en16248004",
+     "pdf": "https://www.mdpi.com/1996-1073/16/24/8004/pdf"
+    },
+    {
+     "doi": "10.3390/en13226039",
+     "title": "Investigation on System for Renewable Electricity Storage in Small Scale Integrating Photovoltaics, Batteries, and Hydrogen Generator",
+     "authors": [
+      "Daniel Węcel",
+      "Michał Jurczyk",
+      "Wojciech Uchman"
+     ],
+     "journal": "Energies",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/en13226039",
+     "pdf": "https://www.mdpi.com/1996-1073/13/22/6039/pdf"
+    },
+    {
+     "doi": "10.3390/en12071303",
+     "title": "Impact of Grid-Scale Electricity Storage and Electric Vehicles on Renewable Energy Penetration: A Case Study for Italy",
+     "authors": [
+      "Sara Bellocchi",
+      "Michele Manno",
+      "Michel Noussan"
+     ],
+     "journal": "Energies",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/en12071303",
+     "pdf": "https://www.mdpi.com/1996-1073/12/7/1303/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "medicine",
+   "name": "Médecine & santé",
+   "icon": "⚕️",
+   "query": "essential medicine antibiotics public health review",
+   "papers": [
+    {
+     "doi": "10.3390/antibiotics12030474",
+     "title": "Antibacterial Properties of Eucalyptus globulus Essential Oil against MRSA: A Systematic Review",
+     "authors": [
+      "Shakthi Elangovan",
+      "Poonam Mudgil"
+     ],
+     "journal": "Antibiotics",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/antibiotics12030474",
+     "pdf": "https://www.mdpi.com/2079-6382/12/3/474/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics12040723",
+     "title": "Bacteriophage Adsorption: Likelihood of Virion Encounter with Bacteria and Other Factors Affecting Rates",
+     "authors": [
+      "Stephen Tobias Abedon"
+     ],
+     "journal": "Antibiotics",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/antibiotics12040723",
+     "pdf": "https://www.mdpi.com/2079-6382/12/4/723/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics11010089",
+     "title": "Antimicrobial Stewardship in College and University Health Settings: A Public Health Opportunity",
+     "authors": [
+      "Kathryn L. Dambrino",
+      "Montgomery Green"
+     ],
+     "journal": "Antibiotics",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/antibiotics11010089",
+     "pdf": "https://www.mdpi.com/2079-6382/11/1/89/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics12020245",
+     "title": "Ecology and Evolutionary Biology of Hindering Phage Therapy: The Phage Tolerance vs. Phage Resistance of Bacterial Biofilms",
+     "authors": [
+      "Stephen T. Abedon"
+     ],
+     "journal": "Antibiotics",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/antibiotics12020245",
+     "pdf": "https://www.mdpi.com/2079-6382/12/2/245/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics12091423",
+     "title": "Automating Predictive Phage Therapy Pharmacology",
+     "authors": [
+      "Stephen T. Abedon"
+     ],
+     "journal": "Antibiotics",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/antibiotics12091423",
+     "pdf": "https://www.mdpi.com/2079-6382/12/9/1423/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics14020134",
+     "title": "The Role of Artificial Intelligence and Machine Learning Models in Antimicrobial Stewardship in Public Health: A Narrative Review",
+     "authors": [
+      "Flavia Pennisi",
+      "Antonio Pinto",
+      "Giovanni Emanuele Ricciardi"
+     ],
+     "journal": "Antibiotics",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/antibiotics14020134",
+     "pdf": "https://www.mdpi.com/2079-6382/14/2/134/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics13020131",
+     "title": "The Availability of Essential Antimicrobials in Public and Private Sector Facilities: A Cross-Sectional Survey in a District of North India",
+     "authors": [
+      "Niti Mittal",
+      "Rakesh Mittal",
+      "Sukhbir Singh"
+     ],
+     "journal": "Antibiotics",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/antibiotics13020131",
+     "pdf": "https://www.mdpi.com/2079-6382/13/2/131/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics14010068",
+     "title": "Antibacterial Activity of Selected Essential Oil Components and Their Derivatives: A Review",
+     "authors": [
+      "Vuyolwethu Khwaza",
+      "Blessing A. Aderibigbe"
+     ],
+     "journal": "Antibiotics",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/antibiotics14010068",
+     "pdf": "https://www.mdpi.com/2079-6382/14/1/68/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics11050669",
+     "title": "Public Health Interventions to Improve Antimicrobial Resistance Awareness and Behavioural Change Associated with Antimicrobial Use: A Systematic Review Exploring the Use of Social Media",
+     "authors": [
+      "Sana Parveen",
+      "Nathaly Garzon-Orjuela",
+      "Doaa Amin"
+     ],
+     "journal": "Antibiotics",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/antibiotics11050669",
+     "pdf": "https://www.mdpi.com/2079-6382/11/5/669/pdf"
+    },
+    {
+     "doi": "10.3390/antibiotics2030367",
+     "title": "Environmental and Public Health Implications of Water Reuse: Antibiotics, Antibiotic Resistant Bacteria, and Antibiotic Resistance Genes",
+     "authors": [
+      "Pei-Ying Hong",
+      "Nada Al-Jassim",
+      "Mohd Ansari"
+     ],
+     "journal": "Antibiotics",
+     "year": 2013,
+     "url": "https://doi.org/10.3390/antibiotics2030367",
+     "pdf": "https://www.mdpi.com/2079-6382/2/3/367/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "materials",
+   "name": "Matériaux & métallurgie",
+   "icon": "⛓️",
+   "query": "metallurgy steel alloy materials processing review",
+   "papers": [
+    {
+     "doi": "10.3390/ma15175800",
+     "title": "Processing and Characterization of β Titanium Alloy Composite Using Power Metallurgy Approach",
+     "authors": [
+      "Krystian Zyguła",
+      "Marek Wojtaszek"
+     ],
+     "journal": "Materials",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/ma15175800",
+     "pdf": "https://www.mdpi.com/1996-1944/15/17/5800/pdf"
+    },
+    {
+     "doi": "10.3390/ma15041350",
+     "title": "Oxide Metallurgy Technology in High Strength Steel: A Review",
+     "authors": [
+      "Wei Liang",
+      "Ruming Geng",
+      "Jianguo Zhi"
+     ],
+     "journal": "Materials",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/ma15041350",
+     "pdf": "https://www.mdpi.com/1996-1944/15/4/1350/pdf"
+    },
+    {
+     "doi": "10.3390/ma16134575",
+     "title": "Powder Metallurgy: Materials and Processing",
+     "authors": [
+      "Dina V. Dudina",
+      "Arina V. Ukhina"
+     ],
+     "journal": "Materials",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/ma16134575",
+     "pdf": "https://www.mdpi.com/1996-1944/16/13/4575/pdf"
+    },
+    {
+     "doi": "10.3390/ma17184623",
+     "title": "Kinetics of Iron Nitride Layer Growth during the Nitriding of AISI 1085 Non-Alloy Steel and AISI 52100 Alloy Steel",
+     "authors": [
+      "Tadeusz Frączek",
+      "Rafał Prusak",
+      "Jerzy Michalski"
+     ],
+     "journal": "Materials",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/ma17184623",
+     "pdf": "https://www.mdpi.com/1996-1944/17/18/4623/pdf"
+    },
+    {
+     "doi": "10.3390/ma15082822",
+     "title": "Microstructure and Mechanical Properties of Modified 316L Stainless Steel Alloy for Biomedical Applications Using Powder Metallurgy",
+     "authors": [
+      "Sadaqat Ali",
+      "Muhammad Irfan",
+      "Usama Muhammad Niazi"
+     ],
+     "journal": "Materials",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/ma15082822",
+     "pdf": "https://www.mdpi.com/1996-1944/15/8/2822/pdf"
+    },
+    {
+     "doi": "10.3390/ma14123270",
+     "title": "Synthesis, Surface Nitriding and Characterization of Ti-Nb Modified 316L Stainless Steel Alloy Using Powder Metallurgy",
+     "authors": [
+      "Sadaqat Ali",
+      "Muhammad Irfan",
+      "Usama Muhammad Niazi"
+     ],
+     "journal": "Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/ma14123270",
+     "pdf": "https://www.mdpi.com/1996-1944/14/12/3270/pdf"
+    },
+    {
+     "doi": "10.3390/met15060678",
+     "title": "Kinetics Study of the Hydrogen Reduction of Limonite Ore Using an Unreacted Core Model for Flat-Plate Particles",
+     "authors": [
+      "Jindi Huang",
+      "Tao Yi",
+      "Jing Li"
+     ],
+     "journal": "Metals",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/met15060678",
+     "pdf": "https://www.mdpi.com/2075-4701/15/6/678/pdf"
+    },
+    {
+     "doi": "10.3390/jmmp8030096",
+     "title": "A Review on Fusion Welding of Dissimilar Ferritic/Austenitic Steels: Processing and Weld Zone Metallurgy",
+     "authors": [
+      "Fabio Giudice",
+      "Severino Missori",
+      "Cristina Scolaro"
+     ],
+     "journal": "Journal of Manufacturing and Materials Processing",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/jmmp8030096",
+     "pdf": "https://www.mdpi.com/2504-4494/8/3/96/pdf"
+    },
+    {
+     "doi": "10.3390/ma12060846",
+     "title": "Quality Control of High Carbon Steel for Steel Wires",
+     "authors": [
+      "Wei Yan",
+      "Weiqing Chen",
+      "Jing Li"
+     ],
+     "journal": "Materials",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/ma12060846",
+     "pdf": "https://www.mdpi.com/1996-1944/12/6/846/pdf"
+    },
+    {
+     "doi": "10.3390/ma19071343",
+     "title": "Effect of Ce Treatment on the Austenite Grain Growth Behavior of High-Strength Low-Alloy Steel During Heating Process Before Rolling",
+     "authors": [
+      "Fei Huang",
+      "Jing Li",
+      "Bin Lu"
+     ],
+     "journal": "Materials",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/ma19071343",
+     "pdf": "https://www.mdpi.com/1996-1944/19/7/1343/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "chemistry",
+   "name": "Chimie & procédés",
+   "icon": "⚗️",
+   "query": "industrial chemistry synthesis process engineering review",
+   "papers": [
+    {
+     "doi": "10.3390/molecules31010105",
+     "title": "Advances in Flow Chemistry for Organolithium-Based Synthesis: A Process Perspective",
+     "authors": [
+      "Feng Zhou",
+      "Yijun Zhou",
+      "Chuansong Duanmu"
+     ],
+     "journal": "Molecules",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/molecules31010105",
+     "pdf": "https://www.mdpi.com/1420-3049/31/1/105/pdf"
+    },
+    {
+     "doi": "10.3390/su17041660",
+     "title": "Biomass Hydrochar: A Critical Review of Process Chemistry, Synthesis Methodology, and Applications",
+     "authors": [
+      "Joshua O. Ighalo",
+      "Florence C. Akaeme",
+      "Jordana Georgin"
+     ],
+     "journal": "Sustainability",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/su17041660",
+     "pdf": "https://www.mdpi.com/2071-1050/17/4/1660/pdf"
+    },
+    {
+     "doi": "10.3390/chemistry8030032",
+     "title": "Machine Learning and Approximated Estimation Approaches for Process Design in Drug Synthesis",
+     "authors": [
+      "Andrea Repetto",
+      "Gianguido Ramis",
+      "Ilenia Rossetti"
+     ],
+     "journal": "Chemistry",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/chemistry8030032",
+     "pdf": "https://www.mdpi.com/2624-8549/8/3/32/pdf"
+    },
+    {
+     "doi": "10.3390/en16020844",
+     "title": "Green Diesel Production via Deoxygenation Process: A Review",
+     "authors": [
+      "Stefania Lucantonio",
+      "Andrea Di Giuliano",
+      "Leucio Rossi"
+     ],
+     "journal": "Energies",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/en16020844",
+     "pdf": "https://www.mdpi.com/1996-1073/16/2/844/pdf"
+    },
+    {
+     "doi": "10.3390/chemistry7030070",
+     "title": "Process Improvement for the Continuous Synthesis of N-Benzylhydroxylamine Hydrochloride",
+     "authors": [
+      "Xiaoguang Chen",
+      "Ke Chen",
+      "Guoxian Cai"
+     ],
+     "journal": "Chemistry",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/chemistry7030070",
+     "pdf": "https://www.mdpi.com/2624-8549/7/3/70/pdf"
+    },
+    {
+     "doi": "10.3390/su16041606",
+     "title": "Industrial Process Management Model to Improve Productivity and Reduce Waste",
+     "authors": [
+      "César Ortiz",
+      "Luis Quezada",
+      "Astrid Oddershede"
+     ],
+     "journal": "Sustainability",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/su16041606",
+     "pdf": "https://www.mdpi.com/2071-1050/16/4/1606/pdf"
+    },
+    {
+     "doi": "10.3390/pr13103071",
+     "title": "Exploring the Green Synthesis Process of 2-Mercaptobenzothiazole for Industrial Production",
+     "authors": [
+      "Yan Zhang",
+      "Qi Zhang",
+      "Xiansuo Li"
+     ],
+     "journal": "Processes",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/pr13103071",
+     "pdf": "https://www.mdpi.com/2227-9717/13/10/3071/pdf"
+    },
+    {
+     "doi": "10.3390/chemistry6040034",
+     "title": "Azidoindolines—From Synthesis to Application: A Review",
+     "authors": [
+      "Takumi Abe"
+     ],
+     "journal": "Chemistry",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/chemistry6040034",
+     "pdf": "https://www.mdpi.com/2624-8549/6/4/34/pdf"
+    },
+    {
+     "doi": "10.3390/ma19010009",
+     "title": "Neural Network-Enabled Process Flowsheet for Industrial Shot Peening",
+     "authors": [
+      "Langdon Feltner",
+      "Paul Mort"
+     ],
+     "journal": "Materials",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/ma19010009",
+     "pdf": "https://www.mdpi.com/1996-1944/19/1/9/pdf"
+    },
+    {
+     "doi": "10.3390/pr14010036",
+     "title": "Special Issue on “Process Systems Engineering—Incubating Sustainability for Industrial Revolution 4.0”",
+     "authors": [
+      "Tin Sin Lee",
+      "Thomas Shean Yaw Choong"
+     ],
+     "journal": "Processes",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/pr14010036",
+     "pdf": "https://www.mdpi.com/2227-9717/14/1/36/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "construction",
+   "name": "Construction & abri",
+   "icon": "🏗️",
+   "query": "construction materials concrete structural engineering review",
+   "papers": [
+    {
+     "doi": "10.3390/constrmater1010003",
+     "title": "A Comprehensive Review on the Performance of Structural Lightweight Aggregate Concrete for Sustainable Construction",
+     "authors": [
+      "Yash Agrawal",
+      "Trilok Gupta",
+      "Ravi Sharma"
+     ],
+     "journal": "Construction Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/constrmater1010003",
+     "pdf": "https://www.mdpi.com/2673-7108/1/1/3/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater5030067",
+     "title": "Sustainable Engineering of Recycled Aggregate Concrete: Structural Performance and Environmental Benefits Under Circular Economy Frameworks",
+     "authors": [
+      "Bishnu Kant Shukla",
+      "Harshit Yadav",
+      "Satvik Singh"
+     ],
+     "journal": "Construction Materials",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/constrmater5030067",
+     "pdf": "https://www.mdpi.com/2673-7108/5/3/67/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater4010005",
+     "title": "A Comprehensive Analysis of the Integration of Deep Learning Models in Concrete Research from a Structural Health Perspective",
+     "authors": [
+      "Ayesha Munira Chowdhury",
+      "Rashed Kaiser"
+     ],
+     "journal": "Construction Materials",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/constrmater4010005",
+     "pdf": "https://www.mdpi.com/2673-7108/4/1/5/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater1010001",
+     "title": "A Historical Review of Impressed Current Cathodic Protection of Steel in Concrete",
+     "authors": [
+      "John P. Broomfield"
+     ],
+     "journal": "Construction Materials",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/constrmater1010001",
+     "pdf": "https://www.mdpi.com/2673-7108/1/1/1/pdf"
+    },
+    {
+     "doi": "10.3390/ma14195748",
+     "title": "Recycled Aggregates Produced from Construction and Demolition Waste for Structural Concrete: Constituents, Properties and Production",
+     "authors": [
+      "João Pacheco",
+      "Jorge de Brito"
+     ],
+     "journal": "Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/ma14195748",
+     "pdf": "https://www.mdpi.com/1996-1944/14/19/5748/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater1030010",
+     "title": "Clay as a Sustainable Binder for Concrete—A Review",
+     "authors": [
+      "Seyed Sina Mousavi",
+      "Chandrasekhar Bhojaraju",
+      "Claudiane Ouellet-Plamondon"
+     ],
+     "journal": "Construction Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/constrmater1030010",
+     "pdf": "https://www.mdpi.com/2673-7108/1/3/10/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater5040092",
+     "title": "Structural Performance of Textile-Reinforced Concrete Sandwich Panels Utilizing GFRP Shear Connectors",
+     "authors": [
+      "Lukas Steffen",
+      "Ismael Viejo",
+      "Belén Hernández-Gascón"
+     ],
+     "journal": "Construction Materials",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/constrmater5040092",
+     "pdf": "https://www.mdpi.com/2673-7108/5/4/92/pdf"
+    },
+    {
+     "doi": "10.3390/constrmater5040082",
+     "title": "Experimental Investigation of Low Carbon Concrete Using Ground Seashell Powder as Filler and Partial Cement Replacement",
+     "authors": [
+      "Ali Abbas",
+      "Anjana Kudukkan"
+     ],
+     "journal": "Construction Materials",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/constrmater5040082",
+     "pdf": "https://www.mdpi.com/2673-7108/5/4/82/pdf"
+    },
+    {
+     "doi": "10.3390/su132212491",
+     "title": "Innovative Structural Applications of High Performance Concrete Materials in Sustainable Construction",
+     "authors": [
+      "Fausto Minelli",
+      "Enzo Martinelli",
+      "Luca Facconi"
+     ],
+     "journal": "Sustainability",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/su132212491",
+     "pdf": "https://www.mdpi.com/2071-1050/13/22/12491/pdf"
+    },
+    {
+     "doi": "10.3390/ma15072458",
+     "title": "An Experimental Study on Structural Concrete Containing Recycled Aggregates and Powder from Construction and Demolition Waste",
+     "authors": [
+      "Jeonghyun Kim",
+      "Anna M. Grabiec",
+      "Andrzej Ubysz"
+     ],
+     "journal": "Materials",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/ma15072458",
+     "pdf": "https://www.mdpi.com/1996-1944/15/7/2458/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "manufacturing",
+   "name": "Fabrication & machines",
+   "icon": "⚙️",
+   "query": "manufacturing machining mechanical engineering review",
+   "papers": [
+    {
+     "doi": "10.3390/mi15081030",
+     "title": "Recent Developments in Mechanical Ultraprecision Machining for Nano/Micro Device Manufacturing",
+     "authors": [
+      "Tirimisiyu Olaniyan",
+      "Nadimul Faisal",
+      "James Njuguna"
+     ],
+     "journal": "Micromachines",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/mi15081030",
+     "pdf": "https://www.mdpi.com/2072-666X/15/8/1030/pdf"
+    },
+    {
+     "doi": "10.3390/jmmp9040135",
+     "title": "Effect of Varying Layer Thickness by Interlayer Machining on Microstructure and Mechanical Properties in Wire Arc Additive Manufacturing",
+     "authors": [
+      "G. Ganesan",
+      "Neel Kamal Gupta",
+      "S. Siddhartha"
+     ],
+     "journal": "Journal of Manufacturing and Materials Processing",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/jmmp9040135",
+     "pdf": "https://www.mdpi.com/2504-4494/9/4/135/pdf"
+    },
+    {
+     "doi": "10.3390/ma18143411",
+     "title": "Surface Coatings on Biomedical Magnesium Alloys",
+     "authors": [
+      "Jiapeng Ren",
+      "Zhenyu Zhao",
+      "Hua Li"
+     ],
+     "journal": "Materials",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/ma18143411",
+     "pdf": "https://www.mdpi.com/1996-1944/18/14/3411/pdf"
+    },
+    {
+     "doi": "10.3390/jmmp4040102",
+     "title": "Advanced Manufacturing and Machining Processes",
+     "authors": [
+      "Alborz Shokrani",
+      "Dirk Biermann"
+     ],
+     "journal": "Journal of Manufacturing and Materials Processing",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/jmmp4040102",
+     "pdf": "https://www.mdpi.com/2504-4494/4/4/102/pdf"
+    },
+    {
+     "doi": "10.3390/ma15165479",
+     "title": "Development of a Laser Scanning Machining System Supporting On-the-Fly Machining and Laser Power Follow-Up Adjustment",
+     "authors": [
+      "Yisheng Yin",
+      "Chengrui Zhang",
+      "Tieshuang Zhu"
+     ],
+     "journal": "Materials",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/ma15165479",
+     "pdf": "https://www.mdpi.com/1996-1944/15/16/5479/pdf"
+    },
+    {
+     "doi": "10.3390/s24247995",
+     "title": "Flexible Mechanical Sensors for Plant Growth Monitoring: An Emerging Area for Smart Agriculture",
+     "authors": [
+      "Thi Thu Hien Phan",
+      "Thi Mai Vi Ngo",
+      "Hoang-Phuong Phan"
+     ],
+     "journal": "Sensors",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/s24247995",
+     "pdf": "https://www.mdpi.com/1424-8220/24/24/7995/pdf"
+    },
+    {
+     "doi": "10.3390/mi15010107",
+     "title": "A Review on Machining SiCp/Al Composite Materials",
+     "authors": [
+      "Zhigao Chen",
+      "Fei Ding",
+      "Zhichao Zhang"
+     ],
+     "journal": "Micromachines",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/mi15010107",
+     "pdf": "https://www.mdpi.com/2072-666X/15/1/107/pdf"
+    },
+    {
+     "doi": "10.3390/machines10111008",
+     "title": "Advanced Machining of Joint Implant UHMWPE Inserts",
+     "authors": [
+      "Miroslav Piska",
+      "Katerina Urbancova"
+     ],
+     "journal": "Machines",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/machines10111008",
+     "pdf": "https://www.mdpi.com/2075-1702/10/11/1008/pdf"
+    },
+    {
+     "doi": "10.3390/pr10010084",
+     "title": "A Review on Remanufacturing Reverse Logistics Network Design and Model Optimization",
+     "authors": [
+      "Xumei Zhang",
+      "Bo Zou",
+      "Zhaohui Feng"
+     ],
+     "journal": "Processes",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/pr10010084",
+     "pdf": "https://www.mdpi.com/2227-9717/10/1/84/pdf"
+    },
+    {
+     "doi": "10.3390/jmse9030338",
+     "title": "Application Research of Digital Twin-Driven Ship Intelligent Manufacturing System: Pipe Machining Production Line",
+     "authors": [
+      "Qingcai Wu",
+      "Yunsheng Mao",
+      "Jianxun Chen"
+     ],
+     "journal": "Journal of Marine Science and Engineering",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/jmse9030338",
+     "pdf": "https://www.mdpi.com/2077-1312/9/3/338/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "electronics",
+   "name": "Électronique & calcul",
+   "icon": "💻",
+   "query": "semiconductor electronics microcontroller computing review",
+   "papers": [
+    {
+     "doi": "10.3390/electronics15112318",
+     "title": "Microcontroller-Based Synchronized Switching Drive for DC Electromagnet-Driven Apparatus",
+     "authors": [
+      "Dariusz Smugala",
+      "Michal Gora"
+     ],
+     "journal": "Electronics",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/electronics15112318",
+     "pdf": "https://www.mdpi.com/2079-9292/15/11/2318/pdf"
+    },
+    {
+     "doi": "10.3390/electronics15051020",
+     "title": "Porting NASA cFS Flight Software Framework to Safety Microcontroller TMS570 with FreeRTOS",
+     "authors": [
+      "Qi Wu",
+      "Mingrui Xin"
+     ],
+     "journal": "Electronics",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/electronics15051020",
+     "pdf": "https://www.mdpi.com/2079-9292/15/5/1020/pdf"
+    },
+    {
+     "doi": "10.3390/electronics6040088",
+     "title": "A Microcontroller-Based Adaptive Model Predictive Control Platform for Process Control Applications",
+     "authors": [
+      "Michael Short",
+      "Fathi Abugchem"
+     ],
+     "journal": "Electronics",
+     "year": 2017,
+     "url": "https://doi.org/10.3390/electronics6040088",
+     "pdf": "https://www.mdpi.com/2079-9292/6/4/88/pdf"
+    },
+    {
+     "doi": "10.3390/electronics12010143",
+     "title": "Performance Evaluation of C/C++, MicroPython, Rust and TinyGo Programming Languages on ESP32 Microcontroller",
+     "authors": [
+      "Ignas Plauska",
+      "Agnius Liutkevičius",
+      "Audronė Janavičiūtė"
+     ],
+     "journal": "Electronics",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/electronics12010143",
+     "pdf": "https://www.mdpi.com/2079-9292/12/1/143/pdf"
+    },
+    {
+     "doi": "10.3390/electronics7060088",
+     "title": "Real-Time Ventricular Fibrillation Detection Using an Embedded Microcontroller in a Pervasive Environment",
+     "authors": [
+      "Sundeok Kwon",
+      "Jungyoon Kim",
+      "Chao-Hsien Chu"
+     ],
+     "journal": "Electronics",
+     "year": 2018,
+     "url": "https://doi.org/10.3390/electronics7060088",
+     "pdf": "https://www.mdpi.com/2079-9292/7/6/88/pdf"
+    },
+    {
+     "doi": "10.3390/electronics14030438",
+     "title": "Microcontroller-Based Electronic Laboratory Measurement Device for Distance Education",
+     "authors": [
+      "Vladimirs Smolaninovs",
+      "Maris Terauds"
+     ],
+     "journal": "Electronics",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/electronics14030438",
+     "pdf": "https://www.mdpi.com/2079-9292/14/3/438/pdf"
+    },
+    {
+     "doi": "10.3390/electronics13112144",
+     "title": "Microcontroller Based Evaluation of Voltage Regulators Efficiency and Their Noise Performance Estimation by Fast Allan Variance Method",
+     "authors": [
+      "Miroslav Matejček",
+      "Mikuláš Šostronek"
+     ],
+     "journal": "Electronics",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/electronics13112144",
+     "pdf": "https://www.mdpi.com/2079-9292/13/11/2144/pdf"
+    },
+    {
+     "doi": "10.3390/electronics10070775",
+     "title": "Power Consumption Profiling of a Lightweight Development Board: Sensing with the INA219 and Teensy 4.0 Microcontroller",
+     "authors": [
+      "Jonathan Lambert",
+      "Rosemary Monahan",
+      "Kevin Casey"
+     ],
+     "journal": "Electronics",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/electronics10070775",
+     "pdf": "https://www.mdpi.com/2079-9292/10/7/775/pdf"
+    },
+    {
+     "doi": "10.3390/electronics13244894",
+     "title": "Auto-Trimming-Based Designs for the Test Optimization of Mass-Produced Automotive Microcontroller Unit Chip Probing Tests",
+     "authors": [
+      "Qi Liu",
+      "David Wei Zhang"
+     ],
+     "journal": "Electronics",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/electronics13244894",
+     "pdf": "https://www.mdpi.com/2079-9292/13/24/4894/pdf"
+    },
+    {
+     "doi": "10.3390/electronics10050524",
+     "title": "The Frequency and Real-Time Properties of the Microcontroller Implementation of Fractional-Order PID Controller",
+     "authors": [
+      "Krzysztof Oprzędkiewicz",
+      "Maciej Rosół",
+      "Jakub Żegleń-Włodarczyk"
+     ],
+     "journal": "Electronics",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/electronics10050524",
+     "pdf": "https://www.mdpi.com/2079-9292/10/5/524/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "comms",
+   "name": "Communications & réseaux",
+   "icon": "📡",
+   "query": "wireless communication radio network protocol review",
+   "papers": [
+    {
+     "doi": "10.3390/s22155601",
+     "title": "Energy Efficient Multicast Communication in Cognitive Radio Wireless Mesh Network",
+     "authors": [
+      "Imran Baig",
+      "Najam Ul Hasan",
+      "Prajoona Valsalan"
+     ],
+     "journal": "Sensors",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/s22155601",
+     "pdf": "https://www.mdpi.com/1424-8220/22/15/5601/pdf"
+    },
+    {
+     "doi": "10.3390/en8077279",
+     "title": "Smart Home Communication Technologies and Applications: Wireless Protocol Assessment for Home Area Network Resources",
+     "authors": [
+      "Tiago Mendes",
+      "Radu Godina",
+      "Eduardo Rodrigues"
+     ],
+     "journal": "Energies",
+     "year": 2015,
+     "url": "https://doi.org/10.3390/en8077279",
+     "pdf": "https://www.mdpi.com/1996-1073/8/7/7279/pdf"
+    },
+    {
+     "doi": "10.3390/network1020010",
+     "title": "Wireless Caching: Making Radio Access Networks More than Bit-Pipelines",
+     "authors": [
+      "Wei Chen",
+      "H. Vincent Poor"
+     ],
+     "journal": "Network",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/network1020010",
+     "pdf": "https://www.mdpi.com/2673-8732/1/2/10/pdf"
+    },
+    {
+     "doi": "10.3390/electronics11213544",
+     "title": "Design of Concurrent Tri-Band High-Efficiency Power Amplifier Based on Wireless Applications",
+     "authors": [
+      "Mingming Gao",
+      "Gaoyang Xu",
+      "Jingchang Nan"
+     ],
+     "journal": "Electronics",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/electronics11213544",
+     "pdf": "https://www.mdpi.com/2079-9292/11/21/3544/pdf"
+    },
+    {
+     "doi": "10.3390/network4040028",
+     "title": "Secured Real-Time Machine Communication Protocol",
+     "authors": [
+      "Yifei Ren",
+      "Lakmal Rupasinghe",
+      "Siavash Khaksar"
+     ],
+     "journal": "Network",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/network4040028",
+     "pdf": "https://www.mdpi.com/2673-8732/4/4/28/pdf"
+    },
+    {
+     "doi": "10.3390/s21206741",
+     "title": "In-Network Data Aggregation for Ad Hoc Clustered Cognitive Radio Wireless Sensor Network",
+     "authors": [
+      "Mohamad Rida Mortada",
+      "Abbass Nasser",
+      "Ali Mansour"
+     ],
+     "journal": "Sensors",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/s21206741",
+     "pdf": "https://www.mdpi.com/1424-8220/21/20/6741/pdf"
+    },
+    {
+     "doi": "10.3390/computers8010016",
+     "title": "Inter-Vehicle Communication Protocol Design for a Yielding Decision at an Unsignalized Intersection and Evaluation of the Protocol Using Radio Control Cars Equipped with Raspberry Pi",
+     "authors": [
+      "Hayato Yajima",
+      "Kazumasa Takami"
+     ],
+     "journal": "Computers",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/computers8010016",
+     "pdf": "https://www.mdpi.com/2073-431X/8/1/16/pdf"
+    },
+    {
+     "doi": "10.3390/s141121151",
+     "title": "VibeComm: Radio-Free Wireless Communication for Smart Devices Using Vibration",
+     "authors": [
+      "Inhwan Hwang",
+      "Jungchan Cho",
+      "Songhwai Oh"
+     ],
+     "journal": "Sensors",
+     "year": 2014,
+     "url": "https://doi.org/10.3390/s141121151",
+     "pdf": "https://www.mdpi.com/1424-8220/14/11/21151/pdf"
+    },
+    {
+     "doi": "10.3390/s22103885",
+     "title": "LoRaCog: A Protocol for Cognitive Radio-Based LoRa Network",
+     "authors": [
+      "Firas Salika",
+      "Abbass Nasser",
+      "Maxime Mroue"
+     ],
+     "journal": "Sensors",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/s22103885",
+     "pdf": "https://www.mdpi.com/1424-8220/22/10/3885/pdf"
+    },
+    {
+     "doi": "10.3390/electronics13214289",
+     "title": "A Provably Secure and Lightweight Two-Factor Authentication Protocol for Wireless Sensor Network",
+     "authors": [
+      "Hao Feng",
+      "Bowen Cai"
+     ],
+     "journal": "Electronics",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/electronics13214289",
+     "pdf": "https://www.mdpi.com/2079-9292/13/21/4289/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "transport",
+   "name": "Transport",
+   "icon": "🚜",
+   "query": "internal combustion engine vehicle transportation review",
+   "papers": [
+    {
+     "doi": "10.3390/wevj3020233",
+     "title": "Capacitors for Internal Combustion Engine Starting with Green Technology DLCAPTM",
+     "authors": [
+      "Toshihiko Furukawa"
+     ],
+     "journal": "World Electric Vehicle Journal",
+     "year": 2009,
+     "url": "https://doi.org/10.3390/wevj3020233",
+     "pdf": "https://www.mdpi.com/2032-6653/3/2/233/pdf"
+    },
+    {
+     "doi": "10.3390/en17246295",
+     "title": "Research into a Two-Stage Filtration System of Inlet Air to the Internal Combustion Engine of a Motor Vehicle",
+     "authors": [
+      "Tadeusz Dziubak"
+     ],
+     "journal": "Energies",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/en17246295",
+     "pdf": "https://www.mdpi.com/1996-1073/17/24/6295/pdf"
+    },
+    {
+     "doi": "10.3390/su11092690",
+     "title": "Estimation of CO2 Emissions of Internal Combustion Engine Vehicle and Battery Electric Vehicle Using LCA",
+     "authors": [
+      "Ryuji Kawamoto",
+      "Hideo Mochizuki",
+      "Yoshihisa Moriguchi"
+     ],
+     "journal": "Sustainability",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/su11092690",
+     "pdf": "https://www.mdpi.com/2071-1050/11/9/2690/pdf"
+    },
+    {
+     "doi": "10.3390/atmos15060677",
+     "title": "Towards Sustainable Mobility: Assessing the Benefits and Implications of Internal Combustion Engine Vehicle Bans and Battery Electric Vehicle Uptake in Qatar",
+     "authors": [
+      "Abdulla Alishaq",
+      "Daniel Mehlig"
+     ],
+     "journal": "Atmosphere",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/atmos15060677",
+     "pdf": "https://www.mdpi.com/2073-4433/15/6/677/pdf"
+    },
+    {
+     "doi": "10.3390/en15031208",
+     "title": "A Review of the External and Internal Residual Exhaust Gas in the Internal Combustion Engine",
+     "authors": [
+      "Nguyen Xuan Khoa",
+      "Ocktaeck Lim"
+     ],
+     "journal": "Energies",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/en15031208",
+     "pdf": "https://www.mdpi.com/1996-1073/15/3/1208/pdf"
+    },
+    {
+     "doi": "10.3390/wevj12010036",
+     "title": "E-Engine for a Long-Tail Boat, an Application in ASEAN (Association of Southeast Asian Nations)-Design and Comparison with Internal Combustion Engine",
+     "authors": [
+      "Vu Tran Tuan",
+      "Phuong Nguyen Huy",
+      "Surasak Phoemsapthawee"
+     ],
+     "journal": "World Electric Vehicle Journal",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/wevj12010036",
+     "pdf": "https://www.mdpi.com/2032-6653/12/1/36/pdf"
+    },
+    {
+     "doi": "10.3390/en16041604",
+     "title": "Review on Plasma-Assisted Ignition Systems for Internal Combustion Engine Application",
+     "authors": [
+      "Yong Hyun Choi",
+      "Joonsik Hwang"
+     ],
+     "journal": "Energies",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/en16041604",
+     "pdf": "https://www.mdpi.com/1996-1073/16/4/1604/pdf"
+    },
+    {
+     "doi": "10.3390/su16051924",
+     "title": "Review of Organic Rankine Cycles for Internal Combustion Engine Waste Heat Recovery: Latest Decade in Review",
+     "authors": [
+      "Charles E. Sprouse"
+     ],
+     "journal": "Sustainability",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/su16051924",
+     "pdf": "https://www.mdpi.com/2071-1050/16/5/1924/pdf"
+    },
+    {
+     "doi": "10.3390/en18061391",
+     "title": "Machine Learning for Internal Combustion Engine Optimization with Hydrogen-Blended Fuels: A Literature Review",
+     "authors": [
+      "Mateusz Zbikowski",
+      "Andrzej Teodorczyk"
+     ],
+     "journal": "Energies",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/en18061391",
+     "pdf": "https://www.mdpi.com/1996-1073/18/6/1391/pdf"
+    },
+    {
+     "doi": "10.3390/en15041311",
+     "title": "Internal Combustion Engine Starting and Torque Boosting Control System Design with Vibration Active Damping Features for a P0 Mild Hybrid Vehicle Configuration",
+     "authors": [
+      "Danijel Pavković",
+      "Mihael Cipek",
+      "Filip Plavac"
+     ],
+     "journal": "Energies",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/en15041311",
+     "pdf": "https://www.mdpi.com/1996-1073/15/4/1311/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "textiles",
+   "name": "Textiles & polymères",
+   "icon": "🧵",
+   "query": "textile fiber polymer synthesis review",
+   "papers": [
+    {
+     "doi": "10.3390/buildings13112744",
+     "title": "Textile Types, Number of Layers and Wrapping Types Effect on Shear Strengthening of Reinforced Concrete Beams with Textile-Reinforced Mortar versus Carbon-Fiber-Reinforced Polymer",
+     "authors": [
+      "Mahmut Cem Yılmaz"
+     ],
+     "journal": "Buildings",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/buildings13112744",
+     "pdf": "https://www.mdpi.com/2075-5309/13/11/2744/pdf"
+    },
+    {
+     "doi": "10.3390/buildings14051486",
+     "title": "A Review on the Effects of Waste Textile Polymer Fiber on Concrete Strength: Exploring the Key Parameters",
+     "authors": [
+      "Soorya Sasi",
+      "Paul Joseph",
+      "Robert Haigh"
+     ],
+     "journal": "Buildings",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/buildings14051486",
+     "pdf": "https://www.mdpi.com/2075-5309/14/5/1486/pdf"
+    },
+    {
+     "doi": "10.3390/polym13040634",
+     "title": "Fracture Characteristics and Energy Dissipation of Textile Bamboo Fiber Reinforced Polymer",
+     "authors": [
+      "Chun-Wei Chang",
+      "Feng-Cheng Chang"
+     ],
+     "journal": "Polymers",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/polym13040634",
+     "pdf": "https://www.mdpi.com/2073-4360/13/4/634/pdf"
+    },
+    {
+     "doi": "10.3390/polym13121951",
+     "title": "Review: Filament Winding and Automated Fiber Placement with In Situ Consolidation for Fiber Reinforced Thermoplastic Polymer Composites",
+     "authors": [
+      "Yi Di Boon",
+      "Sunil Chandrakant Joshi",
+      "Somen Kumar Bhudolia"
+     ],
+     "journal": "Polymers",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/polym13121951",
+     "pdf": "https://www.mdpi.com/2073-4360/13/12/1951/pdf"
+    },
+    {
+     "doi": "10.3390/ma14133742",
+     "title": "A Textile Waste Fiber-Reinforced Cement Composite: Comparison between Short Random Fiber and Textile Reinforcement",
+     "authors": [
+      "Payam Sadrolodabaee",
+      "Josep Claramunt",
+      "Mònica Ardanuy"
+     ],
+     "journal": "Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/ma14133742",
+     "pdf": "https://www.mdpi.com/1996-1944/14/13/3742/pdf"
+    },
+    {
+     "doi": "10.3390/ma12203311",
+     "title": "Wearable Fiber Optic Technology Based on Smart Textile: A Review",
+     "authors": [
+      "Zidan Gong",
+      "Ziyang Xiang",
+      "Xia OuYang"
+     ],
+     "journal": "Materials",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/ma12203311",
+     "pdf": "https://www.mdpi.com/1996-1944/12/20/3311/pdf"
+    },
+    {
+     "doi": "10.3390/ma14247826",
+     "title": "Maintenance and Inspection of Fiber-Reinforced Polymer (FRP) Bridges: A Review of Methods",
+     "authors": [
+      "Long Tang"
+     ],
+     "journal": "Materials",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/ma14247826",
+     "pdf": "https://www.mdpi.com/1996-1944/14/24/7826/pdf"
+    },
+    {
+     "doi": "10.3390/polym7101501",
+     "title": "Carbon Fiber Reinforced Polymer for Cable Structures—A Review",
+     "authors": [
+      "Yue Liu",
+      "Bernd Zwingmann",
+      "Mike Schlaich"
+     ],
+     "journal": "Polymers",
+     "year": 2015,
+     "url": "https://doi.org/10.3390/polym7101501",
+     "pdf": "https://www.mdpi.com/2073-4360/7/10/1501/pdf"
+    },
+    {
+     "doi": "10.3390/ma17061281",
+     "title": "Impact of Metal Salt Oxidants and Preparation Technology on Efficacy of Bacterial Cellulose/Polypyrrole Flexible Conductive Fiber Membranes",
+     "authors": [
+      "Sixuan Tao",
+      "Qun Yang",
+      "Huili Qiu"
+     ],
+     "journal": "Materials",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/ma17061281",
+     "pdf": "https://www.mdpi.com/1996-1944/17/6/1281/pdf"
+    },
+    {
+     "doi": "10.3390/polym13172839",
+     "title": "Review of Strain Rate Effects of Fiber-Reinforced Polymer Composites",
+     "authors": [
+      "Lulu Ma",
+      "Feng Liu",
+      "Dongyu Liu"
+     ],
+     "journal": "Polymers",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/polym13172839",
+     "pdf": "https://www.mdpi.com/2073-4360/13/17/2839/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "preservation",
+   "name": "Conservation & stockage",
+   "icon": "🥫",
+   "query": "food preservation cold storage drying fermentation review",
+   "papers": [
+    {
+     "doi": "10.3390/fermentation10030168",
+     "title": "Lactic Acid Fermentation in the Food Industry and Bio-Preservation of Food",
+     "authors": [
+      "Yulma Lizbeth Aguirre-Garcia",
+      "Sendar Daniel Nery-Flores",
+      "Lizeth Guadalupe Campos-Muzquiz"
+     ],
+     "journal": "Fermentation",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/fermentation10030168",
+     "pdf": "https://www.mdpi.com/2311-5637/10/3/168/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation11030142",
+     "title": "Expanding Layers of Bacteriocin Applications: From Food Preservation to Human Health Interventions",
+     "authors": [
+      "Furkan Demirgül",
+      "Halil İbrahim Kaya",
+      "Redife Aslıhan Ucar"
+     ],
+     "journal": "Fermentation",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/fermentation11030142",
+     "pdf": "https://www.mdpi.com/2311-5637/11/3/142/pdf"
+    },
+    {
+     "doi": "10.3390/foods12173156",
+     "title": "Effects of Hydroxyethyl Cellulose and Sulfated Rice Bran Polysaccharide Coating on Quality Maintenance of Cherry Tomatoes during Cold Storage",
+     "authors": [
+      "Guige Liu",
+      "Bingjie Chen",
+      "Hongru Liu"
+     ],
+     "journal": "Foods",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/foods12173156",
+     "pdf": "https://www.mdpi.com/2304-8158/12/17/3156/pdf"
+    },
+    {
+     "doi": "10.3390/foods12122405",
+     "title": "Hot Water Treatment Improves Date Drying and Maintains Phytochemicals and Fruit Quality Characteristics of Date Palm (Phoenix dactylifera)",
+     "authors": [
+      "Jianhui Li",
+      "Imtiaz Hussain",
+      "Muhammad Azam"
+     ],
+     "journal": "Foods",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/foods12122405",
+     "pdf": "https://www.mdpi.com/2304-8158/12/12/2405/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation12030137",
+     "title": "Succession of Molecular Ecological Network During Fermentation Drying of Food Waste",
+     "authors": [
+      "Bin Zhang",
+      "Xichun Wang",
+      "Zhuzhong Yin"
+     ],
+     "journal": "Fermentation",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/fermentation12030137",
+     "pdf": "https://www.mdpi.com/2311-5637/12/3/137/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation5030081",
+     "title": "Food Wastes as a Potential New Source for Edible Insect Mass Production for Food and Feed: A review",
+     "authors": [
+      "Vassileios Varelas"
+     ],
+     "journal": "Fermentation",
+     "year": 2019,
+     "url": "https://doi.org/10.3390/fermentation5030081",
+     "pdf": "https://www.mdpi.com/2311-5637/5/3/81/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation4040095",
+     "title": "Assessment of Volatile Compounds Evolution, Antioxidant Activity, and Total Phenolics Content during Cold Storage of Pomegranate Beverage Fermented by Lactobacillus paracasei K5",
+     "authors": [
+      "Ioanna Mantzourani",
+      "Stavros Kazakos",
+      "Antonia Terpou"
+     ],
+     "journal": "Fermentation",
+     "year": 2018,
+     "url": "https://doi.org/10.3390/fermentation4040095",
+     "pdf": "https://www.mdpi.com/2311-5637/4/4/95/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation7040250",
+     "title": "Microstructural, Volatile Compounds, Microbiological and Organoleptical Characteristics of Low-Fat Buffalo Milk Yogurt Enriched with Whey Protein Concentrate and Ca-Caseinate during Cold Storage",
+     "authors": [
+      "Hassan Barakat",
+      "Ahmed Mohamed",
+      "Dalia G. Gemiel"
+     ],
+     "journal": "Fermentation",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/fermentation7040250",
+     "pdf": "https://www.mdpi.com/2311-5637/7/4/250/pdf"
+    },
+    {
+     "doi": "10.3390/pr13030663",
+     "title": "Advances in the Preservation of Plant-Based Pigments via Spray Drying—A Systematic Review",
+     "authors": [
+      "Elsa Díaz-Montes"
+     ],
+     "journal": "Processes",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/pr13030663",
+     "pdf": "https://www.mdpi.com/2227-9717/13/3/663/pdf"
+    },
+    {
+     "doi": "10.3390/fermentation6040100",
+     "title": "Snapshot of Cyprus Raw Goat Milk Bacterial Diversity via 16S rDNA High-Throughput Sequencing; Impact of Cold Storage Conditions",
+     "authors": [
+      "Eleni Kamilari",
+      "Dimitrios A. Anagnostopoulos",
+      "Photis Papademas"
+     ],
+     "journal": "Fermentation",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/fermentation6040100",
+     "pdf": "https://www.mdpi.com/2311-5637/6/4/100/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "agronomy",
+   "name": "Sols & élevage",
+   "icon": "🐄",
+   "query": "soil fertility livestock animal husbandry agronomy review",
+   "papers": [
+    {
+     "doi": "10.3390/agronomy11050823",
+     "title": "Agronomic Efficiency of Animal-Derived Organic Fertilizers and Their Effects on Biology and Fertility of Soil: A Review",
+     "authors": [
+      "Shantanu Bhunia",
+      "Ankita Bhowmik",
+      "Rambilash Mallick"
+     ],
+     "journal": "Agronomy",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/agronomy11050823",
+     "pdf": "https://www.mdpi.com/2073-4395/11/5/823/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy14071432",
+     "title": "Response of Soil Bacterial Communities and Potato Productivity to Fertilizer Application in Farmlands in the Agropastoral Zone of Northern China",
+     "authors": [
+      "Junmei Liang",
+      "Xiaohua Shi",
+      "Tingting Zhang"
+     ],
+     "journal": "Agronomy",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/agronomy14071432",
+     "pdf": "https://www.mdpi.com/2073-4395/14/7/1432/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy10091349",
+     "title": "Soil Fertility Management for Better Crop Production",
+     "authors": [
+      "John Havlin",
+      "Ron Heiniger"
+     ],
+     "journal": "Agronomy",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/agronomy10091349",
+     "pdf": "https://www.mdpi.com/2073-4395/10/9/1349/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy14061148",
+     "title": "Effects of Organic Fertilizer with Different Degrees of Maturity on Bacteria in Saline–Alkali Soil",
+     "authors": [
+      "Hongmei Bai",
+      "Meiying Liu",
+      "Yupeng Jing"
+     ],
+     "journal": "Agronomy",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/agronomy14061148",
+     "pdf": "https://www.mdpi.com/2073-4395/14/6/1148/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy10040456",
+     "title": "Soil Macrofauna: A key Factor for Increasing Soil Fertility and Promoting Sustainable Soil Use in Fruit Orchard Agrosystems",
+     "authors": [
+      "Adriano Sofo",
+      "Alba Nicoletta Mininni",
+      "Patrizia Ricciuti"
+     ],
+     "journal": "Agronomy",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/agronomy10040456",
+     "pdf": "https://www.mdpi.com/2073-4395/10/4/456/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy14040820",
+     "title": "Impacts of Livestock Production on Grassland Grasshopper Disasters",
+     "authors": [
+      "Sibo Liu",
+      "Meimei Chen",
+      "Ping Li"
+     ],
+     "journal": "Agronomy",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/agronomy14040820",
+     "pdf": "https://www.mdpi.com/2073-4395/14/4/820/pdf"
+    },
+    {
+     "doi": "10.3390/ani14131901",
+     "title": "Pain Relief Interventions in Australian Livestock Husbandry: A Review of Animal Welfare and Pain Duration",
+     "authors": [
+      "Lee Metcalf",
+      "Sabrina Lomax",
+      "Dominique Van der Saag"
+     ],
+     "journal": "Animals",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/ani14131901",
+     "pdf": "https://www.mdpi.com/2076-2615/14/13/1901/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy10060803",
+     "title": "Cropping System and Rotational Grazing Effects on Soil Fertility and Enzymatic Activity in an Integrated Organic Crop-Livestock System",
+     "authors": [
+      "Fernando Shintate Galindo",
+      "Kathleen Delate",
+      "Bradley Heins"
+     ],
+     "journal": "Agronomy",
+     "year": 2020,
+     "url": "https://doi.org/10.3390/agronomy10060803",
+     "pdf": "https://www.mdpi.com/2073-4395/10/6/803/pdf"
+    },
+    {
+     "doi": "10.3390/agronomy11010140",
+     "title": "Diversifying the Landscape with Animal Integration: An Introduction to the Environmental Sustainability of Crop–Livestock Systems",
+     "authors": [
+      "Kathleen Delate",
+      "Bradley J. Heins"
+     ],
+     "journal": "Agronomy",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/agronomy11010140",
+     "pdf": "https://www.mdpi.com/2073-4395/11/1/140/pdf"
+    },
+    {
+     "doi": "10.3390/molecules27227752",
+     "title": "Polyphenols for Livestock Feed: Sustainable Perspectives for Animal Husbandry?",
+     "authors": [
+      "Marialuisa Formato",
+      "Giovanna Cimmino",
+      "Nabila Brahmi-Chendouh"
+     ],
+     "journal": "Molecules",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/molecules27227752",
+     "pdf": "https://www.mdpi.com/1420-3049/27/22/7752/pdf"
+    }
+   ]
+  },
+  {
+   "slug": "knowledge",
+   "name": "Savoir & mesure",
+   "icon": "📐",
+   "query": "metrology measurement standards science education review",
+   "papers": [
+    {
+     "doi": "10.3390/toxics12020161",
+     "title": "Particulate Matter Induces Oxidative Stress and Ferroptosis in Human Lung Epithelial Cells",
+     "authors": [
+      "Yujin Ahn",
+      "Yong-Hyeon Yim",
+      "Hee Min Yoo"
+     ],
+     "journal": "Toxics",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/toxics12020161",
+     "pdf": "https://www.mdpi.com/2305-6304/12/2/161/pdf"
+    },
+    {
+     "doi": "10.3390/metrology3020009",
+     "title": "Measurement Techniques for Three-Dimensional Metrology of High Aspect Ratio Internal Features—A Review",
+     "authors": [
+      "Tom Hovell",
+      "Jon Petzing",
+      "Wen Guo"
+     ],
+     "journal": "Metrology",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/metrology3020009",
+     "pdf": "https://www.mdpi.com/2673-8244/3/2/9/pdf"
+    },
+    {
+     "doi": "10.3390/standards1020007",
+     "title": "Explore3DM—A Directory and More for 3D Metrology",
+     "authors": [
+      "Stephen Kyle"
+     ],
+     "journal": "Standards",
+     "year": 2021,
+     "url": "https://doi.org/10.3390/standards1020007",
+     "pdf": "https://www.mdpi.com/2305-6703/1/2/7/pdf"
+    },
+    {
+     "doi": "10.3390/metrology5030042",
+     "title": "A Metrological Approach to Developing Quality Testing Standards for Emerging Advanced Materials",
+     "authors": [
+      "Akira Ono"
+     ],
+     "journal": "Metrology",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/metrology5030042",
+     "pdf": "https://www.mdpi.com/2673-8244/5/3/42/pdf"
+    },
+    {
+     "doi": "10.3390/app13042419",
+     "title": "A Novel Measurement Method for Determining Geometric Errors of Rotary Tables by Using LaserTRACER and Reflectors",
+     "authors": [
+      "Chi-Hua Hsu",
+      "Jr-Rung Chen",
+      "Fan-Hsi Hsu"
+     ],
+     "journal": "Applied Sciences",
+     "year": 2023,
+     "url": "https://doi.org/10.3390/app13042419",
+     "pdf": "https://www.mdpi.com/2076-3417/13/4/2419/pdf"
+    },
+    {
+     "doi": "10.3390/metrology5020027",
+     "title": "The Silent Benefactor: Why Explaining the Importance of Metrology Involves Addressing the Counterfactual",
+     "authors": [
+      "Richard J. C. Brown",
+      "Paul J. Brewer"
+     ],
+     "journal": "Metrology",
+     "year": 2025,
+     "url": "https://doi.org/10.3390/metrology5020027",
+     "pdf": "https://www.mdpi.com/2673-8244/5/2/27/pdf"
+    },
+    {
+     "doi": "10.3390/metrology2040029",
+     "title": "New Frontiers in Measurement Uncertainty",
+     "authors": [
+      "Simona Salicone"
+     ],
+     "journal": "Metrology",
+     "year": 2022,
+     "url": "https://doi.org/10.3390/metrology2040029",
+     "pdf": "https://www.mdpi.com/2673-8244/2/4/29/pdf"
+    },
+    {
+     "doi": "10.3390/metrology6010016",
+     "title": "Evaluating Measurement Uncertainty Using Measurement Models with Arguments Subject to a Constraint",
+     "authors": [
+      "Adriaan M. H. van der Veen",
+      "Gertjan Kok",
+      "Kjetil Folgerø"
+     ],
+     "journal": "Metrology",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/metrology6010016",
+     "pdf": "https://www.mdpi.com/2673-8244/6/1/16/pdf"
+    },
+    {
+     "doi": "10.3390/metrology4040040",
+     "title": "Investigation of the Measurement Systems’ Suitability for the Non-Destructive Measurement of Complex Polymer-Based Micro and Nanostructures",
+     "authors": [
+      "Selina Burkert",
+      "Lukas Schwörer",
+      "Tim Schubert"
+     ],
+     "journal": "Metrology",
+     "year": 2024,
+     "url": "https://doi.org/10.3390/metrology4040040",
+     "pdf": "https://www.mdpi.com/2673-8244/4/4/40/pdf"
+    },
+    {
+     "doi": "10.3390/metrology6020026",
+     "title": "Shrinkage Estimation to Minimize Error in Measurement Estimates and Consensus Values",
+     "authors": [
+      "Robin Willink"
+     ],
+     "journal": "Metrology",
+     "year": 2026,
+     "url": "https://doi.org/10.3390/metrology6020026",
+     "pdf": "https://www.mdpi.com/2673-8244/6/2/26/pdf"
+    }
+   ]
+  }
+ ]
+}
